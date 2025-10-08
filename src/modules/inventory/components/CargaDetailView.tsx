@@ -16,7 +16,8 @@ import {
   Download,
   Share2,
   Mic,
-  FileText
+  FileText,
+  Edit3
 } from 'lucide-react';
 import type { Platform, Evidence, Driver } from '../types';
 import { useInventory } from '../hooks/useInventory';
@@ -27,7 +28,6 @@ import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { PiecesTable } from './PiecesTable';
 import { VoiceDictationModal } from './VoiceDictationModal';
-import { PDFReportService } from '../services/pdfReportService';
 import { SignaturePad } from './SignaturePad';
 import { PDFPreviewModal } from './PDFPreviewModal';
 
@@ -62,7 +62,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [showPDFModal, setShowPDFModal] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [signature, setSignature] = useState<{ name: string; date: string; signatureImage?: string } | undefined>(undefined);
-  const [includeEvidenceInPDF, setIncludeEvidenceInPDF] = useState(true);
+  const [includeEvidenceInPDF] = useState(true);
   const [editData, setEditData] = useState({
     provider: platform.provider || '',
     client: platform.client || '',
@@ -626,44 +626,6 @@ Generado por Sistema de Inventario`;
     setShowSignaturePad(false);
   };
 
-  const handleGeneratePDFWithSignature = () => {
-    if (!signature) {
-      setShowSignaturePad(true);
-    } else {
-      // Ya tiene firma, generar PDF directamente
-      setShowPDFModal(true);
-    }
-  };
-
-  const handleGeneratePDFWithoutSignature = () => {
-    setSignature(undefined);
-    setShowPDFModal(true);
-  };
-
-  const handleToggleEvidenceInPDF = () => {
-    setIncludeEvidenceInPDF(!includeEvidenceInPDF);
-  };
-
-  // Esta función ahora usa el servicio PDFReportService
-  const generateAndDownloadPDF = async () => {
-    try {
-      setExporting(true);
-
-      const pdfOptions = {
-        platform,
-        signature,
-        includeEvidence: includeEvidenceInPDF,
-      };
-
-      await PDFReportService.downloadReport(pdfOptions);
-      showNotification('success', 'PDF descargado exitosamente');
-    } catch (error) {
-      console.error('Error descargando PDF:', error);
-      showNotification('error', 'Error al descargar el PDF');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const statusColors: Record<string, string> = {
     in_progress: 'bg-yellow-100 text-yellow-800',
@@ -1131,7 +1093,7 @@ Generado por Sistema de Inventario`;
 
                 {/* Información del creador */}
                 {platform.createdByName && (
-                  <div className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
                     <span className="flex items-center gap-1.5 text-gray-600 font-medium">
                       <User className="h-4 w-4 text-purple-500" />
                       Creada por
@@ -1141,6 +1103,33 @@ Generado por Sistema de Inventario`;
                     </span>
                   </div>
                 )}
+
+                {/* Indicador de Firma Electrónica */}
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                    <Edit3 className="h-4 w-4 text-green-500" />
+                    Firma Electrónica
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {signature ? (
+                      <div className="flex items-center gap-1">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span className="text-green-700 font-semibold text-sm">
+                          {signature.name}
+                        </span>
+                        <button
+                          onClick={() => setSignature(undefined)}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                          title="Eliminar firma"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 text-sm">Sin firma</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1382,16 +1371,22 @@ Generado por Sistema de Inventario`;
             <span className="text-[10px] font-semibold">Evidencias</span>
           </button>
 
-          {/* Botón Generar PDF */}
+          {/* Botón Firma Electrónica */}
           <button
-            onClick={handleGeneratePDF}
-            disabled={platform.pieces.length === 0}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
-            title="Generar reporte PDF profesional"
+            onClick={() => setShowSignaturePad(true)}
+            className={`flex flex-col items-center justify-center flex-1 py-2.5 rounded-lg border shadow-sm active:scale-95 transition-transform ${
+              signature 
+                ? 'bg-gradient-to-br from-green-100 to-green-200 text-green-800 border-green-300' 
+                : 'bg-gradient-to-br from-green-50 to-green-100 text-green-700 border-green-200'
+            }`}
+            title={signature ? "Editar firma electrónica" : "Agregar firma electrónica"}
           >
-            <FileText className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">PDF</span>
+            <Edit3 className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px] font-semibold">
+              {signature ? 'Firmado' : 'Firma'}
+            </span>
           </button>
+
         </div>
       </div>
 
@@ -1601,19 +1596,19 @@ Generado por Sistema de Inventario`;
                     <span className="text-sm font-semibold text-gray-700">DESCARGAR</span>
                   </div>
                   
-                  {/* Excel */}
+                  {/* PDF */}
                   <button
                     onClick={() => {
-                      handleExportExcel();
+                      handleGeneratePDF();
                       setShowDownloadModal(false);
                     }}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="w-full flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors disabled:opacity-50"
+                    disabled={platform.pieces.length === 0}
+                    className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
                   >
-                    <FileSpreadsheet className="h-6 w-6" />
+                    <FileText className="h-6 w-6" />
                     <div className="text-left">
-                      <div className="font-medium">Excel (CSV)</div>
-                      <div className="text-sm text-green-600">Descargar datos en formato Excel</div>
+                      <div className="font-medium">Generar PDF</div>
+                      <div className="text-sm text-purple-600">Crear reporte PDF profesional</div>
                     </div>
                   </button>
                   
