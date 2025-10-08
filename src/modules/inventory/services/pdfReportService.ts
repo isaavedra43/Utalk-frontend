@@ -5,6 +5,7 @@ import type { Platform, Evidence } from '../types';
 // Extend the jsPDF type to include autoTable
 declare module 'jspdf' {
   interface jsPDF {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     autoTable: (options: any) => jsPDF;
   }
 }
@@ -32,6 +33,7 @@ export class PDFReportService {
     text: '#2c3e50',         // Azul grisaceo oscuro
     textLight: '#6c757d',    // Gris medio
     white: '#ffffff',        // Blanco puro
+    danger: '#ef4444',       // Rojo para errores
   };
 
   private static readonly FONTS = {
@@ -66,82 +68,84 @@ export class PDFReportService {
         throw new Error('Número de plataforma no válido');
       }
 
-      // Crear documento PDF básico
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+       // Crear documento PDF básico
+       const doc = new jsPDF({
+         orientation: 'portrait',
+         unit: 'mm',
+         format: 'a4',
+       });
 
-      // Agregar patrón de fondo sutil para hacerlo más elegante
-      this.addBackgroundPattern(doc);
+       // Agregar patrón de fondo sutil para hacerlo más elegante
+       this.addBackgroundPattern(doc);
 
-      let yPosition = 20;
+       try {
+         let yPosition = 20;
 
-      try {
-        // Header del reporte
-        this.addHeader(doc, platform);
-        yPosition += 30;
+         // Header del reporte
+         this.addHeader(doc, platform);
+         yPosition += 30;
 
-        // Información general de la carga
-        yPosition = this.addPlatformInfo(doc, platform, yPosition);
+         // Información general de la carga
+         yPosition = this.addPlatformInfo(doc, platform, yPosition);
 
-        // Tabla de piezas
-        yPosition = this.addPiecesTable(doc, platform, yPosition);
+         // Tabla de piezas
+         yPosition = this.addPiecesTable(doc, platform, yPosition);
 
-        // Evidencias (si están habilitadas)
-        if (includeEvidence && platform.evidence && Array.isArray(platform.evidence) && platform.evidence.length > 0) {
-          yPosition = this.addEvidenceSection(doc, platform.evidence, yPosition);
-        }
+         // Evidencias (si están habilitadas)
+         if (includeEvidence && platform.evidence && Array.isArray(platform.evidence) && platform.evidence.length > 0) {
+           yPosition = this.addEvidenceSection(doc, platform.evidence, yPosition);
+         }
 
-        // Firma electrónica
-        if (signature && signature.name) {
-          yPosition = this.addSignatureSection(doc, signature, yPosition);
-        }
+         // Firma electrónica
+         if (signature && signature.name) {
+           this.addSignatureSection(doc, signature, yPosition);
+         }
 
-        // Footer
-        this.addFooter(doc, platform);
+         // Footer
+         this.addFooter(doc, platform);
 
         console.log('PDF generado exitosamente para plataforma:', platform.platformNumber);
         return doc.output('blob');
-      } catch (sectionError) {
-        console.error('Error generando sección del PDF:', sectionError);
-        // Si hay error en alguna sección, intentar generar un PDF básico
-        try {
-          // Crear PDF básico con información mínima
-          const basicDoc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4',
-          });
+       } catch (sectionError) {
+         console.error('Error generando sección del PDF:', sectionError);
+         // Si hay error en alguna sección, intentar generar un PDF básico
+         try {
+           // Crear PDF básico con información mínima
+           const basicDoc = new jsPDF({
+             orientation: 'portrait',
+             unit: 'mm',
+             format: 'a4',
+           });
 
-          basicDoc.setFontSize(16);
-          basicDoc.setFont('helvetica', 'bold');
-          basicDoc.text('REPORTE DE CARGA', 20, 30);
+           basicDoc.setFontSize(16);
+           basicDoc.setFont('helvetica', 'bold');
+           basicDoc.text('REPORTE DE CARGA', 20, 30);
 
-          basicDoc.setFontSize(12);
-          basicDoc.setFont('helvetica', 'normal');
-          basicDoc.text(`Número de Carga: ${platform.platformNumber || 'N/A'}`, 20, 50);
-          basicDoc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 20, 65);
+           basicDoc.setFontSize(12);
+           basicDoc.setFont('helvetica', 'normal');
+           basicDoc.text(`Número de Carga: ${platform.platformNumber || 'N/A'}`, 20, 50);
+           basicDoc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 20, 65);
 
-          if (platform.pieces && Array.isArray(platform.pieces) && platform.pieces.length > 0) {
-            basicDoc.text(`Total de piezas: ${platform.pieces.length}`, 20, 80);
-            basicDoc.text(`Metros lineales: ${(platform.totalLinearMeters || 0).toFixed(2)} m²`, 20, 95);
-          }
+           if (platform.pieces && Array.isArray(platform.pieces) && platform.pieces.length > 0) {
+             basicDoc.text(`Total de piezas: ${platform.pieces.length}`, 20, 80);
+             basicDoc.text(`Metros lineales: ${(platform.totalLinearMeters || 0).toFixed(2)} m²`, 20, 95);
+           }
 
-          basicDoc.text('Error generando reporte completo. Datos básicos incluidos.', 20, 120);
+           basicDoc.text('Error generando reporte completo. Datos básicos incluidos.', 20, 120);
 
-          console.log('PDF básico generado como fallback');
-          return basicDoc.output('blob');
-        } catch (fallbackError) {
-          console.error('Error generando PDF básico de fallback:', fallbackError);
-          throw new Error(`Error crítico generando PDF: ${fallbackError.message}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error crítico en generateProfessionalReport:', error);
-      throw new Error(`Error generando reporte PDF: ${error.message || 'Error desconocido'}`);
-    }
+           console.log('PDF básico generado como fallback');
+           return basicDoc.output('blob');
+         } catch (fallbackError) {
+           console.error('Error generando PDF básico de fallback:', fallbackError);
+           const errorMessage = fallbackError instanceof Error ? fallbackError.message : 'Error desconocido';
+           throw new Error(`Error crítico generando PDF: ${errorMessage}`);
+         }
+       }
+     } catch (error) {
+       console.error('Error crítico en generateProfessionalReport:', error);
+       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+       throw new Error(`Error generando reporte PDF: ${errorMessage}`);
+     }
   }
 
   private static addHeader(doc: jsPDF, platform: Platform) {
@@ -294,7 +298,7 @@ export class PDFReportService {
         { label: 'Número de Carga:', value: platform.platformNumber || 'N/A', icon: '🔢' },
         { label: 'Tipo de Plataforma:', value: platform.platformType === 'provider' ? 'Proveedor' : 'Cliente', icon: '🏭' },
         { label: 'Estado:', value: platform.status === 'in_progress' ? 'En Proceso' :
-                                 platform.status === 'completed' ? 'Completada' : 'Exportada', icon: '📊' },
+                                  platform.status === 'completed' ? 'Completada' : 'Exportada', icon: '📊' },
         { label: 'Fecha de Recepción:', value: platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A', icon: '📅' },
         { label: 'Materiales:', value: platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar', icon: '📦' },
       ];
@@ -309,51 +313,51 @@ export class PDFReportService {
         { label: 'Creado por:', value: platform.createdByName || platform.createdBy || 'Sistema', icon: '👨‍💼' },
       ];
 
-      // Renderizar columna izquierda
-      leftInfo.forEach((item, index) => {
-        if (currentY > doc.internal.pageSize.getHeight() - 50) {
-          doc.addPage();
-          currentY = 20;
-        }
+       // Renderizar columna izquierda
+       leftInfo.forEach((item) => {
+         if (currentY > doc.internal.pageSize.getHeight() - 50) {
+           doc.addPage();
+           currentY = 20;
+         }
 
-        // Label en negrita con icono
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(this.COLORS.primary);
-        doc.text(`${item.icon} ${item.label}`, leftColumnX, currentY);
+         // Label en negrita con icono
+         doc.setFont('helvetica', 'bold');
+         doc.setTextColor(this.COLORS.primary);
+         doc.text(`${item.icon} ${item.label}`, leftColumnX, currentY);
 
-        // Valor normal
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(this.COLORS.text);
-        const maxWidth = columnWidth - doc.getTextWidth(`${item.icon} ${item.label}`) - 5;
-        const lines = doc.splitTextToSize(item.value, maxWidth);
-        doc.text(lines, leftColumnX + doc.getTextWidth(`${item.icon} ${item.label}`) + 5, currentY);
+         // Valor normal
+         doc.setFont('helvetica', 'normal');
+         doc.setTextColor(this.COLORS.text);
+         const maxWidth = columnWidth - doc.getTextWidth(`${item.icon} ${item.label}`) - 5;
+         const lines = doc.splitTextToSize(item.value, maxWidth);
+         doc.text(lines, leftColumnX + doc.getTextWidth(`${item.icon} ${item.label}`) + 5, currentY);
 
-        currentY += lineHeight * Math.max(1, lines.length);
-      });
+         currentY += lineHeight * Math.max(1, lines.length);
+       });
 
-      currentY = yPosition + 20; // Reset para columna derecha
+       currentY = yPosition + 20; // Reset para columna derecha
 
-      // Renderizar columna derecha
-      rightInfo.forEach((item, index) => {
-        if (currentY > doc.internal.pageSize.getHeight() - 50) {
-          doc.addPage();
-          currentY = 20;
-        }
+       // Renderizar columna derecha
+       rightInfo.forEach((item) => {
+         if (currentY > doc.internal.pageSize.getHeight() - 50) {
+           doc.addPage();
+           currentY = 20;
+         }
 
-        // Label en negrita con icono
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(this.COLORS.primary);
-        doc.text(`${item.icon} ${item.label}`, rightColumnX, currentY);
+         // Label en negrita con icono
+         doc.setFont('helvetica', 'bold');
+         doc.setTextColor(this.COLORS.primary);
+         doc.text(`${item.icon} ${item.label}`, rightColumnX, currentY);
 
-        // Valor normal
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(this.COLORS.text);
-        const maxWidth = columnWidth - doc.getTextWidth(`${item.icon} ${item.label}`) - 5;
-        const lines = doc.splitTextToSize(item.value, maxWidth);
-        doc.text(lines, rightColumnX + doc.getTextWidth(`${item.icon} ${item.label}`) + 5, currentY);
+         // Valor normal
+         doc.setFont('helvetica', 'normal');
+         doc.setTextColor(this.COLORS.text);
+         const maxWidth = columnWidth - doc.getTextWidth(`${item.icon} ${item.label}`) - 5;
+         const lines = doc.splitTextToSize(item.value, maxWidth);
+         doc.text(lines, rightColumnX + doc.getTextWidth(`${item.icon} ${item.label}`) + 5, currentY);
 
-        currentY += lineHeight * Math.max(1, lines.length);
-      });
+         currentY += lineHeight * Math.max(1, lines.length);
+       });
 
       return currentY + 15;
     } catch (error) {
@@ -377,7 +381,7 @@ export class PDFReportService {
         // Fondo elegante para mensaje de no hay piezas
         doc.setFillColor(this.COLORS.light);
         doc.roundedRect(15, yPosition, doc.internal.pageSize.getWidth() - 30, 30, 5, 5, 'F');
-
+        
         doc.setFontSize(this.FONTS.normal);
         doc.setTextColor(this.COLORS.danger);
         doc.text('⚠️ No hay piezas registradas en esta carga.', 20, yPosition + 20);
