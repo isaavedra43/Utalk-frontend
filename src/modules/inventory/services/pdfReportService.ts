@@ -627,7 +627,7 @@ export class PDFReportService {
       let currentY = yPosition;
 
       // Verificar si necesitamos nueva página
-      if (currentY > doc.internal.pageSize.getHeight() - 80) {
+      if (currentY > doc.internal.pageSize.getHeight() - 100) {
         doc.addPage();
         currentY = 20;
       }
@@ -638,24 +638,31 @@ export class PDFReportService {
       doc.setTextColor(this.COLORS.primary);
 
       doc.text('FIRMA ELECTRÓNICA', 20, currentY);
-      currentY += 10;
+      currentY += 15;
 
       // Línea separadora
       doc.setDrawColor(this.COLORS.border);
       doc.line(20, currentY, doc.internal.pageSize.getWidth() - 20, currentY);
-      currentY += 15;
+      currentY += 20;
 
       const pageWidth = doc.internal.pageSize.getWidth();
 
-      // Información de la firma
+      // Formato profesional como contrato
+      // Línea de firma (arriba)
+      const signatureLineY = currentY + 25;
+      doc.setDrawColor(this.COLORS.border);
+      doc.line(20, signatureLineY, pageWidth - 20, signatureLineY);
+
+      // Nombre del firmante (debajo de la línea)
       doc.setFontSize(this.FONTS.normal);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(this.COLORS.text);
-
+      
       const signerName = signature.name || 'N/A';
-      doc.text(`Firmado por: ${signerName}`, 20, currentY);
-      currentY += 8;
+      const nameTextWidth = doc.getTextWidth(signerName);
+      doc.text(signerName, (pageWidth - nameTextWidth) / 2, signatureLineY + 8);
 
+      // Fecha de la firma
       const signatureDate = signature.date ? (() => {
         try {
           return new Date(signature.date).toLocaleDateString('es-MX', {
@@ -671,65 +678,56 @@ export class PDFReportService {
         }
       })() : 'N/A';
 
-      doc.text(`Fecha: ${signatureDate}`, 20, currentY);
-      currentY += 15;
+      const dateTextWidth = doc.getTextWidth(signatureDate);
+      doc.text(signatureDate, (pageWidth - dateTextWidth) / 2, signatureLineY + 16);
 
-      // Área para la firma
-      doc.setDrawColor(this.COLORS.border);
-      doc.rect(20, currentY, 80, 30);
-
+      // Imagen de la firma (arriba de la línea)
       if (signature.signatureImage) {
         try {
           console.log('Agregando imagen de firma al PDF');
           
-          // Extraer dimensiones del data URL (aproximación)
-          // const base64Data = signature.signatureImage.split(',')[1]; // Para uso futuro
-          // const imgSize = Math.round((base64Data.length * 3) / 4); // Para uso futuro
+          // Dimensiones para la imagen de firma (arriba de la línea)
+          const signatureImgWidth = 60; // Ancho de la imagen de firma
+          const signatureImgHeight = 20; // Altura de la imagen de firma
           
-          // Dimensiones estándar para el área de firma
-          const maxWidth = 70; // Ancho máximo del área de firma
-          const maxHeight = 25; // Altura máxima del área de firma
+          // Posición de la imagen (centrada arriba de la línea)
+          const imgX = (pageWidth - signatureImgWidth) / 2;
+          const imgY = currentY;
           
-          // Agregar la imagen directamente al PDF
-          doc.addImage(signature.signatureImage, 'PNG', 22, currentY + 2, maxWidth, maxHeight);
+          // Agregar la imagen de la firma
+          doc.addImage(signature.signatureImage, 'PNG', imgX, imgY, signatureImgWidth, signatureImgHeight);
           console.log('Imagen de firma agregada exitosamente al PDF');
-          
-          // Mostrar texto indicativo
-          doc.setFontSize(this.FONTS.small);
-          doc.setTextColor(this.COLORS.text);
-          doc.text('Firma digital incluida', 25, currentY + 28);
           
         } catch (error) {
           console.error('Error agregando imagen de firma al PDF:', error);
-          // Fallback: mostrar texto
+          // Fallback: mostrar texto indicativo
           doc.setFontSize(this.FONTS.small);
           doc.setTextColor(this.COLORS.textLight);
-          doc.text('Firma digital disponible', 25, currentY + 10);
+          doc.text('Firma digital incluida', 20, currentY + 10);
         }
       } else {
+        // Si no hay imagen, mostrar texto indicativo
         doc.setFontSize(this.FONTS.small);
         doc.setTextColor(this.COLORS.textLight);
-        doc.text('Firma digital pendiente', 25, currentY + 10);
+        doc.text('Firma digital pendiente', 20, currentY + 10);
       }
 
-      currentY += 40;
-
-      // Línea para firma manuscrita (si fuera física)
-      doc.setDrawColor(this.COLORS.border);
-      doc.line(120, currentY, pageWidth - 20, currentY);
-
+      // Texto de autorización (debajo del nombre)
       doc.setFontSize(this.FONTS.small);
       doc.setTextColor(this.COLORS.textLight);
       const authText = 'Firma autorizada';
       const authTextWidth = doc.getTextWidth(authText);
-      doc.text(authText, (pageWidth - authTextWidth) / 2, currentY + 8);
+      doc.text(authText, (pageWidth - authTextWidth) / 2, signatureLineY + 24);
 
-      return currentY + 20;
+      // Espacio final
+      currentY = signatureLineY + 40;
+
+      return currentY;
     } catch (error) {
       console.error('Error en addSignatureSection - Datos de firma:', signature);
       console.error('Error detallado:', error);
       // En lugar de lanzar el error, devolver la posición actual para continuar
-      return yPosition + 50;
+      return yPosition + 80;
     }
   }
 
