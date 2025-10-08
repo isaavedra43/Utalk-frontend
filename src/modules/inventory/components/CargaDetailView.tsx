@@ -16,12 +16,12 @@ import {
   User,
   Camera,
   Download,
-  Share2,
-  Mic
+  Share2
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
 import { SimpleExportService } from '../services/simpleExportService';
+import { PrintService } from '../services/printService';
 import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
@@ -227,6 +227,34 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     } catch (error) {
       console.error('Error al exportar imagen:', error);
       showNotification('error', 'Error al exportar como imagen');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ✅ NUEVO: Imprimir PDF directamente
+  const handlePrintPDF = async () => {
+    try {
+      setExporting(true);
+      await PrintService.printPDF(platform);
+      showNotification('success', 'Enviando PDF a impresión...');
+    } catch (error) {
+      console.error('Error al imprimir PDF:', error);
+      showNotification('error', 'Error al imprimir PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ✅ NUEVO: Imprimir imagen directamente
+  const handlePrintImage = async () => {
+    try {
+      setExporting(true);
+      await PrintService.printImage(platform);
+      showNotification('success', 'Enviando imagen a impresión...');
+    } catch (error) {
+      console.error('Error al imprimir imagen:', error);
+      showNotification('error', 'Error al imprimir imagen');
     } finally {
       setExporting(false);
     }
@@ -1181,7 +1209,7 @@ Generado por Sistema de Inventario`;
 
       {/* Barra de botones OPTIMIZADA - Solo en móvil */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30 p-2.5">
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1.5">
           {/* Botón Descargar */}
           <button
             onClick={() => setShowDownloadModal(true)}
@@ -1189,8 +1217,30 @@ Generado por Sistema de Inventario`;
             className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 rounded-lg border border-blue-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
             title="Descargar"
           >
-            <Download className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Descargar</span>
+            <Download className="h-4 w-4 mb-0.5" />
+            <span className="text-[9px] font-semibold">Descargar</span>
+          </button>
+          
+          {/* Botón Imprimir PDF */}
+          <button
+            onClick={() => handlePrintPDF()}
+            disabled={platform.pieces.length === 0 || exporting}
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-orange-50 to-orange-100 text-orange-700 rounded-lg border border-orange-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
+            title="Imprimir PDF"
+          >
+            <Printer className="h-4 w-4 mb-0.5" />
+            <span className="text-[9px] font-semibold">PDF</span>
+          </button>
+          
+          {/* Botón Imprimir Imagen */}
+          <button
+            onClick={() => handlePrintImage()}
+            disabled={platform.pieces.length === 0 || exporting}
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
+            title="Imprimir Imagen"
+          >
+            <FileImage className="h-4 w-4 mb-0.5" />
+            <span className="text-[9px] font-semibold">Imagen</span>
           </button>
           
           {/* Botón Compartir */}
@@ -1199,28 +1249,18 @@ Generado por Sistema de Inventario`;
             className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-green-50 to-green-100 text-green-700 rounded-lg border border-green-200 shadow-sm active:scale-95 transition-transform"
             title="Compartir"
           >
-            <Share2 className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Compartir</span>
+            <Share2 className="h-4 w-4 mb-0.5" />
+            <span className="text-[9px] font-semibold">Compartir</span>
           </button>
           
-          {/* Botón Dictar */}
-          <button
-            onClick={() => setShowVoiceDictationModal(true)}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform"
-            title="Dictar longitudes con voz"
-          >
-            <Mic className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Dictar</span>
-          </button>
-
           {/* Botón Evidencias */}
           <button
             onClick={() => setShowEvidenceModal(true)}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 shadow-sm active:scale-95 transition-transform"
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform"
             title="Evidencias"
           >
-            <Camera className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Evidencias</span>
+            <Camera className="h-4 w-4 mb-0.5" />
+            <span className="text-[9px] font-semibold">Evidencias</span>
           </button>
         </div>
       </div>
@@ -1414,13 +1454,13 @@ Generado por Sistema de Inventario`;
         </div>
       )}
 
-      {/* Modal de Descarga */}
+      {/* Modal de Descarga e Impresión */}
       {showDownloadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Descargar Carga {platform.cargaNumber}
+                Descargar e Imprimir Carga {platform.cargaNumber}
               </h3>
               
               <div className="space-y-3">
@@ -1440,7 +1480,7 @@ Generado por Sistema de Inventario`;
                   </div>
                 </button>
                 
-                {/* PDF */}
+                {/* PDF - Descargar */}
                 <button
                   onClick={() => {
                     handleExportPDF();
@@ -1449,14 +1489,30 @@ Generado por Sistema de Inventario`;
                   disabled={platform.pieces.length === 0 || exporting}
                   className="w-full flex items-center gap-3 p-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors disabled:opacity-50"
                 >
-                  <Printer className="h-6 w-6" />
+                  <Download className="h-6 w-6" />
                   <div className="text-left">
-                    <div className="font-medium">PDF</div>
-                    <div className="text-sm text-red-600">Generar reporte en PDF</div>
+                    <div className="font-medium">PDF - Descargar</div>
+                    <div className="text-sm text-red-600">Descargar reporte en PDF</div>
                   </div>
                 </button>
                 
-                {/* Imagen */}
+                {/* PDF - Imprimir */}
+                <button
+                  onClick={() => {
+                    handlePrintPDF();
+                    setShowDownloadModal(false);
+                  }}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="w-full flex items-center gap-3 p-3 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors disabled:opacity-50"
+                >
+                  <Printer className="h-6 w-6" />
+                  <div className="text-left">
+                    <div className="font-medium">PDF - Imprimir</div>
+                    <div className="text-sm text-orange-600">Imprimir PDF directamente</div>
+                  </div>
+                </button>
+                
+                {/* Imagen - Descargar */}
                 <button
                   onClick={() => {
                     handleExportImage();
@@ -1465,10 +1521,26 @@ Generado por Sistema de Inventario`;
                   disabled={platform.pieces.length === 0 || exporting}
                   className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
                 >
-                  <FileImage className="h-6 w-6" />
+                  <Download className="h-6 w-6" />
                   <div className="text-left">
-                    <div className="font-medium">Imagen</div>
-                    <div className="text-sm text-purple-600">Exportar como imagen</div>
+                    <div className="font-medium">Imagen - Descargar</div>
+                    <div className="text-sm text-purple-600">Descargar como imagen</div>
+                  </div>
+                </button>
+                
+                {/* Imagen - Imprimir */}
+                <button
+                  onClick={() => {
+                    handlePrintImage();
+                    setShowDownloadModal(false);
+                  }}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="w-full flex items-center gap-3 p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors disabled:opacity-50"
+                >
+                  <Printer className="h-6 w-6" />
+                  <div className="text-left">
+                    <div className="font-medium">Imagen - Imprimir</div>
+                    <div className="text-sm text-indigo-600">Imprimir imagen directamente</div>
                   </div>
                 </button>
               </div>
