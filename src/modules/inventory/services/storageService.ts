@@ -2,8 +2,24 @@
 
 import type { Platform, InventorySettings } from '../types';
 
-const PLATFORMS_KEY = 'inventory_platforms';
-const SETTINGS_KEY = 'inventory_settings';
+// ✅ SOLUCIÓN: Aislar localStorage por usuario
+const getUserId = (): string => {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) return 'anonymous';
+    
+    const payload = token.split('.')[1];
+    const decodedPayload = atob(payload);
+    const userData = JSON.parse(decodedPayload);
+    return userData.userId || userData.email || 'anonymous';
+  } catch (error) {
+    console.error('Error getting user ID:', error);
+    return 'anonymous';
+  }
+};
+
+const getPlatformsKey = (): string => `inventory_platforms_${getUserId()}`;
+const getSettingsKey = (): string => `inventory_settings_${getUserId()}`;
 
 /**
  * Servicio de almacenamiento local
@@ -14,7 +30,7 @@ export class StorageService {
    */
   static getPlatforms(): Platform[] {
     try {
-      const data = localStorage.getItem(PLATFORMS_KEY);
+      const data = localStorage.getItem(getPlatformsKey());
       if (!data) return [];
       
       const platforms = JSON.parse(data);
@@ -40,7 +56,7 @@ export class StorageService {
    */
   static savePlatforms(platforms: Platform[]): void {
     try {
-      localStorage.setItem(PLATFORMS_KEY, JSON.stringify(platforms));
+      localStorage.setItem(getPlatformsKey(), JSON.stringify(platforms));
     } catch (error) {
       console.error('Error al guardar plataformas:', error);
       throw new Error('No se pudo guardar la información. El almacenamiento local podría estar lleno.');
@@ -85,7 +101,7 @@ export class StorageService {
    */
   static getSettings(): InventorySettings {
     try {
-      const data = localStorage.getItem(SETTINGS_KEY);
+      const data = localStorage.getItem(getSettingsKey());
       if (!data) {
         return {
           defaultStandardWidth: 0.3,
@@ -109,7 +125,7 @@ export class StorageService {
    */
   static saveSettings(settings: InventorySettings): void {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      localStorage.setItem(getSettingsKey(), JSON.stringify(settings));
     } catch (error) {
       console.error('Error al guardar configuración:', error);
     }
@@ -119,8 +135,8 @@ export class StorageService {
    * Limpia todos los datos
    */
   static clearAll(): void {
-    localStorage.removeItem(PLATFORMS_KEY);
-    localStorage.removeItem(SETTINGS_KEY);
+    localStorage.removeItem(getPlatformsKey());
+    localStorage.removeItem(getSettingsKey());
   }
 
   /**
