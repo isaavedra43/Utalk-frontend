@@ -1345,7 +1345,7 @@ Generado por Sistema de Inventario`;
       </div>
 
       {/* Barra de botones OPTIMIZADA - Solo en móvil */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30 p-2.5">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30 p-2.5 pb-6">
         <div className="flex justify-center gap-2">
           {/* Botón Descargar */}
           <button
