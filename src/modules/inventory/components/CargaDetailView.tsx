@@ -15,7 +15,8 @@ import {
   Camera,
   Download,
   Share2,
-  Mic
+  Mic,
+  FileText
 } from 'lucide-react';
 import type { Platform, Evidence, Driver } from '../types';
 import { useInventory } from '../hooks/useInventory';
@@ -26,6 +27,9 @@ import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { PiecesTable } from './PiecesTable';
 import { VoiceDictationModal } from './VoiceDictationModal';
+import { PDFReportService } from '../services/pdfReportService';
+import { SignaturePad } from './SignaturePad';
+import { PDFPreviewModal } from './PDFPreviewModal';
 
 interface CargaDetailViewProps {
   platform: Platform;
@@ -53,6 +57,12 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [exporting, setExporting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showDriverDropdown, setShowDriverDropdown] = useState(false);
+
+  // Estados para PDF
+  const [showPDFModal, setShowPDFModal] = useState(false);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [signature, setSignature] = useState<{ name: string; date: string; signatureImage?: string } | undefined>(undefined);
+  const [includeEvidence, setIncludeEvidence] = useState(true);
   const [editData, setEditData] = useState({
     provider: platform.provider || '',
     client: platform.client || '',
@@ -606,6 +616,30 @@ Generado por Sistema de Inventario`;
     return now.toISOString().split('T')[0];
   };
 
+  // Funciones para PDF
+  const handleGeneratePDF = () => {
+    setShowPDFModal(true);
+  };
+
+  const handleSignature = (signatureData: { name: string; signatureImage: string; date: string }) => {
+    setSignature(signatureData);
+    setShowSignaturePad(false);
+  };
+
+  const handleGeneratePDFWithSignature = () => {
+    if (!signature) {
+      setShowSignaturePad(true);
+    } else {
+      // Ya tiene firma, generar PDF directamente
+      setShowPDFModal(true);
+    }
+  };
+
+  const handleGeneratePDFWithoutSignature = () => {
+    setSignature(undefined);
+    setShowPDFModal(true);
+  };
+
   const statusColors: Record<string, string> = {
     in_progress: 'bg-yellow-100 text-yellow-800',
     completed: 'bg-green-100 text-green-800',
@@ -829,6 +863,18 @@ Generado por Sistema de Inventario`;
                   >
                     <div className="p-1.5 bg-blue-600 rounded-xl">
                       <span className="text-lg">📤</span>
+                    </div>
+                  </button>
+
+                  {/* Botón Generar PDF - Desktop */}
+                  <button
+                    onClick={handleGeneratePDF}
+                    disabled={platform.pieces.length === 0}
+                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+                    title="Generar reporte PDF profesional con firma electrónica"
+                  >
+                    <div className="p-1.5 bg-purple-600 rounded-xl">
+                      <FileText className="h-4 w-4" />
                     </div>
                   </button>
                 </div>
@@ -1310,6 +1356,17 @@ Generado por Sistema de Inventario`;
             <Camera className="h-5 w-5 mb-0.5" />
             <span className="text-[10px] font-semibold">Evidencias</span>
           </button>
+
+          {/* Botón Generar PDF */}
+          <button
+            onClick={handleGeneratePDF}
+            disabled={platform.pieces.length === 0}
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
+            title="Generar reporte PDF profesional"
+          >
+            <FileText className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px] font-semibold">PDF</span>
+          </button>
         </div>
       </div>
 
@@ -1696,6 +1753,23 @@ Generado por Sistema de Inventario`;
         standardWidth={platform.standardWidth}
         availableMaterials={platform.materialTypes}
         onAddPieces={handleAddMultiplePieces}
+      />
+
+      {/* Modal de Firma Electrónica */}
+      <SignaturePad
+        isOpen={showSignaturePad}
+        onClose={() => setShowSignaturePad(false)}
+        onSignature={handleSignature}
+        title="Firma para Reporte PDF"
+      />
+
+      {/* Modal de Vista Previa del PDF */}
+      <PDFPreviewModal
+        isOpen={showPDFModal}
+        onClose={() => setShowPDFModal(false)}
+        platform={platform}
+        signature={signature}
+        includeEvidence={includeEvidence}
       />
     </div>
   );
