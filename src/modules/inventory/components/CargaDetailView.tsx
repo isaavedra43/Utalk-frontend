@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
   Printer,
@@ -19,8 +19,9 @@ import {
   Share2,
   Mic
 } from 'lucide-react';
-import type { Platform, Evidence } from '../types';
+import type { Platform, Evidence, Driver } from '../types';
 import { useInventory } from '../hooks/useInventory';
+import { useConfiguration } from '../hooks/useConfiguration';
 import { SimpleExportService } from '../services/simpleExportService';
 import { PrintService } from '../services/printService';
 import { EvidenceUpload } from './EvidenceUpload';
@@ -39,6 +40,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   onBack
 }: CargaDetailViewProps) => {
   const { cargas, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus, updatePlatformEvidence } = useInventory();
+  const { activeDrivers } = useConfiguration();
   
   // Obtener la plataforma actualizada desde el estado global
   const platform = cargas.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
@@ -53,6 +55,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [showVoiceDictationModal, setShowVoiceDictationModal] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDriverDropdown, setShowDriverDropdown] = useState(false);
   const [editData, setEditData] = useState({
     provider: platform.provider || '',
     client: platform.client || '',
@@ -61,6 +64,41 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     notes: platform.notes || ''
   });
   const tableRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Efecto para cerrar el dropdown cuando se hace clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDriverDropdown(false);
+      }
+    };
+
+    if (showDriverDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDriverDropdown]);
+
+  // Efecto para manejar mensajes de cierre de ventana de impresión
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.action === 'closePrintWindow') {
+        // La ventana de impresión quiere cerrarse, no hacer nada especial
+        // ya que se maneja automáticamente
+        console.log('📱 Ventana de impresión cerrada desde móvil');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   // Función para mostrar notificación
   const showNotification = (type: 'success' | 'error', message: string) => {
@@ -90,6 +128,13 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
       ticketNumber: platform.ticketNumber || '',
       notes: platform.notes || ''
     });
+    setShowDriverDropdown(false);
+  };
+
+  // Función para seleccionar chofer del dropdown
+  const handleDriverSelect = (driverName: string) => {
+    setEditData({ ...editData, driver: driverName });
+    setShowDriverDropdown(false);
   };
 
   // Función para guardar cambios
@@ -1006,13 +1051,36 @@ Generado por Sistema de Inventario`;
                         Chofer
                       </span>
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.driver}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
-                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Nombre del chofer"
-                        />
+                        <div className="relative max-w-[180px]" ref={dropdownRef}>
+                          <button
+                            type="button"
+                            onClick={() => setShowDriverDropdown(!showDriverDropdown)}
+                            className="w-full text-right px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between"
+                          >
+                            <span className="truncate">{editData.driver || 'Seleccionar chofer'}</span>
+                            <span className="text-gray-400 ml-1">▼</span>
+                          </button>
+                          {showDriverDropdown && (
+                            <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg z-10 max-h-32 overflow-y-auto">
+                              {activeDrivers.length > 0 ? (
+                                activeDrivers.map((driver: Driver) => (
+                                  <button
+                                    key={driver.id}
+                                    type="button"
+                                    onClick={() => handleDriverSelect(driver.name)}
+                                    className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                  >
+                                    {driver.name}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-2 py-1 text-sm text-gray-500">
+                                  No hay choferes disponibles
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
                           {platform.driver || 'No especificado'}
@@ -1047,13 +1115,36 @@ Generado por Sistema de Inventario`;
                         Chofer
                       </span>
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.driver}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
-                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Nombre del chofer"
-                        />
+                        <div className="relative max-w-[180px]" ref={dropdownRef}>
+                          <button
+                            type="button"
+                            onClick={() => setShowDriverDropdown(!showDriverDropdown)}
+                            className="w-full text-right px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between"
+                          >
+                            <span className="truncate">{editData.driver || 'Seleccionar chofer'}</span>
+                            <span className="text-gray-400 ml-1">▼</span>
+                          </button>
+                          {showDriverDropdown && (
+                            <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg z-10 max-h-32 overflow-y-auto">
+                              {activeDrivers.length > 0 ? (
+                                activeDrivers.map((driver: Driver) => (
+                                  <button
+                                    key={driver.id}
+                                    type="button"
+                                    onClick={() => handleDriverSelect(driver.name)}
+                                    className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                  >
+                                    {driver.name}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-2 py-1 text-sm text-gray-500">
+                                  No hay choferes disponibles
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
                           {platform.driver || 'No especificado'}
@@ -1167,13 +1258,36 @@ Generado por Sistema de Inventario`;
                         </div>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-teal-500 flex-shrink-0" />
-                          <input
-                            type="text"
-                            value={editData.driver}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Nombre del chofer"
-                          />
+                          <div className="relative flex-1" ref={dropdownRef}>
+                            <button
+                              type="button"
+                              onClick={() => setShowDriverDropdown(!showDriverDropdown)}
+                              className="w-full text-left px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between"
+                            >
+                              <span className="truncate">{editData.driver || 'Seleccionar chofer'}</span>
+                              <span className="text-gray-400 ml-1">▼</span>
+                            </button>
+                            {showDriverDropdown && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 max-h-32 overflow-y-auto">
+                                {activeDrivers.length > 0 ? (
+                                  activeDrivers.map((driver: Driver) => (
+                                    <button
+                                      key={driver.id}
+                                      type="button"
+                                      onClick={() => handleDriverSelect(driver.name)}
+                                      className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                    >
+                                      {driver.name}
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="px-2 py-1 text-sm text-gray-500">
+                                    No hay choferes disponibles
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </>
                     ) : (
@@ -1190,13 +1304,36 @@ Generado por Sistema de Inventario`;
                         </div>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-teal-500 flex-shrink-0" />
-                          <input
-                            type="text"
-                            value={editData.driver}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Nombre del chofer"
-                          />
+                          <div className="relative flex-1" ref={dropdownRef}>
+                            <button
+                              type="button"
+                              onClick={() => setShowDriverDropdown(!showDriverDropdown)}
+                              className="w-full text-left px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between"
+                            >
+                              <span className="truncate">{editData.driver || 'Seleccionar chofer'}</span>
+                              <span className="text-gray-400 ml-1">▼</span>
+                            </button>
+                            {showDriverDropdown && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 max-h-32 overflow-y-auto">
+                                {activeDrivers.length > 0 ? (
+                                  activeDrivers.map((driver: Driver) => (
+                                    <button
+                                      key={driver.id}
+                                      type="button"
+                                      onClick={() => handleDriverSelect(driver.name)}
+                                      className="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                    >
+                                      {driver.name}
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="px-2 py-1 text-sm text-gray-500">
+                                    No hay choferes disponibles
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs">🎫</span>

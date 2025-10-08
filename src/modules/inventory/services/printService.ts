@@ -18,8 +18,8 @@ export class PrintService {
       // ✅ Generar HTML con navegación móvil
       const htmlContent = this.generatePrintHTMLWithNavigation(platform);
 
-      // ✅ Crear ventana de impresión
-      const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+      // ✅ Crear ventana de impresión - MEJORADO PARA MÓVILES
+      const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes,toolbar=no,location=no,directories=no,status=no,menubar=no');
 
       if (!printWindow) {
         throw new Error('No se pudo abrir ventana de impresión. Habilita los popups en tu navegador.');
@@ -34,6 +34,17 @@ export class PrintService {
         printWindow.focus();
         printWindow.print();
       }
+
+      // ✅ Limpieza automática después de 30 segundos (fallback de seguridad)
+      setTimeout(() => {
+        try {
+          if (printWindow && !printWindow.closed) {
+            printWindow.close();
+          }
+        } catch (error) {
+          console.warn('No se pudo cerrar la ventana automáticamente:', error);
+        }
+      }, 30000);
 
       console.log('✅ [PrintService] Ventana de impresión abierta y comando enviado');
 
@@ -65,8 +76,8 @@ export class PrintService {
       // ✅ Crear URL del blob
       const imageUrl = URL.createObjectURL(imageBlob);
 
-      // ✅ Crear ventana de impresión
-      const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+      // ✅ Crear ventana de impresión - MEJORADO PARA MÓVILES
+      const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes,toolbar=no,location=no,directories=no,status=no,menubar=no');
 
       if (!printWindow) {
         URL.revokeObjectURL(imageUrl);
@@ -85,6 +96,17 @@ export class PrintService {
         printWindow.focus();
         printWindow.print();
       }
+
+      // ✅ Limpieza automática después de 30 segundos (fallback de seguridad)
+      setTimeout(() => {
+        try {
+          if (printWindow && !printWindow.closed) {
+            printWindow.close();
+          }
+        } catch (error) {
+          console.warn('No se pudo cerrar la ventana automáticamente:', error);
+        }
+      }, 30000);
 
       // ✅ Limpiar URL después de un tiempo
       setTimeout(() => {
@@ -966,10 +988,16 @@ export class PrintService {
   }
 
   /**
-   * Verifica si es un dispositivo móvil
+   * Verifica si es un dispositivo móvil - MEJORADO
    */
   static isMobile(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Detección más robusta de dispositivos móviles
+    const userAgent = navigator.userAgent;
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    
+    return isMobileUA || (isTouchDevice && isSmallScreen);
   }
 
   /**
@@ -1246,9 +1274,6 @@ export class PrintService {
             </div>
             
             <div class="nav-buttons">
-              <button class="nav-btn" onclick="downloadPDF()">
-                📥 Descargar
-              </button>
               <button class="nav-btn primary" onclick="printPDF()">
                 🖨️ Imprimir
               </button>
@@ -1265,38 +1290,45 @@ export class PrintService {
           <script>
             // Funciones de navegación
             function goBack() {
-              if (window.opener) {
-                window.close();
-              } else {
-                history.back();
+              try {
+                // Método 1: Si hay window.opener, cerrar ventana
+                if (window.opener) {
+                  window.close();
+                  return;
+                }
+                
+                // Método 2: Si estamos en un iframe, comunicar al parent
+                if (window.parent && window.parent !== window) {
+                  window.parent.postMessage({ action: 'closePrintWindow' }, '*');
+                  return;
+                }
+                
+                // Método 3: Intentar navegar hacia atrás solo si hay historial
+                if (window.history && window.history.length > 1) {
+                  window.history.back();
+                  return;
+                }
+                
+                // Método 4: Fallback - redirigir a la página principal
+                window.location.href = '/';
+                
+              } catch (error) {
+                console.error('Error en navegación:', error);
+                
+                // Fallback de emergencia
+                try {
+                  if (window.close) {
+                    window.close();
+                  } else {
+                    window.location.href = '/';
+                  }
+                } catch (fallbackError) {
+                  // Último recurso: recargar página
+                  window.location.reload();
+                }
               }
             }
 
-            function downloadPDF() {
-              try {
-                // Crear un blob con el contenido del PDF
-                const pdfContent = \`${pdfContent.replace(/`/g, '\\`')}\`;
-                const blob = new Blob([pdfContent], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                
-                // Crear enlace de descarga
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'Reporte_Inventario_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.html';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                // Limpiar URL
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-                
-                // Mostrar notificación
-                showNotification('✅ Archivo descargado exitosamente', 'success');
-              } catch (error) {
-                console.error('Error descargando PDF:', error);
-                showNotification('❌ Error al descargar archivo', 'error');
-              }
-            }
 
             function printPDF() {
               try {
@@ -1345,10 +1377,6 @@ export class PrintService {
                   case 'p':
                     e.preventDefault();
                     printPDF();
-                    break;
-                  case 's':
-                    e.preventDefault();
-                    downloadPDF();
                     break;
                 }
               } else if (e.key === 'Escape') {
@@ -1567,9 +1595,6 @@ export class PrintService {
             </div>
             
             <div class="nav-buttons">
-              <button class="nav-btn" onclick="downloadImage()">
-                📥 Descargar
-              </button>
               <button class="nav-btn primary" onclick="printImage()">
                 🖨️ Imprimir
               </button>
@@ -1597,29 +1622,45 @@ export class PrintService {
           <script>
             // Funciones de navegación
             function goBack() {
-              if (window.opener) {
-                window.close();
-              } else {
-                history.back();
+              try {
+                // Método 1: Si hay window.opener, cerrar ventana
+                if (window.opener) {
+                  window.close();
+                  return;
+                }
+                
+                // Método 2: Si estamos en un iframe, comunicar al parent
+                if (window.parent && window.parent !== window) {
+                  window.parent.postMessage({ action: 'closePrintWindow' }, '*');
+                  return;
+                }
+                
+                // Método 3: Intentar navegar hacia atrás solo si hay historial
+                if (window.history && window.history.length > 1) {
+                  window.history.back();
+                  return;
+                }
+                
+                // Método 4: Fallback - redirigir a la página principal
+                window.location.href = '/';
+                
+              } catch (error) {
+                console.error('Error en navegación:', error);
+                
+                // Fallback de emergencia
+                try {
+                  if (window.close) {
+                    window.close();
+                  } else {
+                    window.location.href = '/';
+                  }
+                } catch (fallbackError) {
+                  // Último recurso: recargar página
+                  window.location.reload();
+                }
               }
             }
 
-            function downloadImage() {
-              try {
-                // Crear enlace de descarga
-                const a = document.createElement('a');
-                a.href = '${imageUrl}';
-                a.download = 'Reporte_Inventario_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                showNotification('✅ Imagen descargada exitosamente', 'success');
-              } catch (error) {
-                console.error('Error descargando imagen:', error);
-                showNotification('❌ Error al descargar imagen', 'error');
-              }
-            }
 
             function printImage() {
               try {
@@ -1668,10 +1709,6 @@ export class PrintService {
                   case 'p':
                     e.preventDefault();
                     printImage();
-                    break;
-                  case 's':
-                    e.preventDefault();
-                    downloadImage();
                     break;
                 }
               } else if (e.key === 'Escape') {

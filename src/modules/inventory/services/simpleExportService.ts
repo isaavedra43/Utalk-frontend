@@ -20,38 +20,18 @@ export class SimpleExportService {
   }
 
   /**
-   * Exporta a PDF usando window.print
+   * Exporta a PDF directamente como archivo HTML descargable
    */
   static exportToPDF(platform: Platform): void {
     try {
       const printContent = this.generatePrintContent(platform);
       
-      // Crear ventana de impresión
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        throw new Error('No se pudo abrir ventana de impresión');
-      }
-
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      
-      // En iOS no auto-imprimimos ni auto-cerramos para permitir volver
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-      if (!isIOS) {
-        // Imprimir automáticamente en desktop/Android y cerrar
-        printWindow.onload = () => {
-          setTimeout(() => {
-            printWindow.print();
-            setTimeout(() => {
-              printWindow.close();
-            }, 1000);
-          }, 500);
-        };
-      }
+      // Descargar directamente como archivo HTML (compatible con navegadores)
+      this.downloadFile(printContent, `Reporte_Inventario_${platform.platformNumber}_${this.getDateString()}.html`, 'text/html');
       
     } catch (error) {
       console.error('Error al exportar PDF:', error);
-      this.showError('Error al exportar a PDF. Usa Ctrl+P para imprimir manualmente.');
+      this.showError('Error al exportar a PDF');
     }
   }
 
