@@ -45,9 +45,26 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
       setLoading(true);
       setError(null);
 
+      console.log('PDFPreviewModal - Iniciando generación de vista previa');
+      console.log('Datos de plataforma:', {
+        id: platform?.id,
+        platformNumber: platform?.platformNumber,
+        piecesCount: platform?.pieces?.length,
+        evidenceCount: platform?.evidence?.length,
+        hasSignature: !!signature?.name
+      });
+
       // Validar datos requeridos
-      if (!platform || !platform.platformNumber || !platform.pieces) {
-        throw new Error('Datos de la plataforma incompletos');
+      if (!platform) {
+        throw new Error('No se proporcionaron datos de la plataforma');
+      }
+
+      if (!platform.platformNumber) {
+        throw new Error('Número de plataforma no válido');
+      }
+
+      if (!platform.pieces || !Array.isArray(platform.pieces)) {
+        throw new Error('Lista de piezas no válida');
       }
 
       const pdfOptions = {
@@ -60,7 +77,7 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
 
       const previewUrl = await PDFReportService.previewReport(pdfOptions);
       setPdfUrl(previewUrl);
-      console.log('PDF generado exitosamente');
+      console.log('Vista previa del PDF generada exitosamente');
     } catch (err) {
       console.error('Error generando vista previa del PDF:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al generar el PDF';
@@ -73,6 +90,13 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
   const handleDownload = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      console.log('PDFPreviewModal - Iniciando descarga de PDF');
+
+      if (!platform) {
+        throw new Error('No se proporcionaron datos de la plataforma');
+      }
 
       const pdfOptions = {
         platform,
@@ -81,50 +105,84 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
       };
 
       await PDFReportService.downloadReport(pdfOptions);
+      console.log('PDF descargado exitosamente');
     } catch (err) {
       console.error('Error descargando PDF:', err);
-      setError('Error al descargar el PDF');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al descargar el PDF';
+      setError(`Error al descargar el PDF: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handlePrint = async () => {
-    if (!pdfUrl) return;
+    if (!pdfUrl) {
+      setError('No hay PDF disponible para imprimir');
+      return;
+    }
 
     try {
+      console.log('PDFPreviewModal - Iniciando impresión de PDF');
+
       const printWindow = window.open(pdfUrl, '_blank');
       if (printWindow) {
         printWindow.onload = () => {
-          printWindow.print();
+          try {
+            printWindow.print();
+            console.log('Impresión iniciada exitosamente');
+          } catch (printError) {
+            console.error('Error durante la impresión:', printError);
+            setError('Error durante la impresión del PDF');
+          }
         };
+
+        // Timeout por si la ventana no carga
+        setTimeout(() => {
+          if (!printWindow.closed) {
+            printWindow.close();
+          }
+        }, 10000);
+      } else {
+        throw new Error('No se pudo abrir la ventana de impresión');
       }
     } catch (err) {
       console.error('Error al imprimir:', err);
-      setError('Error al imprimir el PDF');
+      setError('Error al imprimir el PDF. Verifica que los pop-ups estén habilitados.');
     }
   };
 
   const handleShare = async () => {
-    if (!pdfUrl || !platform) return;
+    if (!pdfUrl || !platform) {
+      setError('No hay PDF disponible para compartir');
+      return;
+    }
 
     try {
+      console.log('PDFPreviewModal - Iniciando compartir PDF');
+
       const shareData = {
-        title: `Reporte de Carga ${platform.platformNumber}`,
-        text: `Reporte PDF de la carga ${platform.platformNumber} - Sistema de Inventario`,
+        title: `Reporte de Carga ${platform.platformNumber || 'N/A'}`,
+        text: `Reporte PDF de la carga ${platform.platformNumber || 'N/A'} - Sistema de Inventario`,
         url: pdfUrl,
       };
 
-      if (navigator.share && navigator.canShare(shareData)) {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
+        console.log('PDF compartido exitosamente vía Web Share API');
       } else {
         // Fallback: copiar URL al portapapeles
-        await navigator.clipboard.writeText(pdfUrl);
-        alert('Enlace del PDF copiado al portapapeles');
+        try {
+          await navigator.clipboard.writeText(pdfUrl);
+          alert('✅ Enlace del PDF copiado al portapapeles. Puedes compartirlo manualmente.');
+          console.log('URL del PDF copiada al portapapeles');
+        } catch (clipboardError) {
+          console.error('Error copiando al portapapeles:', clipboardError);
+          alert('Error copiando el enlace. Puedes compartir manualmente desde la barra de direcciones.');
+        }
       }
     } catch (err) {
       console.error('Error al compartir:', err);
-      setError('Error al compartir el PDF');
+      setError('Error al compartir el PDF. Puedes intentar descargar el archivo directamente.');
     }
   };
 
@@ -183,15 +241,36 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
               </div>
             ) : error ? (
               <div className="flex items-center justify-center h-96">
-                <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex flex-col items-center gap-3 text-center max-w-md px-4">
                   <AlertCircle className="h-12 w-12 text-red-500" />
-                  <p className="text-red-600 font-medium">{error}</p>
-                  <button
-                    onClick={generatePreview}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Reintentar
-                  </button>
+                  <div>
+                    <p className="text-red-600 font-medium mb-2">Error generando el PDF</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Se produjo un error al generar el reporte PDF. Esto puede deberse a datos incompletos o problemas técnicos.
+                    </p>
+                    <details className="text-left mb-4">
+                      <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+                        Ver detalles del error
+                      </summary>
+                      <p className="text-xs text-gray-500 mt-2 font-mono bg-gray-50 p-2 rounded">
+                        {error}
+                      </p>
+                    </details>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={generatePreview}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Reintentar
+                    </button>
+                    <button
+                      onClick={() => setError(null)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : pdfUrl ? (

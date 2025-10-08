@@ -44,21 +44,26 @@ export class PDFReportService {
     try {
       const { platform, signature, includeEvidence } = options;
 
-      // Validar datos requeridos
+      console.log('generateProfessionalReport - Datos recibidos:', {
+        platformNumber: platform?.platformNumber,
+        piecesCount: platform?.pieces?.length,
+        evidenceCount: platform?.evidence?.length,
+        hasSignature: !!signature?.name,
+        includeEvidence: includeEvidence
+      });
+
+      // Validar datos requeridos con mejor manejo de errores
       if (!platform) {
+        console.error('Plataforma no proporcionada');
         throw new Error('Plataforma no proporcionada');
       }
 
       if (!platform.platformNumber) {
+        console.error('Número de plataforma no válido:', platform.platformNumber);
         throw new Error('Número de plataforma no válido');
       }
 
-      if (!platform.pieces || !Array.isArray(platform.pieces)) {
-        throw new Error('Lista de piezas no válida');
-      }
-
-      console.log('Iniciando generación de PDF para plataforma:', platform.platformNumber);
-
+      // Crear documento PDF básico
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -67,77 +72,140 @@ export class PDFReportService {
 
       let yPosition = 20;
 
-      // Header del reporte
-      this.addHeader(doc, platform);
-      yPosition += 30;
+      try {
+        // Header del reporte
+        this.addHeader(doc, platform);
+        yPosition += 30;
 
-      // Información general de la carga
-      yPosition = this.addPlatformInfo(doc, platform, yPosition);
+        // Información general de la carga
+        yPosition = this.addPlatformInfo(doc, platform, yPosition);
 
-      // Tabla de piezas
-      yPosition = this.addPiecesTable(doc, platform, yPosition);
+        // Tabla de piezas
+        yPosition = this.addPiecesTable(doc, platform, yPosition);
 
-      // Evidencias (si están habilitadas)
-      if (includeEvidence && platform.evidence && Array.isArray(platform.evidence) && platform.evidence.length > 0) {
-        yPosition = this.addEvidenceSection(doc, platform.evidence, yPosition);
+        // Evidencias (si están habilitadas)
+        if (includeEvidence && platform.evidence && Array.isArray(platform.evidence) && platform.evidence.length > 0) {
+          yPosition = this.addEvidenceSection(doc, platform.evidence, yPosition);
+        }
+
+        // Firma electrónica
+        if (signature && signature.name) {
+          yPosition = this.addSignatureSection(doc, signature, yPosition);
+        }
+
+        // Footer
+        this.addFooter(doc, platform);
+
+        console.log('PDF generado exitosamente para plataforma:', platform.platformNumber);
+        return doc.output('blob');
+      } catch (sectionError) {
+        console.error('Error generando sección del PDF:', sectionError);
+        // Si hay error en alguna sección, intentar generar un PDF básico
+        try {
+          // Crear PDF básico con información mínima
+          const basicDoc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+          });
+
+          basicDoc.setFontSize(16);
+          basicDoc.setFont('helvetica', 'bold');
+          basicDoc.text('REPORTE DE CARGA', 20, 30);
+
+          basicDoc.setFontSize(12);
+          basicDoc.setFont('helvetica', 'normal');
+          basicDoc.text(`Número de Carga: ${platform.platformNumber || 'N/A'}`, 20, 50);
+          basicDoc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 20, 65);
+
+          if (platform.pieces && Array.isArray(platform.pieces) && platform.pieces.length > 0) {
+            basicDoc.text(`Total de piezas: ${platform.pieces.length}`, 20, 80);
+            basicDoc.text(`Metros lineales: ${(platform.totalLinearMeters || 0).toFixed(2)} m²`, 20, 95);
+          }
+
+          basicDoc.text('Error generando reporte completo. Datos básicos incluidos.', 20, 120);
+
+          console.log('PDF básico generado como fallback');
+          return basicDoc.output('blob');
+        } catch (fallbackError) {
+          console.error('Error generando PDF básico de fallback:', fallbackError);
+          throw new Error(`Error crítico generando PDF: ${fallbackError.message}`);
+        }
       }
-
-      // Firma electrónica
-      if (signature && signature.name) {
-        yPosition = this.addSignatureSection(doc, signature, yPosition);
-      }
-
-      // Footer
-      this.addFooter(doc, platform);
-
-      console.log('PDF generado exitosamente');
-      return doc.output('blob');
     } catch (error) {
-      console.error('Error en generateProfessionalReport:', error);
-      throw error;
+      console.error('Error crítico en generateProfessionalReport:', error);
+      throw new Error(`Error generando reporte PDF: ${error.message || 'Error desconocido'}`);
     }
   }
 
   private static addHeader(doc: jsPDF, platform: Platform) {
-    const pageWidth = doc.internal.pageSize.getWidth();
+    try {
+      const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Logo o título principal
-    doc.setFontSize(this.FONTS.title);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(this.COLORS.primary);
+      // Logo o título principal
+      doc.setFontSize(this.FONTS.title);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(this.COLORS.primary);
 
-    const title = 'REPORTE DE CARGA - CUANTIFICACIÓN DE MATERIALES';
-    const titleWidth = doc.getTextWidth(title);
-    const titleX = (pageWidth - titleWidth) / 2;
+      const title = 'REPORTE DE CARGA - CUANTIFICACIÓN DE MATERIALES';
+      const titleWidth = doc.getTextWidth(title);
+      const titleX = (pageWidth - titleWidth) / 2;
 
-    doc.text(title, titleX, 20);
+      doc.text(title, titleX, 20);
 
-    // Información de la carga
-    doc.setFontSize(this.FONTS.heading);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(this.COLORS.text);
+      // Información de la carga
+      doc.setFontSize(this.FONTS.heading);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(this.COLORS.text);
 
-    const cargaInfo = `Carga: ${platform.platformNumber}`;
-    const cargaInfoWidth = doc.getTextWidth(cargaInfo);
-    const cargaInfoX = (pageWidth - cargaInfoWidth) / 2;
+      const platformNumber = platform.platformNumber || 'N/A';
+      const cargaInfo = `Carga: ${platformNumber}`;
+      const cargaInfoWidth = doc.getTextWidth(cargaInfo);
+      const cargaInfoX = (pageWidth - cargaInfoWidth) / 2;
 
-    doc.text(cargaInfo, cargaInfoX, 30);
+      doc.text(cargaInfo, cargaInfoX, 30);
 
-    // Fecha del reporte
-    const reportDate = `Fecha del reporte: ${new Date().toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`;
+      // Fecha del reporte
+      const reportDate = (() => {
+        try {
+          return `Fecha del reporte: ${new Date().toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}`;
+        } catch (dateError) {
+          console.warn('Error formateando fecha del reporte:', dateError);
+          return `Fecha del reporte: ${new Date().toString()}`;
+        }
+      })();
 
-    doc.setFontSize(this.FONTS.small);
-    doc.text(reportDate, 20, 40);
+      doc.setFontSize(this.FONTS.small);
+      doc.text(reportDate, 20, 40);
+    } catch (error) {
+      console.error('Error en addHeader:', error);
+      // No lanzar error para el header, ya que no es crítico
+    }
   }
 
   private static addPlatformInfo(doc: jsPDF, platform: Platform, yPosition: number) {
     try {
+      console.log('addPlatformInfo - Datos recibidos:', {
+        platformNumber: platform.platformNumber,
+        platformType: platform.platformType,
+        status: platform.status,
+        receptionDate: platform.receptionDate,
+        materialTypes: platform.materialTypes,
+        provider: platform.provider,
+        client: platform.client,
+        driver: platform.driver,
+        ticketNumber: platform.ticketNumber,
+        notes: platform.notes,
+        createdBy: platform.createdBy,
+        createdByName: platform.createdByName
+      });
+
       const pageWidth = doc.internal.pageSize.getWidth();
       let currentY = yPosition;
 
@@ -154,53 +222,58 @@ export class PDFReportService {
       doc.line(20, currentY, pageWidth - 20, currentY);
       currentY += 8;
 
-      // Información en formato de tabla
-      doc.setFontSize(this.FONTS.normal);
+      // Información en formato de tabla - usando texto simple en lugar de autoTable para evitar problemas
+      doc.setFontSize(this.FONTS.small);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(this.COLORS.text);
 
-      const infoData = [
-        ['Número de Carga', platform.platformNumber || 'N/A'],
-        ['Tipo de Plataforma', platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'],
-        ['Estado', platform.status === 'in_progress' ? 'En Proceso' :
-                  platform.status === 'completed' ? 'Completada' : 'Exportada'],
-        ['Fecha de Recepción', platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A'],
-        ['Materiales', platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar'],
-        [platform.platformType === 'provider' ? 'Proveedor' : 'Cliente',
-         platform.provider || platform.client || 'No especificado'],
-        ['Chofer', platform.driver || 'No especificado'],
+      const lineHeight = 6;
+      const leftMargin = 25;
+      const rightMargin = pageWidth - 25;
+
+      // Crear información básica como texto simple
+      const infoLines = [
+        `Número de Carga: ${platform.platformNumber || 'N/A'}`,
+        `Tipo de Plataforma: ${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}`,
+        `Estado: ${platform.status === 'in_progress' ? 'En Proceso' :
+                  platform.status === 'completed' ? 'Completada' : 'Exportada'}`,
+        `Fecha de Recepción: ${platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A'}`,
+        `Materiales: ${platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar'}`,
+        `${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}: ${platform.provider || platform.client || 'No especificado'}`,
+        `Chofer: ${platform.driver || 'No especificado'}`,
         ...(platform.platformType === 'client' && platform.ticketNumber ?
-          [['Número de Ticket', platform.ticketNumber]] : []),
-        ['Observaciones', platform.notes || 'Sin observaciones'],
-        ['Creado por', platform.createdByName || platform.createdBy || 'Sistema'],
+          [`Número de Ticket: ${platform.ticketNumber}`] : []),
+        `Observaciones: ${platform.notes || 'Sin observaciones'}`,
+        `Creado por: ${platform.createdByName || platform.createdBy || 'Sistema'}`,
       ];
 
-      doc.autoTable({
-        startY: currentY,
-        head: [],
-        body: infoData,
-        theme: 'plain',
-        styles: {
-          fontSize: this.FONTS.normal,
-          cellPadding: 3,
-        },
-        columnStyles: {
-          0: { fontStyle: 'bold', fillColor: this.COLORS.light, textColor: this.COLORS.primary, cellWidth: 40 },
-          1: { textColor: this.COLORS.text, cellWidth: 'auto' },
-        },
-        margin: { left: 20, right: 20 },
-        tableWidth: pageWidth - 40,
+      infoLines.forEach((line, index) => {
+        if (currentY > doc.internal.pageSize.getHeight() - 30) {
+          doc.addPage();
+          currentY = 20;
+        }
+        doc.text(line, leftMargin, currentY);
+        currentY += lineHeight;
       });
 
-      return (doc.lastAutoTable?.finalY || currentY) + 15;
+      return currentY + 10;
     } catch (error) {
-      console.error('Error en addPlatformInfo:', error);
-      throw error;
+      console.error('Error en addPlatformInfo - Datos de plataforma:', platform);
+      console.error('Error detallado:', error);
+      // En lugar de lanzar el error, devolver la posición actual para continuar
+      return yPosition + 50;
     }
   }
 
   private static addPiecesTable(doc: jsPDF, platform: Platform, yPosition: number) {
     try {
+      console.log('addPiecesTable - Datos recibidos:', {
+        piecesLength: platform.pieces?.length || 0,
+        totalLength: platform.totalLength,
+        totalLinearMeters: platform.totalLinearMeters,
+        standardWidth: platform.standardWidth
+      });
+
       if (!platform.pieces || !Array.isArray(platform.pieces) || platform.pieces.length === 0) {
         doc.setFontSize(this.FONTS.normal);
         doc.setTextColor(this.COLORS.danger);
@@ -221,68 +294,72 @@ export class PDFReportService {
       doc.line(20, yPosition, doc.internal.pageSize.getWidth() - 20, yPosition);
       yPosition += 10;
 
-      // Preparar datos de la tabla
-      const tableData = platform.pieces.map((piece, index) => [
-        (index + 1).toString(),
-        piece.material || 'Sin especificar',
-        (piece.length || 0).toFixed(2),
-        (piece.standardWidth || 0).toFixed(2),
-        (piece.linearMeters || 0).toFixed(3),
-      ]);
+      // Usar texto simple en lugar de tabla para evitar problemas con autoTable
+      doc.setFontSize(this.FONTS.small);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(this.COLORS.text);
 
-      // Agregar fila de totales
-      tableData.push([
-        'TOTAL',
-        '',
-        (platform.totalLength || 0).toFixed(2),
-        (platform.standardWidth || 0).toFixed(2),
-        (platform.totalLinearMeters || 0).toFixed(3),
-      ]);
+      const lineHeight = 6;
+      const leftMargin = 25;
 
-      doc.autoTable({
-        startY: yPosition,
-        head: [['No.', 'Material', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: {
-          fillColor: this.COLORS.secondary,
-          textColor: 'white',
-          fontSize: this.FONTS.normal,
-          fontStyle: 'bold',
-        },
-        styles: {
-          fontSize: this.FONTS.small,
-          cellPadding: 4,
-        },
-        columnStyles: {
-          0: { cellWidth: 15, halign: 'center' },
-          1: { cellWidth: 50 },
-          2: { cellWidth: 30, halign: 'right' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
-        },
-        alternateRowStyles: {
-          fillColor: this.COLORS.light,
-        },
-        footStyles: {
-          fillColor: this.COLORS.success,
-          textColor: 'white',
-          fontStyle: 'bold',
-        },
-        margin: { left: 20, right: 20 },
-        tableWidth: doc.internal.pageSize.getWidth() - 40,
-        didParseCell: function(data) {
-          // Colorear la fila de totales
-          if (data.row.index === tableData.length - 1) {
-            data.cell.styles.fillColor = [16, 185, 129]; // emerald-500
-            data.cell.styles.textColor = 'white';
-            data.cell.styles.fontStyle = 'bold';
-          }
-        },
+      // Crear encabezado de tabla simple
+      if (yPosition > doc.internal.pageSize.getHeight() - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('No.  Material                    Longitud    Ancho    Metros Lineales', leftMargin, yPosition);
+      yPosition += lineHeight + 2;
+
+      // Línea separadora
+      doc.setDrawColor(this.COLORS.border);
+      doc.line(leftMargin, yPosition, doc.internal.pageSize.getWidth() - 20, yPosition);
+      yPosition += lineHeight;
+
+      // Datos de piezas
+      platform.pieces.forEach((piece, index) => {
+        if (yPosition > doc.internal.pageSize.getHeight() - 30) {
+          doc.addPage();
+          yPosition = 20;
+
+          // Repetir encabezado en nueva página
+          doc.setFont('helvetica', 'bold');
+          doc.text('No.  Material                    Longitud    Ancho    Metros Lineales', leftMargin, yPosition);
+          yPosition += lineHeight + 2;
+          doc.setDrawColor(this.COLORS.border);
+          doc.line(leftMargin, yPosition, doc.internal.pageSize.getWidth() - 20, yPosition);
+          yPosition += lineHeight;
+        }
+
+        doc.setFont('helvetica', 'normal');
+        const pieceLine = `${(index + 1).toString().padEnd(3)} ${piece.material?.substring(0, 25)?.padEnd(25) || 'Sin especificar'.padEnd(25)} ${(piece.length || 0).toFixed(2).padStart(8)}   ${(piece.standardWidth || 0).toFixed(2).padStart(6)}   ${(piece.linearMeters || 0).toFixed(3).padStart(12)}`;
+        doc.text(pieceLine, leftMargin, yPosition);
+        yPosition += lineHeight;
       });
 
-      // Agregar resumen destacado
-      const summaryY = (doc.lastAutoTable?.finalY || yPosition) + 15;
+      // Línea separadora antes del total
+      if (yPosition > doc.internal.pageSize.getHeight() - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setDrawColor(this.COLORS.border);
+      doc.line(leftMargin, yPosition, doc.internal.pageSize.getWidth() - 20, yPosition);
+      yPosition += lineHeight;
+
+      // Total destacado
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(this.COLORS.success);
+      const totalLine = `TOTAL${''.padEnd(28)}${(platform.totalLength || 0).toFixed(2).padStart(8)}   ${(platform.standardWidth || 0).toFixed(2).padStart(6)}   ${(platform.totalLinearMeters || 0).toFixed(3).padStart(12)}`;
+      doc.text(totalLine, leftMargin, yPosition);
+      yPosition += lineHeight + 5;
+
+      // Resumen destacado
+      if (yPosition > doc.internal.pageSize.getHeight() - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
 
       doc.setFontSize(this.FONTS.subtitle);
       doc.setFont('helvetica', 'bold');
@@ -294,20 +371,24 @@ export class PDFReportService {
 
       // Fondo del resumen
       doc.setFillColor(251, 191, 36, 0.1); // amber-200 con opacidad
-      doc.rect(summaryX - 5, summaryY - 5, summaryWidth + 10, 12, 'F');
+      doc.rect(summaryX - 5, yPosition - 5, summaryWidth + 10, 12, 'F');
 
-      doc.text(summaryText, summaryX, summaryY + 3);
+      doc.text(summaryText, summaryX, yPosition + 3);
 
-      return summaryY + 25;
+      return yPosition + 25;
     } catch (error) {
-      console.error('Error en addPiecesTable:', error);
-      throw error;
+      console.error('Error en addPiecesTable - Datos de piezas:', platform.pieces);
+      console.error('Error detallado:', error);
+      // En lugar de lanzar el error, devolver la posición actual para continuar
+      return yPosition + 50;
     }
   }
 
   private static addEvidenceSection(doc: jsPDF, evidence: Evidence[], yPosition: number): number {
     try {
       if (!evidence || !Array.isArray(evidence) || evidence.length === 0) return yPosition;
+
+      console.log('addEvidenceSection - Datos recibidos:', evidence.length, 'evidencias');
 
       let currentY = yPosition;
 
@@ -339,62 +420,60 @@ export class PDFReportService {
           currentY = 20;
         }
 
-        // Información de la evidencia
+        // Información de la evidencia como texto simple
         doc.setFontSize(this.FONTS.small);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(this.COLORS.text);
 
-        const evidenceInfo = [
-          ['Archivo', evidenceItem.fileName || 'Sin nombre'],
-          ['Tipo', evidenceItem.fileType || 'Desconocido'],
-          ['Tamaño', this.formatFileSize(evidenceItem.fileSize || 0)],
-          ...(evidenceItem.description ? [['Descripción', evidenceItem.description]] : []),
+        const lineHeight = 6;
+        const leftMargin = 25;
+
+        // Crear líneas de evidencia
+        const evidenceLines = [
+          `Archivo: ${evidenceItem.fileName || 'Sin nombre'}`,
+          `Tipo: ${evidenceItem.fileType || 'Desconocido'}`,
+          `Tamaño: ${this.formatFileSize(evidenceItem.fileSize || 0)}`,
+          ...(evidenceItem.description ? [`Descripción: ${evidenceItem.description}`] : []),
         ];
 
-        doc.autoTable({
-          startY: currentY,
-          head: [],
-          body: evidenceInfo,
-          theme: 'plain',
-          styles: {
-            fontSize: this.FONTS.small,
-            cellPadding: 2,
-          },
-          columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 25, fillColor: this.COLORS.light },
-            1: { cellWidth: 'auto' },
-          },
-          margin: { left: 20, right: 20 },
-          tableWidth: doc.internal.pageSize.getWidth() - 40,
+        evidenceLines.forEach((line) => {
+          if (currentY > doc.internal.pageSize.getHeight() - 30) {
+            doc.addPage();
+            currentY = 20;
+          }
+          doc.text(line, leftMargin, currentY);
+          currentY += lineHeight;
         });
 
-        currentY = (doc.lastAutoTable?.finalY || currentY) + 10;
-
-        // Si es una imagen, intentar incluirla
+        // Si es una imagen, agregar nota
         if (evidenceItem.fileType && evidenceItem.fileType.startsWith('image/') && evidenceItem.url) {
-          try {
-            // Aquí podríamos incluir la imagen si tenemos acceso a ella
-            // Por ahora, agregamos una nota
-            doc.setFontSize(this.FONTS.small);
-            doc.setTextColor(this.COLORS.textLight);
-            doc.text('📷 Imagen adjunta disponible en el archivo original', 25, currentY);
-            currentY += 8;
-          } catch (error) {
-            console.warn('No se pudo incluir la imagen en el PDF:', error);
+          if (currentY > doc.internal.pageSize.getHeight() - 30) {
+            doc.addPage();
+            currentY = 20;
           }
+          doc.setFontSize(this.FONTS.small);
+          doc.setTextColor(this.COLORS.textLight);
+          doc.text('📷 Imagen adjunta disponible en el archivo original', leftMargin, currentY);
+          currentY += lineHeight + 5;
+        } else {
+          currentY += 5; // Espacio adicional entre evidencias
         }
       }
 
       return currentY + 10;
     } catch (error) {
-      console.error('Error en addEvidenceSection:', error);
-      throw error;
+      console.error('Error en addEvidenceSection - Datos de evidencias:', evidence);
+      console.error('Error detallado:', error);
+      // En lugar de lanzar el error, devolver la posición actual para continuar
+      return yPosition + 50;
     }
   }
 
   private static addSignatureSection(doc: jsPDF, signature: { name: string; date: string; signatureImage?: string }, yPosition: number) {
     try {
       if (!signature || !signature.name) return yPosition;
+
+      console.log('addSignatureSection - Datos recibidos:', signature);
 
       let currentY = yPosition;
 
@@ -424,16 +503,24 @@ export class PDFReportService {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(this.COLORS.text);
 
-      doc.text(`Firmado por: ${signature.name || 'N/A'}`, 20, currentY);
+      const signerName = signature.name || 'N/A';
+      doc.text(`Firmado por: ${signerName}`, 20, currentY);
       currentY += 8;
 
-      const signatureDate = signature.date ? new Date(signature.date).toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }) : 'N/A';
+      const signatureDate = signature.date ? (() => {
+        try {
+          return new Date(signature.date).toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch (dateError) {
+          console.warn('Error formateando fecha de firma:', dateError);
+          return 'Fecha inválida';
+        }
+      })() : 'N/A';
 
       doc.text(`Fecha: ${signatureDate}`, 20, currentY);
       currentY += 15;
@@ -445,9 +532,14 @@ export class PDFReportService {
       if (signature.signatureImage) {
         try {
           // Aquí podríamos incluir la imagen de la firma
-          doc.text('Firma digital', 25, currentY + 10);
+          doc.setFontSize(this.FONTS.small);
+          doc.setTextColor(this.COLORS.text);
+          doc.text('Firma digital incluida', 25, currentY + 10);
         } catch (error) {
-          console.warn('No se pudo incluir la imagen de la firma:', error);
+          console.warn('No se pudo procesar la imagen de la firma:', error);
+          doc.setFontSize(this.FONTS.small);
+          doc.setTextColor(this.COLORS.textLight);
+          doc.text('Firma digital disponible', 25, currentY + 10);
         }
       } else {
         doc.setFontSize(this.FONTS.small);
@@ -464,12 +556,15 @@ export class PDFReportService {
       doc.setFontSize(this.FONTS.small);
       doc.setTextColor(this.COLORS.secondary);
       const authText = 'Firma autorizada';
-      doc.text(authText, (pageWidth - doc.getTextWidth(authText)) / 2, currentY + 8);
+      const authTextWidth = doc.getTextWidth(authText);
+      doc.text(authText, (pageWidth - authTextWidth) / 2, currentY + 8);
 
       return currentY + 20;
     } catch (error) {
-      console.error('Error en addSignatureSection:', error);
-      throw error;
+      console.error('Error en addSignatureSection - Datos de firma:', signature);
+      console.error('Error detallado:', error);
+      // En lugar de lanzar el error, devolver la posición actual para continuar
+      return yPosition + 50;
     }
   }
 
@@ -478,31 +573,50 @@ export class PDFReportService {
       const pageCount = doc.internal.pages.length - 1;
       const pageWidth = doc.internal.pageSize.getWidth();
 
+      if (pageCount <= 0) {
+        console.warn('No hay páginas en el documento PDF');
+        return;
+      }
+
       for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
+        try {
+          doc.setPage(i);
 
-        // Línea separadora del footer
-        doc.setDrawColor(this.COLORS.border);
-        doc.line(20, doc.internal.pageSize.getHeight() - 25, pageWidth - 20, doc.internal.pageSize.getHeight() - 25);
+          // Línea separadora del footer
+          doc.setDrawColor(this.COLORS.border);
+          doc.line(20, doc.internal.pageSize.getHeight() - 25, pageWidth - 20, doc.internal.pageSize.getHeight() - 25);
 
-        // Información del footer
-        doc.setFontSize(this.FONTS.small);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(this.COLORS.textLight);
+          // Información del footer
+          doc.setFontSize(this.FONTS.small);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(this.COLORS.textLight);
 
-        const platformNumber = platform.platformNumber || 'N/A';
-        const footerText = `Reporte generado automáticamente - Carga ${platformNumber} - Página ${i} de ${pageCount}`;
-        const footerWidth = doc.getTextWidth(footerText);
-        const footerX = (pageWidth - footerWidth) / 2;
+          const platformNumber = platform?.platformNumber || 'N/A';
+          const footerText = `Reporte generado automáticamente - Carga ${platformNumber} - Página ${i} de ${pageCount}`;
+          const footerWidth = doc.getTextWidth(footerText);
+          const footerX = (pageWidth - footerWidth) / 2;
 
-        doc.text(footerText, footerX, doc.internal.pageSize.getHeight() - 15);
+          doc.text(footerText, footerX, doc.internal.pageSize.getHeight() - 15);
 
-        // Timestamp en la esquina inferior derecha
-        const timestamp = new Date().toLocaleString('es-MX');
-        doc.text(timestamp, pageWidth - 20 - doc.getTextWidth(timestamp), doc.internal.pageSize.getHeight() - 15);
+          // Timestamp en la esquina inferior derecha
+          const timestamp = (() => {
+            try {
+              return new Date().toLocaleString('es-MX');
+            } catch (dateError) {
+              console.warn('Error formateando timestamp del footer:', dateError);
+              return new Date().toString();
+            }
+          })();
+
+          const timestampWidth = doc.getTextWidth(timestamp);
+          doc.text(timestamp, pageWidth - 20 - timestampWidth, doc.internal.pageSize.getHeight() - 15);
+        } catch (pageError) {
+          console.warn(`Error agregando footer a la página ${i}:`, pageError);
+          // Continuar con la siguiente página
+        }
       }
     } catch (error) {
-      console.error('Error en addFooter:', error);
+      console.error('Error crítico en addFooter:', error);
       // No lanzar error para el footer, ya que no es crítico
     }
   }
