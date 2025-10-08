@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, X, CheckCircle, AlertCircle, Loader2, Edit2, Trash2, Save } from 'lucide-react';
+import { Mic, MicOff, X, CheckCircle, AlertCircle, Loader2, Edit, Trash2, Save } from 'lucide-react';
 import { callOpenAI } from '../../../config/ai';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { SpeechNotSupported } from './SpeechNotSupported';
@@ -25,8 +25,8 @@ interface DictatedPiece {
 export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
   isOpen,
   onClose,
-  platformId,
-  standardWidth,
+  platformId: _platformId,
+  standardWidth: _standardWidth,
   availableMaterials,
   onAddPieces
 }) => {
@@ -114,11 +114,11 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
         max_tokens: 1000
       });
 
-      const cleanedResponse = response.trim();
+      const cleanedResponse = String(response).trim();
       const pieces = JSON.parse(cleanedResponse);
 
       if (Array.isArray(pieces)) {
-        const newPieces = pieces.map((piece: any, index: number) => ({
+        const newPieces = pieces.map((piece: { length: number; confidence: number }, index: number) => ({
           id: `piece-${Date.now()}-${index}`,
           ...piece,
           material: selectedMaterial || 'Sin especificar'
@@ -164,7 +164,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
 
   // Función para agregar nuevas líneas sin limpiar las existentes
   const addNewPieces = (newPieces: DictatedPiece[]) => {
-    setProcessedPieces(prev => [...prev, ...newPieces]);
+    setProcessedPieces((prev: DictatedPiece[]) => [...prev, ...newPieces]);
   };
 
   // Procesar transcripción cuando el usuario deja de hablar
@@ -186,8 +186,8 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
   const saveEditedPiece = () => {
     if (!editingPiece) return;
 
-    setProcessedPieces(prev => 
-      prev.map(piece => 
+    setProcessedPieces((prev: DictatedPiece[]) => 
+      prev.map((piece: DictatedPiece) => 
         piece.id === editingPiece.id ? editingPiece : piece
       )
     );
@@ -199,13 +199,13 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
   };
 
   const deletePiece = (pieceId: string) => {
-    setProcessedPieces(prev => prev.filter(piece => piece.id !== pieceId));
+    setProcessedPieces((prev: DictatedPiece[]) => prev.filter((piece: DictatedPiece) => piece.id !== pieceId));
   };
 
   const updateEditingPiece = (field: 'length' | 'material', value: string | number) => {
     if (!editingPiece) return;
     
-    setEditingPiece(prev => prev ? {
+    setEditingPiece((prev: DictatedPiece | null) => prev ? {
       ...prev,
       [field]: field === 'length' ? parseFloat(value.toString()) || 0 : value
     } : null);
@@ -216,8 +216,8 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
     if (processedPieces.length === 0) return;
 
     const piecesToAdd = processedPieces
-      .filter(piece => piece.length > 0) // Solo validar que tenga longitud válida
-      .map(piece => ({
+      .filter((piece: DictatedPiece) => piece.length > 0) // Solo validar que tenga longitud válida
+      .map((piece: DictatedPiece) => ({
         length: piece.length,
         material: piece.material || 'Sin especificar'
       }));
@@ -258,8 +258,8 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -278,7 +278,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             {/* Speech Not Supported Warning */}
             {!isSpeechSupported && (
               <div className="mb-4">
@@ -293,11 +293,11 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
               </label>
               <select
                 value={selectedMaterial}
-                onChange={(e) => setSelectedMaterial(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedMaterial(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Sin material por defecto</option>
-                {availableMaterials.map((material) => (
+                {availableMaterials.map((material: string) => (
                   <option key={material} value={material}>
                     {material}
                   </option>
@@ -376,8 +376,8 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
                     Limpiar todo
                   </button>
                 </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {processedPieces.map((piece) => (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {processedPieces.map((piece: DictatedPiece) => (
                     <div
                       key={piece.id}
                       className="p-3 bg-green-50 border border-green-200 rounded-lg"
@@ -389,7 +389,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
                             <input
                               type="number"
                               value={editingPiece.length}
-                              onChange={(e) => updateEditingPiece('length', e.target.value)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateEditingPiece('length', e.target.value)}
                               step="0.01"
                               min="0.01"
                               className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
@@ -399,11 +399,11 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
                           </div>
                           <select
                             value={editingPiece.material}
-                            onChange={(e) => updateEditingPiece('material', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateEditingPiece('material', e.target.value)}
                             className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                           >
                             <option value="Sin especificar">Sin especificar</option>
-                            {availableMaterials.map((material) => (
+                            {availableMaterials.map((material: string) => (
                               <option key={material} value={material}>
                                 {material}
                               </option>
@@ -446,7 +446,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
                               className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                               title="Editar pieza"
                             >
-                              <Edit2 className="w-3 h-3" />
+                              <Edit className="w-3 h-3" />
                             </button>
                             <button
                               onClick={() => deletePiece(piece.id)}
@@ -467,14 +467,14 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
             {/* Processing Indicator */}
             {isProcessing && (
               <div className="mb-4 flex items-center justify-center gap-2 text-blue-600">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader className="w-4 h-4 animate-spin" />
                 <span className="text-sm">Procesando con IA...</span>
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+          <div className="flex-shrink-0 flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-white">
             <button
               onClick={onClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
