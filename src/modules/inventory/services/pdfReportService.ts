@@ -566,85 +566,148 @@ export class PDFReportService {
       try {
         console.log('🖼️ Intentando cargar imagen:', imageUrl);
         
-        // Crear una imagen
-        const img = new Image();
-        
-        img.onload = () => {
-          try {
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const maxWidth = pageWidth - xPosition - 20; // Margen derecho
-            const maxHeight = 50; // Altura máxima para la imagen
-            
-            // Calcular dimensiones manteniendo proporción
-            let imgWidth = img.width;
-            let imgHeight = img.height;
-            
-            // Redimensionar si es necesario
-            if (imgWidth > maxWidth) {
-              const ratio = maxWidth / imgWidth;
-              imgWidth = maxWidth;
-              imgHeight = imgHeight * ratio;
+        // Usar fetch para cargar la imagen como blob y convertir a base64
+        this.loadImageAsBase64(imageUrl)
+          .then((base64Data) => {
+            try {
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const maxWidth = pageWidth - xPosition - 20; // Margen derecho
+              const maxHeight = 50; // Altura máxima para la imagen
+              
+              // Crear imagen temporal para obtener dimensiones
+              const tempImg = new Image();
+              tempImg.onload = () => {
+                try {
+                  // Calcular dimensiones manteniendo proporción
+                  let imgWidth = tempImg.width;
+                  let imgHeight = tempImg.height;
+                  
+                  // Redimensionar si es necesario
+                  if (imgWidth > maxWidth) {
+                    const ratio = maxWidth / imgWidth;
+                    imgWidth = maxWidth;
+                    imgHeight = imgHeight * ratio;
+                  }
+                  
+                  if (imgHeight > maxHeight) {
+                    const ratio = maxHeight / imgHeight;
+                    imgHeight = maxHeight;
+                    imgWidth = imgWidth * ratio;
+                  }
+                  
+                  // Dibujar borde alrededor de la imagen
+                  doc.setDrawColor(this.COLORS.border);
+                  doc.setLineWidth(0.5);
+                  doc.rect(xPosition, yPosition, imgWidth, imgHeight);
+                  
+                  // Determinar el tipo de imagen basado en la URL
+                  let imageFormat = 'PNG';
+                  if (imageUrl.toLowerCase().includes('.jpg') || imageUrl.toLowerCase().includes('.jpeg')) {
+                    imageFormat = 'JPEG';
+                  } else if (imageUrl.toLowerCase().includes('.png')) {
+                    imageFormat = 'PNG';
+                  }
+                  
+                  // Agregar la imagen al PDF usando base64
+                  doc.addImage(base64Data, imageFormat, xPosition, yPosition, imgWidth, imgHeight);
+                  
+                  console.log('✅ Imagen agregada al PDF exitosamente:', {
+                    url: imageUrl,
+                    format: imageFormat,
+                    originalSize: { width: tempImg.width, height: tempImg.height },
+                    pdfSize: { width: imgWidth, height: imgHeight }
+                  });
+                  
+                  resolve();
+                } catch (addImageError) {
+                  console.error('❌ Error agregando imagen al PDF:', addImageError);
+                  reject(addImageError);
+                }
+              };
+              
+              tempImg.onerror = () => {
+                console.error('❌ Error creando imagen temporal');
+                reject(new Error('Error creando imagen temporal'));
+              };
+              
+              tempImg.src = base64Data;
+              
+            } catch (error) {
+              console.error('❌ Error procesando imagen:', error);
+              reject(error);
             }
-            
-            if (imgHeight > maxHeight) {
-              const ratio = maxHeight / imgHeight;
-              imgHeight = maxHeight;
-              imgWidth = imgWidth * ratio;
-            }
-            
-            // Dibujar borde alrededor de la imagen
-            doc.setDrawColor(this.COLORS.border);
-            doc.setLineWidth(0.5);
-            doc.rect(xPosition, yPosition, imgWidth, imgHeight);
-            
-            // Determinar el tipo de imagen basado en la URL o tipo MIME
-            let imageFormat = 'PNG';
-            if (imageUrl.toLowerCase().includes('.jpg') || imageUrl.toLowerCase().includes('.jpeg')) {
-              imageFormat = 'JPEG';
-            } else if (imageUrl.toLowerCase().includes('.png')) {
-              imageFormat = 'PNG';
-            }
-            
-            // Agregar la imagen al PDF
-            doc.addImage(img, imageFormat, xPosition, yPosition, imgWidth, imgHeight);
-            
-            console.log('✅ Imagen agregada al PDF exitosamente:', {
-              url: imageUrl,
-              format: imageFormat,
-              originalSize: { width: img.width, height: img.height },
-              pdfSize: { width: imgWidth, height: imgHeight }
-            });
-            
-            resolve();
-          } catch (addImageError) {
-            console.error('❌ Error agregando imagen al PDF:', addImageError);
-            reject(addImageError);
-          }
-        };
-        
-        img.onerror = (error) => {
-          console.error('❌ Error cargando imagen (CORS o URL inválida):', error);
-          console.error('❌ URL que falló:', imageUrl);
-          reject(error);
-        };
-        
-        // Intentar cargar primero sin CORS (para URLs del mismo dominio)
-        img.src = imageUrl;
-        
-        // Si falla, intentar con CORS después de un timeout
-        setTimeout(() => {
-          if (img.complete && img.naturalHeight === 0) {
-            console.log('🔄 Reintentando con CORS...');
-            img.crossOrigin = 'anonymous';
-            img.src = imageUrl;
-          }
-        }, 1000);
+          })
+          .catch((error) => {
+            console.error('❌ Error cargando imagen como base64:', error);
+            reject(error);
+          });
         
       } catch (error) {
         console.error('❌ Error en addImageToPDF:', error);
         reject(error);
       }
     });
+  }
+
+  // Nueva función para cargar imagen como base64
+  private static async loadImageAsBase64(imageUrl: string): Promise<string> {
+    try {
+      console.log('📥 Descargando imagen como blob:', imageUrl);
+      
+      // Usar fetch con modo 'no-cors' como fallback
+      let response: Response;
+      
+      try {
+        // Intentar con CORS primero
+        response = await fetch(imageUrl, {
+          mode: 'cors',
+          cache: 'no-cache'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        console.log('✅ Imagen descargada exitosamente con CORS');
+        
+      } catch (corsError) {
+        console.warn('⚠️ CORS falló, intentando con no-cors:', corsError);
+        
+        // Fallback: usar no-cors
+        response = await fetch(imageUrl, {
+          mode: 'no-cors',
+          cache: 'no-cache'
+        });
+        
+        console.log('✅ Imagen descargada con no-cors (puede tener limitaciones)');
+      }
+      
+      // Convertir a blob
+      const blob = await response.blob();
+      console.log('📦 Blob creado:', { size: blob.size, type: blob.type });
+      
+      // Convertir blob a base64
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          console.log('✅ Base64 generado, longitud:', base64.length);
+          resolve(base64);
+        };
+        
+        reader.onerror = (error) => {
+          console.error('❌ Error leyendo blob:', error);
+          reject(error);
+        };
+        
+        reader.readAsDataURL(blob);
+      });
+      
+    } catch (error) {
+      console.error('❌ Error en loadImageAsBase64:', error);
+      throw error;
+    }
   }
 
   private static addSignatureSection(doc: jsPDF, signature: { name: string; date: string; signatureImage?: string }, yPosition: number) {
