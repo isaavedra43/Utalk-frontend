@@ -1,33 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  Lock, 
-  Unlock,
+  CheckCircle,
+  Check,
   ArrowLeft, 
-  ArrowRight,
   Users, 
   DollarSign, 
-  Clock,
-  Eye,
   Search,
-  Filter,
   User,
-  Mail,
-  FileText,
   AlertCircle,
-  Info,
-  Shield,
-  Calendar,
-  Building,
-  CreditCard,
-  Receipt,
-  Check,
-  X,
-  Save,
-  AlertTriangle as WarningIcon,
-  Download
+  FileText
 } from 'lucide-react';
 import { generalPayrollApi } from '../../../services/generalPayrollApi';
 
@@ -105,26 +86,31 @@ interface PayrollClosureSummary {
   payrollFolio: string;
 }
 
+interface SelectedPeriod {
+  startDate: string;
+  endDate: string;
+  type: string;
+}
+
 interface PayrollClosureViewProps {
   approvedData: EmployeePayrollApproval[];
-  selectedPeriod?: any;
+  selectedPeriod?: SelectedPeriod;
   createdPayrollId?: string | null;
   onComplete: () => void;
   onBack: () => void;
 }
 
-const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({ 
-  approvedData, 
+const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
+  approvedData,
   selectedPeriod,
   createdPayrollId,
-  onComplete, 
-  onBack 
-}) => {
+  onComplete,
+  onBack
+}: PayrollClosureViewProps) => {
   // Estados principales
   const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
   const [summary, setSummary] = useState<PayrollClosureSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   
   // Estados de UI
@@ -134,165 +120,6 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
   const [closureNotes, setClosureNotes] = useState('');
   const [sendNotifications, setSendNotifications] = useState(true);
   const [generateReports, setGenerateReports] = useState(true);
-
-  // Datos mock actualizados para coincidir con la ventana de aprobación
-  const mockEmployees: EmployeePayrollApproval[] = [
-    {
-      id: '1',
-      personalInfo: {
-        name: 'Ana García López',
-        email: 'ana.garcia@empresa.com',
-        phone: '+52 55 1234 5678',
-        position: 'Desarrolladora Senior',
-        department: 'Tecnología',
-        location: 'Ciudad de México',
-        employeeId: 'EMP001'
-      },
-      originalPayroll: {
-        baseSalary: 45000,
-        overtime: 4500,
-        bonuses: 4000,
-        allowances: 3500,
-        totalEarnings: 55500,
-        taxes: 9700,
-        benefits: 1600,
-        otherDeductions: 0,
-        totalDeductions: 11300,
-        netPay: 44200
-      },
-      adjustments: [
-        {
-          id: 'adj1',
-          employeeId: '1',
-          type: 'bonus',
-          name: 'Bono de Proyecto Especial',
-          amount: 2000,
-          description: 'Bono por completar proyecto crítico',
-          reason: 'Proyecto completado antes del plazo',
-          approved: true,
-          createdBy: 'Gerente de Proyecto',
-          createdAt: '2024-01-30T10:00:00Z',
-          approvedBy: 'RH Manager',
-          approvedAt: '2024-01-30T14:00:00Z'
-        },
-        {
-          id: 'adj2',
-          employeeId: '1',
-          type: 'deduction',
-          name: 'Préstamo Personal',
-          amount: 1500,
-          description: 'Deducción por préstamo personal',
-          reason: 'Préstamo autorizado por RH',
-          approved: true,
-          createdBy: 'RH Manager',
-          createdAt: '2024-01-29T09:00:00Z',
-          approvedBy: 'RH Manager',
-          approvedAt: '2024-01-29T09:00:00Z'
-        }
-      ],
-      finalPayroll: {
-        totalEarnings: 57500,
-        totalDeductions: 12800,
-        netPay: 44700
-      },
-      status: 'approved',
-      paymentStatus: 'paid',
-      paymentMethod: 'cash',
-      receiptStatus: 'uploaded',
-      receiptUrl: '/receipts/ana-garcia-2024-01.pdf',
-      receiptUploadedAt: '2024-01-30T15:00:00Z',
-      notes: 'Todos los ajustes aprobados correctamente',
-      faltas: 0,
-      lastUpdated: '2024-01-30T14:00:00Z'
-    },
-    {
-      id: '2',
-      personalInfo: {
-        name: 'Carlos Mendoza Ruiz',
-        email: 'carlos.mendoza@empresa.com',
-        phone: '+52 55 2345 6789',
-        position: 'Gerente de Ventas',
-        department: 'Ventas',
-        location: 'Guadalajara',
-        employeeId: 'EMP002'
-      },
-      originalPayroll: {
-        baseSalary: 55000,
-        overtime: 3600,
-        bonuses: 8000,
-        allowances: 5000,
-        totalEarnings: 71600,
-        taxes: 13500,
-        benefits: 1400,
-        otherDeductions: 0,
-        totalDeductions: 14900,
-        netPay: 56700
-      },
-      adjustments: [
-        {
-          id: 'adj3',
-          employeeId: '2',
-          type: 'bonus',
-          name: 'Bono de Ventas Excepcionales',
-          amount: 5000,
-          description: 'Bono por superar metas de ventas en 150%',
-          reason: 'Excelente desempeño en ventas del mes',
-          approved: false,
-          createdBy: 'Director de Ventas',
-          createdAt: '2024-01-30T11:00:00Z'
-        }
-      ],
-      finalPayroll: {
-        totalEarnings: 76600,
-        totalDeductions: 14900,
-        netPay: 61700
-      },
-      status: 'pending',
-      paymentStatus: 'pending',
-      paymentMethod: 'cash',
-      receiptStatus: 'pending',
-      notes: 'Pendiente aprobación de bono de ventas',
-      faltas: 2,
-      lastUpdated: '2024-01-30T11:00:00Z'
-    },
-    {
-      id: '3',
-      personalInfo: {
-        name: 'María Elena Torres',
-        email: 'maria.torres@empresa.com',
-        phone: '+52 55 3456 7890',
-        position: 'Analista de Recursos Humanos',
-        department: 'Recursos Humanos',
-        location: 'Monterrey',
-        employeeId: 'EMP003'
-      },
-      originalPayroll: {
-        baseSalary: 35000,
-        overtime: 1500,
-        bonuses: 2000,
-        allowances: 1500,
-        totalEarnings: 40000,
-        taxes: 6900,
-        benefits: 800,
-        otherDeductions: 0,
-        totalDeductions: 7700,
-        netPay: 32300
-      },
-      adjustments: [],
-      finalPayroll: {
-        totalEarnings: 40000,
-        totalDeductions: 7700,
-        netPay: 32300
-      },
-      status: 'approved',
-      paymentStatus: 'paid',
-      paymentMethod: 'cash',
-      receiptStatus: 'pending',
-      notes: 'Sin ajustes requeridos',
-      faltas: 1,
-      lastUpdated: '2024-01-30T12:00:00Z'
-    }
-  ];
 
   // Cargar datos de cierre
   useEffect(() => {
@@ -308,10 +135,10 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         setEmployees(realEmployees);
         
         // Calcular resumen y validaciones con datos reales
-        const pendingApprovals = realEmployees.filter(emp => emp.status === 'pending').length;
-        const approved = realEmployees.filter(emp => emp.status === 'approved').length;
-        const pendingPayments = realEmployees.filter(emp => emp.paymentStatus === 'pending').length;
-        const paid = realEmployees.filter(emp => emp.paymentStatus === 'paid').length;
+        const pendingApprovals = realEmployees.filter((emp: EmployeePayrollApproval) => emp.status === 'pending').length;
+        const approved = realEmployees.filter((emp: EmployeePayrollApproval) => emp.status === 'approved').length;
+        const pendingPayments = realEmployees.filter((emp: EmployeePayrollApproval) => emp.paymentStatus === 'pending').length;
+        const paid = realEmployees.filter((emp: EmployeePayrollApproval) => emp.paymentStatus === 'paid').length;
         
         // Verificar si se puede cerrar la nómina
         const blockingIssues: string[] = [];
@@ -340,7 +167,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
           approved,
           pendingPayments,
           paid,
-          totalAmount: realEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
+          totalAmount: realEmployees.reduce((sum: number, emp: EmployeePayrollApproval) => sum + emp.finalPayroll.netPay, 0),
           period: {
             startDate: selectedPeriod?.startDate || new Date().toISOString().split('T')[0],
             endDate: selectedPeriod?.endDate || new Date().toISOString().split('T')[0],
@@ -359,14 +186,13 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         
       } catch (error) {
         console.error('❌ Error cargando datos de cierre:', error);
-        setError('Error al cargar los datos de cierre');
       } finally {
         setLoading(false);
       }
     };
 
     loadClosureData();
-  }, [approvedData]);
+  }, [approvedData, selectedPeriod]);
 
   // Funciones de utilidad
   const formatCurrency = (amount: number) => {
@@ -448,7 +274,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
   };
 
   // Filtros
-  const filteredEmployees = employees.filter(employee => {
+  const filteredEmployees = employees.filter((employee: EmployeePayrollApproval) => {
     const matchesSearch = searchTerm === '' || 
       employee.personalInfo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.personalInfo.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -570,7 +396,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            <Lock className="h-4 w-4 mr-2" />
+            <Check className="h-4 w-4 mr-2" />
             {isClosing ? 'Cerrando...' : 'Cerrar Nómina'}
           </button>
         </div>
@@ -607,7 +433,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
           <div className="text-sm text-red-700">
             <p className="mb-2">Los siguientes problemas deben resolverse antes de cerrar:</p>
             <ul className="list-disc list-inside space-y-1">
-              {summary.blockingIssues.map((issue, index) => (
+              {summary.blockingIssues.map((issue: string, index: number) => (
                 <li key={index}>{issue}</li>
               ))}
             </ul>
@@ -649,7 +475,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 <p className="text-2xl font-bold text-green-600">{summary.paid}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
-                <CreditCard className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -676,7 +502,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">Notas de Cierre</label>
             <textarea
               value={closureNotes}
-              onChange={(e) => setClosureNotes(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setClosureNotes(e.target.value)}
               placeholder="Agrega notas sobre el cierre de nómina..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={3}
@@ -689,7 +515,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 type="checkbox"
                 id="sendNotifications"
                 checked={sendNotifications}
-                onChange={(e) => setSendNotifications(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSendNotifications(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="sendNotifications" className="ml-2 text-sm text-gray-700">
@@ -702,7 +528,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 type="checkbox"
                 id="generateReports"
                 checked={generateReports}
-                onChange={(e) => setGenerateReports(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGenerateReports(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="generateReports" className="ml-2 text-sm text-gray-700">
@@ -724,7 +550,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 type="text"
                 placeholder="Nombre, puesto, ID..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -734,7 +560,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Todos los estados</option>
@@ -749,7 +575,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">Departamento</label>
             <select
               value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDepartmentFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Todos los departamentos</option>
@@ -800,7 +626,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredEmployees.map((employee) => (
+              {filteredEmployees.map((employee: EmployeePayrollApproval) => (
                 <tr key={employee.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -859,7 +685,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                         className="text-blue-600 hover:text-blue-900"
                         title="Ver recibo de nómina"
                       >
-                        <Receipt className="h-4 w-4" />
+                        <FileText className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

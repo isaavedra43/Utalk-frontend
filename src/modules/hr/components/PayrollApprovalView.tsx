@@ -3,29 +3,19 @@ import {
   CheckCircle, 
   XCircle, 
   Edit, 
-  ArrowLeft, 
-  ArrowRight,
-  Users, 
-  Clock,
+  ArrowLeft,
+  Users,
+  AlertTriangle,
   FileText,
   Download,
   Plus,
   Check,
   X,
-  Calculator,
+  DollarSign,
   Share2,
-  FileSpreadsheet,
-  Upload,
-  FileCheck,
   AlertCircle,
   User,
-  Mail,
-  ExternalLink,
-  Archive,
-  FolderOpen,
-  Printer,
-  MessageCircle,
-  StickyNote
+  Printer
 } from 'lucide-react';
 import { generalPayrollApi } from '../../../services/generalPayrollApi';
 
@@ -79,7 +69,7 @@ interface EmployeePayrollApproval {
   paymentMethod: 'cash' | 'deposit' | 'check' | 'transfer' | 'other';
   receiptStatus: 'pending' | 'uploaded';
   receiptUrl?: string;
-  receiptUploadedAt?: string;
+  receiptPlusedAt?: string;
   notes?: string;
   faltas: number;
   lastUpdated: string;
@@ -108,15 +98,12 @@ interface PayrollApprovalViewProps {
   onBack: () => void;
 }
 
-const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({ 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  adjustedData: _adjustedData, // Datos ajustados (funcionalidad mantenida)
+const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   selectedPeriod,
   createdPayrollId,
-  onNext, 
-  onBack 
-}) => {
-  // Mantener compatibilidad con props adjustedData (renombrado a _adjustedData en destructuring)
+  onNext,
+  onBack
+}: PayrollApprovalViewProps) => {
   // Estados principales
   const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
   const [summary, setSummary] = useState<PayrollApprovalSummary | null>(null);
@@ -146,7 +133,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   // Estados para modales de compartir y descargar
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [isGeneratingFile, setIsGeneratingFile] = useState(false);
+  const [isGeneratingFileText, setIsGeneratingFileText] = useState(false);
   // Estados para selección de formato y canal (funcionalidad completa de exportación mantenida)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedFormat, setSelectedFormat] = useState<string>('pdf');
@@ -280,7 +267,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
             paymentMethod: emp.paymentMethod || 'bank_transfer',
             receiptStatus: 'pending',
             receiptUrl: null,
-            receiptUploadedAt: null,
+            receiptPlusedAt: null,
             notes: '',
             faltas: 0,
             lastUpdated: new Date().toISOString()
@@ -627,7 +614,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   };
 
   const handleShareViaChannel = async (channel: string, format: string) => {
-    setIsGeneratingFile(true);
+    setIsGeneratingFileText(true);
     try {
       console.log(`📤 Compartiendo nómina vía ${channel} en formato ${format}`);
       
@@ -662,8 +649,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           
         case 'link': {
           // Simular generación de enlace compartible
-          const shareableLink = `${window.location.origin}/payroll/share/${Date.now()}`;
-          navigator.clipboard.writeText(shareableLink);
+          const shareableShare2 = `${window.location.origin}/payroll/share/${Date.now()}`;
+          navigator.clipboard.writeText(shareableShare2);
           alert('Enlace copiado al portapapeles');
           break;
         }
@@ -674,12 +661,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     } catch (error) {
       console.error('❌ Error compartiendo nómina:', error);
     } finally {
-      setIsGeneratingFile(false);
+      setIsGeneratingFileText(false);
     }
   };
 
-  const handleDownloadFile = async (format: string) => {
-    setIsGeneratingFile(true);
+  const handleDownloadFileText = async (format: string) => {
+    setIsGeneratingFileText(true);
     try {
       console.log(`📥 Descargando nómina en formato ${format}`);
       
@@ -692,12 +679,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           // Simular descarga de PDF
           const pdfBlob = new Blob(['PDF content simulation'], { type: 'application/pdf' });
           const pdfUrl = window.URL.createObjectURL(pdfBlob);
-          const pdfLink = document.createElement('a');
-          pdfLink.href = pdfUrl;
-          pdfLink.download = `nomina-${new Date().toISOString().split('T')[0]}.pdf`;
-          document.body.appendChild(pdfLink);
-          pdfLink.click();
-          document.body.removeChild(pdfLink);
+          const pdfShare2 = document.createElement('a');
+          pdfShare2.href = pdfUrl;
+          pdfShare2.download = `nomina-${new Date().toISOString().split('T')[0]}.pdf`;
+          document.body.appendChild(pdfShare2);
+          pdfShare2.click();
+          document.body.removeChild(pdfShare2);
           window.URL.revokeObjectURL(pdfUrl);
           break;
         }
@@ -706,12 +693,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           // Simular descarga de Excel
           const excelBlob = new Blob(['Excel content simulation'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
           const excelUrl = window.URL.createObjectURL(excelBlob);
-          const excelLink = document.createElement('a');
-          excelLink.href = excelUrl;
-          excelLink.download = `nomina-${new Date().toISOString().split('T')[0]}.xlsx`;
-          document.body.appendChild(excelLink);
-          excelLink.click();
-          document.body.removeChild(excelLink);
+          const excelShare2 = document.createElement('a');
+          excelShare2.href = excelUrl;
+          excelShare2.download = `nomina-${new Date().toISOString().split('T')[0]}.xlsx`;
+          document.body.appendChild(excelShare2);
+          excelShare2.click();
+          document.body.removeChild(excelShare2);
           window.URL.revokeObjectURL(excelUrl);
           break;
         }
@@ -739,12 +726,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           canvas.toBlob((blob) => {
             if (blob) {
               const imageUrl = window.URL.createObjectURL(blob);
-              const imageLink = document.createElement('a');
-              imageLink.href = imageUrl;
-              imageLink.download = `nomina-${new Date().toISOString().split('T')[0]}.png`;
-              document.body.appendChild(imageLink);
-              imageLink.click();
-              document.body.removeChild(imageLink);
+              const imageShare2 = document.createElement('a');
+              imageShare2.href = imageUrl;
+              imageShare2.download = `nomina-${new Date().toISOString().split('T')[0]}.png`;
+              document.body.appendChild(imageShare2);
+              imageShare2.click();
+              document.body.removeChild(imageShare2);
               window.URL.revokeObjectURL(imageUrl);
             }
           }, 'image/png');
@@ -757,7 +744,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     } catch (error) {
       console.error('❌ Error descargando nómina:', error);
     } finally {
-      setIsGeneratingFile(false);
+      setIsGeneratingFileText(false);
     }
   };
 
@@ -794,13 +781,13 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     }
   };
 
-  const handleUploadReceipt = (employee: EmployeePayrollApproval) => {
+  const handlePlusReceipt = (employee: EmployeePayrollApproval) => {
     setSelectedEmployeeForReceipt(employee);
     setShowReceiptModal(true);
     console.log('📄 Abriendo modal para subir comprobante de pago para:', employee.personalInfo.name);
   };
 
-  const handleReceiptFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiptFileTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setReceiptFile(file);
@@ -827,7 +814,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
               ...emp, 
               receiptStatus: 'uploaded',
               receiptUrl: receiptUrl,
-              receiptUploadedAt: new Date().toISOString(),
+              receiptPlusedAt: new Date().toISOString(),
               lastUpdated: new Date().toISOString() 
             }
           : emp
@@ -913,12 +900,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       // Crear un ZIP con todos los comprobantes (simulación)
       const zipBlob = new Blob(['ZIP content simulation'], { type: 'application/zip' });
       const zipUrl = window.URL.createObjectURL(zipBlob);
-      const zipLink = document.createElement('a');
-      zipLink.href = zipUrl;
-      zipLink.download = `comprobantes-nomina-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(zipLink);
-      zipLink.click();
-      document.body.removeChild(zipLink);
+      const zipShare2 = document.createElement('a');
+      zipShare2.href = zipUrl;
+      zipShare2.download = `comprobantes-nomina-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(zipShare2);
+      zipShare2.click();
+      document.body.removeChild(zipShare2);
       window.URL.revokeObjectURL(zipUrl);
       
       console.log(`✅ Descargados ${employeesWithReceipts.length} comprobantes de pago`);
@@ -1028,12 +1015,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
         // Simular descarga de archivo individual
         const receiptBlob = new Blob([`Comprobante de pago para ${employee.personalInfo.name}`], { type: 'application/pdf' });
         const receiptUrl = window.URL.createObjectURL(receiptBlob);
-        const receiptLink = document.createElement('a');
-        receiptLink.href = receiptUrl;
-        receiptLink.download = `comprobante-${employee.personalInfo.employeeId}-${employee.personalInfo.name.replace(/\s+/g, '-')}.pdf`;
-        document.body.appendChild(receiptLink);
-        receiptLink.click();
-        document.body.removeChild(receiptLink);
+        const receiptShare2 = document.createElement('a');
+        receiptShare2.href = receiptUrl;
+        receiptShare2.download = `comprobante-${employee.personalInfo.employeeId}-${employee.personalInfo.name.replace(/\s+/g, '-')}.pdf`;
+        document.body.appendChild(receiptShare2);
+        receiptShare2.click();
+        document.body.removeChild(receiptShare2);
         window.URL.revokeObjectURL(receiptUrl);
       }
       
@@ -1290,7 +1277,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
             onClick={handleManageReceipts}
             className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
           >
-            <Archive className="h-4 w-4 mr-2" />
+            <FileText className="h-4 w-4 mr-2" />
             Comprobantes
           </button>
           
@@ -1309,7 +1296,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Continuar a Cierre
-            <ArrowRight className="h-4 w-4 ml-2" />
+            <Plus className="h-4 w-4 ml-2" />
           </button>
         </div>
       </div>
@@ -1336,7 +1323,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 <p className="text-2xl font-bold text-yellow-600">{summary.pendingApprovals}</p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-full">
-                <Clock className="h-6 w-6 text-yellow-600" />
+                <AlertTriangle className="h-6 w-6 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -1445,7 +1432,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 className="flex items-center px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
                 title="Editar nómina individual"
               >
-                <Calculator className="h-4 w-4 mr-2" />
+                <DollarSign className="h-4 w-4 mr-2" />
                 Editar Nómina
               </button>
               <button
@@ -1471,7 +1458,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
                 title="Agregar nota de nómina"
               >
-                <StickyNote className="h-4 w-4 mr-2" />
+                <FileText className="h-4 w-4 mr-2" />
                 Agregar Nota
               </button>
             </div>
@@ -1633,7 +1620,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       </span>
                       {employee.paymentStatus === 'paid' && employee.receiptStatus === 'pending' && (
                         <button
-                          onClick={() => handleUploadReceipt(employee)}
+                          onClick={() => handlePlusReceipt(employee)}
                           className="text-xs text-blue-600 hover:text-blue-800"
                           title="Subir comprobante de pago"
                         >
@@ -1642,7 +1629,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       )}
                       {employee.receiptStatus === 'uploaded' && (
                         <div className="flex items-center space-x-1">
-                          <FileCheck className="h-3 w-3 text-green-600" />
+                          <Check className="h-3 w-3 text-green-600" />
                           <span className="text-xs text-green-600">Subido</span>
                         </div>
                       )}
@@ -2038,11 +2025,11 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <button
                     onClick={() => handleShareViaChannel('email', 'pdf')}
-                    disabled={isGeneratingFile}
+                    disabled={isGeneratingFileText}
                     className="p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50"
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <Mail className="h-8 w-8 text-blue-600" />
+                      <User className="h-8 w-8 text-blue-600" />
                       <span className="font-medium text-gray-900">Correo</span>
                       <span className="text-xs text-gray-600">Enviar por email</span>
                     </div>
@@ -2050,11 +2037,11 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   
                   <button
                     onClick={() => handleShareViaChannel('link', 'pdf')}
-                    disabled={isGeneratingFile}
+                    disabled={isGeneratingFileText}
                     className="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors disabled:opacity-50"
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <ExternalLink className="h-8 w-8 text-purple-600" />
+                      <Share2 className="h-8 w-8 text-purple-600" />
                       <span className="font-medium text-gray-900">Enlace</span>
                       <span className="text-xs text-gray-600">Copiar enlace</span>
                     </div>
@@ -2068,7 +2055,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <button
                     onClick={() => handleShareViaChannel('email', 'pdf')}
-                    disabled={isGeneratingFile}
+                    disabled={isGeneratingFileText}
                     className="p-4 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
                   >
                     <div className="flex flex-col items-center space-y-2">
@@ -2080,11 +2067,11 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   
                   <button
                     onClick={() => handleShareViaChannel('email', 'excel')}
-                    disabled={isGeneratingFile}
+                    disabled={isGeneratingFileText}
                     className="p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors disabled:opacity-50"
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                      <FileText className="h-8 w-8 text-green-600" />
                       <span className="font-medium text-gray-900">Excel</span>
                       <span className="text-xs text-gray-600">Hoja de cálculo</span>
                     </div>
@@ -2092,7 +2079,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   
                   <button
                     onClick={() => handleShareViaChannel('whatsapp', 'image')}
-                    disabled={isGeneratingFile}
+                    disabled={isGeneratingFileText}
                     className="p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50"
                   >
                     <div className="flex flex-col items-center space-y-2">
@@ -2104,7 +2091,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 </div>
               </div>
               
-              {isGeneratingFile && (
+              {isGeneratingFileText && (
                 <div className="flex items-center justify-center py-4">
                   <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
                   <span className="text-gray-600">Generando archivo...</span>
@@ -2148,8 +2135,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
               {/* Opciones de formato de descarga */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <button
-                  onClick={() => handleDownloadFile('pdf')}
-                  disabled={isGeneratingFile}
+                  onClick={() => handleDownloadFileText('pdf')}
+                  disabled={isGeneratingFileText}
                   className="p-6 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors disabled:opacity-50"
                 >
                   <div className="flex flex-col items-center space-y-3">
@@ -2160,20 +2147,20 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 </button>
                 
                 <button
-                  onClick={() => handleDownloadFile('excel')}
-                  disabled={isGeneratingFile}
+                  onClick={() => handleDownloadFileText('excel')}
+                  disabled={isGeneratingFileText}
                   className="p-6 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors disabled:opacity-50"
                 >
                   <div className="flex flex-col items-center space-y-3">
-                    <FileSpreadsheet className="h-12 w-12 text-green-600" />
+                    <FileText className="h-12 w-12 text-green-600" />
                     <span className="font-semibold text-gray-900">Excel</span>
                     <span className="text-sm text-gray-600 text-center">Hoja de cálculo con datos editables y fórmulas</span>
                   </div>
                 </button>
                 
                 <button
-                  onClick={() => handleDownloadFile('image')}
-                  disabled={isGeneratingFile}
+                  onClick={() => handleDownloadFileText('image')}
+                  disabled={isGeneratingFileText}
                   className="p-6 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50"
                 >
                   <div className="flex flex-col items-center space-y-3">
@@ -2184,7 +2171,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 </button>
               </div>
               
-              {isGeneratingFile && (
+              {isGeneratingFileText && (
                 <div className="flex items-center justify-center py-4">
                   <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-3"></div>
                   <span className="text-gray-600">Generando archivo...</span>
@@ -2250,7 +2237,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleReceiptFileChange}
+                    onChange={handleReceiptFileTextChange}
                     className="hidden"
                     id="receipt-upload"
                   />
@@ -2258,7 +2245,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                     htmlFor="receipt-upload"
                     className="cursor-pointer flex flex-col items-center space-y-2"
                   >
-                    <Upload className="h-12 w-12 text-gray-400" />
+                    <Plus className="h-12 w-12 text-gray-400" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {receiptFile ? receiptFile.name : 'Haz clic para seleccionar archivo'}
@@ -2273,7 +2260,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 {receiptFile && (
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center space-x-2">
-                      <FileCheck className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                       <span className="text-sm text-green-800">
                         Archivo seleccionado: {receiptFile.name}
                       </span>
@@ -2349,7 +2336,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
               {/* Resumen de comprobantes */}
               <div className="bg-orange-50 p-4 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
-                  <Archive className="h-5 w-5 text-orange-600" />
+                  <FileText className="h-5 w-5 text-orange-600" />
                   <span className="font-semibold text-orange-800">Resumen de Comprobantes</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2402,7 +2389,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                           </div>
                           {employee.receiptStatus === 'uploaded' && (
                             <div className="flex items-center space-x-1">
-                              <FileCheck className="h-4 w-4 text-green-600" />
+                              <Check className="h-4 w-4 text-green-600" />
                               <span className="text-xs text-green-600">Disponible</span>
                             </div>
                           )}
@@ -2422,7 +2409,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   className="p-6 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex flex-col items-center space-y-3">
-                    <Archive className="h-12 w-12 text-blue-600" />
+                    <FileText className="h-12 w-12 text-blue-600" />
                     <span className="font-semibold text-gray-900">Descargar ZIP</span>
                     <span className="text-sm text-gray-600 text-center">Todos los comprobantes en un archivo ZIP</span>
                     <span className="text-xs text-gray-500">
@@ -2438,7 +2425,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   className="p-6 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex flex-col items-center space-y-3">
-                    <FolderOpen className="h-12 w-12 text-green-600" />
+                    <FileText className="h-12 w-12 text-green-600" />
                     <span className="font-semibold text-gray-900">Descargar Individuales</span>
                     <span className="text-sm text-gray-600 text-center">Cada comprobante por separado</span>
                     <span className="text-xs text-gray-500">
@@ -2848,7 +2835,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                     disabled={isGeneratingReceipt}
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 mr-2" />
                     {isGeneratingReceipt ? 'Generando...' : 'Descargar Excel'}
                   </button>
                   <button
@@ -2867,7 +2854,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                     disabled={isGeneratingReceipt}
                     className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
+                    <User className="h-4 w-4 mr-2" />
                     {isGeneratingReceipt ? 'Compartiendo...' : 'Compartir WhatsApp'}
                   </button>
                   <button
@@ -2875,7 +2862,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                     disabled={isGeneratingReceipt}
                     className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
+                    <Share2 className="h-4 w-4 mr-2" />
                     {isGeneratingReceipt ? 'Compartiendo...' : 'Compartir Email'}
                   </button>
                   <button
