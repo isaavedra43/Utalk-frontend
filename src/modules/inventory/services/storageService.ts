@@ -73,19 +73,47 @@ export class StorageService {
   }
 
   /**
-   * Guarda una plataforma
+   * Guarda una plataforma con múltiples capas de seguridad
    */
   static savePlatform(platform: Platform): void {
-    const platforms = this.getPlatforms();
-    const index = platforms.findIndex(p => p.id === platform.id);
-    
-    if (index >= 0) {
-      platforms[index] = { ...platform, updatedAt: new Date() };
-    } else {
-      platforms.push(platform);
+    try {
+      // ✅ GUARDADO INMEDIATO Y ROBUSTO
+      const platforms = this.getPlatforms();
+      const index = platforms.findIndex(p => p.id === platform.id);
+      
+      // Actualizar timestamp
+      const updatedPlatform = { ...platform, updatedAt: new Date() };
+      
+      if (index >= 0) {
+        platforms[index] = updatedPlatform;
+      } else {
+        platforms.push(updatedPlatform);
+      }
+      
+      // ✅ MÚLTIPLES CAPAS DE GUARDADO
+      
+      // 1. Guardado principal
+      this.savePlatforms(platforms);
+      
+      // 2. Backup individual de la plataforma
+      this.createPlatformBackup(updatedPlatform);
+      
+      // 3. Guardado en IndexedDB como respaldo adicional
+      this.saveToIndexedDB(updatedPlatform);
+      
+      console.log('✅ Plataforma guardada exitosamente:', platform.platformNumber);
+      
+    } catch (error) {
+      console.error('❌ Error crítico al guardar plataforma:', error);
+      
+      // ✅ INTENTAR GUARDADO DE EMERGENCIA
+      try {
+        this.emergencySave(platform);
+      } catch (emergencyError) {
+        console.error('❌ Error en guardado de emergencia:', emergencyError);
+        throw new Error('No se pudo guardar la información. Intenta nuevamente.');
+      }
     }
-    
-    this.savePlatforms(platforms);
   }
 
   /**
@@ -275,6 +303,272 @@ export class StorageService {
     if (platform) {
       platform.needsSync = true;
       this.savePlatforms(platforms);
+    }
+  }
+
+  // ==================== SISTEMA DE BACKUP Y RESPALDO ====================
+
+  /**
+   * Crea un backup individual de una plataforma
+   */
+  private static createPlatformBackup(platform: Platform): void {
+    try {
+      const backupKey = `backup_platform_${platform.id}_${Date.now()}`;
+      const backupData = {
+        platform,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+      };
+      
+      localStorage.setItem(backupKey, JSON.stringify(backupData));
+      
+      // Limpiar backups antiguos (mantener solo los últimos 5)
+      this.cleanOldBackups(platform.id);
+      
+    } catch (error) {
+      console.warn('⚠️ No se pudo crear backup de plataforma:', error);
+    }
+  }
+
+  /**
+   * Limpia backups antiguos manteniendo solo los últimos 5
+   */
+  private static cleanOldBackups(platformId: string): void {
+    try {
+      const backupKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`backup_platform_${platformId}_`)) {
+          backupKeys.push(key);
+        }
+      }
+      
+      // Ordenar por timestamp (más reciente primero)
+      backupKeys.sort((a, b) => {
+        const timestampA = parseInt(a.split('_').pop() || '0');
+        const timestampB = parseInt(b.split('_').pop() || '0');
+        return timestampB - timestampA;
+      });
+      
+      // Eliminar backups antiguos (mantener solo los últimos 5)
+      if (backupKeys.length > 5) {
+        const keysToRemove = backupKeys.slice(5);
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ Error limpiando backups antiguos:', error);
+    }
+  }
+
+  /**
+   * Guarda en IndexedDB como respaldo adicional
+   */
+  private static saveToIndexedDB(platform: Platform): void {
+    try {
+      // Verificar si IndexedDB está disponible
+      if (!('indexedDB' in window)) {
+        return;
+      }
+
+      const request = indexedDB.open('InventoryBackup', 1);
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('platforms')) {
+          db.createObjectStore('platforms', { keyPath: 'id' });
+        }
+      };
+      
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = db.transaction(['platforms'], 'readwrite');
+        const store = transaction.objectStore('platforms');
+        
+        const platformData = {
+          ...platform,
+          backupTimestamp: new Date().toISOString()
+        };
+        
+        store.put(platformData);
+      };
+      
+    } catch (error) {
+      console.warn('⚠️ No se pudo guardar en IndexedDB:', error);
+    }
+  }
+
+  /**
+   * Guardado de emergencia cuando fallan otros métodos
+   */
+  private static emergencySave(platform: Platform): void {
+    try {
+      // Intentar guardar con un nombre diferente
+      const emergencyKey = `emergency_platform_${platform.id}_${Date.now()}`;
+      localStorage.setItem(emergencyKey, JSON.stringify(platform));
+      
+      console.log('🚨 Guardado de emergencia exitoso:', emergencyKey);
+      
+      // También intentar en sessionStorage como último recurso
+      try {
+        sessionStorage.setItem(`emergency_${platform.id}`, JSON.stringify(platform));
+      } catch (sessionError) {
+        console.warn('⚠️ No se pudo guardar en sessionStorage:', sessionError);
+      }
+      
+    } catch (error) {
+      console.error('❌ Guardado de emergencia falló:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Recupera datos de emergencia
+   */
+  static recoverEmergencyData(): Platform[] {
+    const recoveredPlatforms: Platform[] = [];
+    
+    try {
+      // Buscar en localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('emergency_platform_')) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            const platform = JSON.parse(data);
+            recoveredPlatforms.push(platform);
+          }
+        }
+      }
+      
+      // Buscar en sessionStorage
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('emergency_')) {
+          const data = sessionStorage.getItem(key);
+          if (data) {
+            const platform = JSON.parse(data);
+            recoveredPlatforms.push(platform);
+          }
+        }
+      }
+      
+      if (recoveredPlatforms.length > 0) {
+        console.log('🔄 Datos de emergencia recuperados:', recoveredPlatforms.length);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error recuperando datos de emergencia:', error);
+    }
+    
+    return recoveredPlatforms;
+  }
+
+  /**
+   * Verifica la integridad de los datos
+   */
+  static verifyDataIntegrity(): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    try {
+      const platforms = this.getPlatforms();
+      
+      platforms.forEach((platform, index) => {
+        // Verificar campos requeridos
+        if (!platform.id) errors.push(`Plataforma ${index}: ID faltante`);
+        if (!platform.platformNumber) errors.push(`Plataforma ${index}: Número de plataforma faltante`);
+        if (!platform.pieces || !Array.isArray(platform.pieces)) {
+          errors.push(`Plataforma ${index}: Piezas inválidas`);
+        }
+        
+        // Verificar piezas
+        platform.pieces.forEach((piece, pieceIndex) => {
+          if (!piece.id) errors.push(`Plataforma ${index}, Pieza ${pieceIndex}: ID faltante`);
+          if (piece.length <= 0) errors.push(`Plataforma ${index}, Pieza ${pieceIndex}: Longitud inválida`);
+          if (piece.standardWidth <= 0) errors.push(`Plataforma ${index}, Pieza ${pieceIndex}: Ancho inválido`);
+        });
+      });
+      
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
+      
+    } catch (error) {
+      errors.push(`Error general: ${error}`);
+      return { isValid: false, errors };
+    }
+  }
+
+  /**
+   * Repara datos corruptos automáticamente
+   */
+  static repairData(): boolean {
+    try {
+      const platforms = this.getPlatforms();
+      let hasRepairs = false;
+      
+      const repairedPlatforms = platforms.map(platform => {
+        let repaired = { ...platform };
+        
+        // Reparar campos faltantes
+        if (!repaired.id) {
+          repaired.id = `repaired_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          hasRepairs = true;
+        }
+        
+        if (!repaired.platformNumber) {
+          repaired.platformNumber = `SYNC-${Date.now()}`;
+          hasRepairs = true;
+        }
+        
+        if (!repaired.pieces || !Array.isArray(repaired.pieces)) {
+          repaired.pieces = [];
+          hasRepairs = true;
+        }
+        
+        // Reparar piezas
+        repaired.pieces = repaired.pieces.map(piece => {
+          let repairedPiece = { ...piece };
+          
+          if (!repairedPiece.id) {
+            repairedPiece.id = `piece_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            hasRepairs = true;
+          }
+          
+          if (repairedPiece.length <= 0) {
+            repairedPiece.length = 1.0;
+            hasRepairs = true;
+          }
+          
+          if (repairedPiece.standardWidth <= 0) {
+            repairedPiece.standardWidth = 0.3;
+            hasRepairs = true;
+          }
+          
+          // Recalcular metros lineales si es necesario
+          if (!repairedPiece.linearMeters || repairedPiece.linearMeters <= 0) {
+            repairedPiece.linearMeters = repairedPiece.length * repairedPiece.standardWidth;
+            hasRepairs = true;
+          }
+          
+          return repairedPiece;
+        });
+        
+        return repaired;
+      });
+      
+      if (hasRepairs) {
+        this.savePlatforms(repairedPlatforms);
+        console.log('🔧 Datos reparados exitosamente');
+        return true;
+      }
+      
+      return false;
+      
+    } catch (error) {
+      console.error('❌ Error reparando datos:', error);
+      return false;
     }
   }
 }

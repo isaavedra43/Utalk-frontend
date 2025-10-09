@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
-import { SimpleExportService } from '../services/simpleExportService';
+import { OfflineExportService } from '../services/offlineExportService';
 import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
@@ -33,10 +33,10 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   platform: initialPlatform,
   onBack
 }: CargaDetailViewProps) => {
-  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus, updatePlatformEvidence } = useInventory();
+  const { cargas, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus, updatePlatformEvidence } = useInventory();
   
   // Obtener la plataforma actualizada desde el estado global
-  const platform = platforms.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
+  const platform = cargas.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
   
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [lastAction, setLastAction] = useState<{ type: 'add' | 'delete'; pieceId?: string } | null>(null);
@@ -117,13 +117,14 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     showNotification('success', 'Carga marcada como completada');
   };
 
-  // Exportar a PDF
+  // Exportar a PDF - COMPLETAMENTE OFFLINE
   const handleExportPDF = () => {
     try {
       setExporting(true);
-      SimpleExportService.exportToPDF(platform);
+      // ✅ USAR SERVICIO COMPLETAMENTE OFFLINE
+      OfflineExportService.exportToPDF(platform);
       updatePlatform(platform.id, { status: 'exported' });
-      showNotification('success', 'Exportado a PDF exitosamente');
+      showNotification('success', 'Exportado a PDF exitosamente (Offline)');
     } catch (error) {
       console.error('Error al exportar PDF:', error);
       showNotification('error', 'Error al exportar a PDF');
@@ -132,13 +133,14 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     }
   };
 
-  // Exportar a Excel
+  // Exportar a Excel - COMPLETAMENTE OFFLINE
   const handleExportExcel = () => {
     try {
       setExporting(true);
-      SimpleExportService.exportToCSV(platform);
+      // ✅ USAR SERVICIO COMPLETAMENTE OFFLINE
+      OfflineExportService.exportToCSV(platform);
       updatePlatform(platform.id, { status: 'exported' });
-      showNotification('success', 'Exportado a Excel (CSV) exitosamente');
+      showNotification('success', 'Exportado a Excel (CSV) exitosamente (Offline)');
     } catch (error) {
       console.error('Error al exportar Excel:', error);
       showNotification('error', 'Error al exportar a Excel');
@@ -147,13 +149,14 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     }
   };
 
-  // Exportar como Imagen
+  // Exportar como Imagen - COMPLETAMENTE OFFLINE
   const handleExportImage = () => {
     try {
       setExporting(true);
-      SimpleExportService.exportToImage(platform);
+      // ✅ USAR SERVICIO COMPLETAMENTE OFFLINE
+      OfflineExportService.exportToImage(platform);
       updatePlatform(platform.id, { status: 'exported' });
-      showNotification('success', 'Exportado como imagen exitosamente');
+      showNotification('success', 'Exportado como imagen exitosamente (Offline)');
     } catch (error) {
       console.error('Error al exportar imagen:', error);
       showNotification('error', 'Error al exportar como imagen');

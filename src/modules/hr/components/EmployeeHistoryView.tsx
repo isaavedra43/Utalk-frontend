@@ -1,42 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { employeesApi } from '../../../services/employeesApi';
 import { 
-  Clock, 
   User, 
   Calendar, 
   Search, 
-  Filter, 
   Download, 
-  ChevronDown, 
   Share2,
   Edit,
-  Plus,
-  Trash2,
   FileText,
   Award,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
   Star,
-  Target,
   Users,
-  Building,
-  Phone,
-  Mail,
-  MapPin,
-  Briefcase,
-  GraduationCap,
-  Heart,
-  Shield,
-  Archive,
-  Upload,
-  Eye,
-  Settings,
-  Activity,
-  BarChart3,
-  TrendingUp,
-  Globe,
-  Code
+  Settings
 } from 'lucide-react';
 
 interface HistoryEvent {
@@ -84,7 +60,7 @@ interface EmployeeHistoryViewProps {
 const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({ 
   employeeId, 
   onBack 
-}) => {
+}: EmployeeHistoryViewProps) => {
   const [historyData, setHistoryData] = useState<EmployeeHistoryData | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -204,18 +180,18 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'profile_update': return <User className="h-4 w-4" />;
-      case 'position_change': return <Briefcase className="h-4 w-4" />;
-      case 'salary_change': return <TrendingUp className="h-4 w-4" />;
+      case 'position_change': return <Award className="h-4 w-4" />;
+      case 'salary_change': return <Star className="h-4 w-4" />;
       case 'evaluation': return <Star className="h-4 w-4" />;
-      case 'skill_update': return <Code className="h-4 w-4" />;
+      case 'skill_update': return <Award className="h-4 w-4" />;
       case 'certification': return <Award className="h-4 w-4" />;
       case 'incident': return <AlertTriangle className="h-4 w-4" />;
       case 'vacation': return <Calendar className="h-4 w-4" />;
-      case 'attendance': return <Clock className="h-4 w-4" />;
+      case 'attendance': return <Calendar className="h-4 w-4" />;
       case 'document': return <FileText className="h-4 w-4" />;
       case 'note': return <Edit className="h-4 w-4" />;
       case 'system': return <Settings className="h-4 w-4" />;
-      default: return <Activity className="h-4 w-4" />;
+      default: return <AlertTriangle className="h-4 w-4" />;
     }
   };
 
@@ -272,7 +248,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
     return `Hace ${Math.floor(diffInDays / 365)} años`;
   };
 
-  const filteredEvents = historyData?.events.filter(event => {
+  const filteredEvents = historyData?.events.filter((event: HistoryEvent) => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.userName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -313,7 +289,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontró historial</h3>
           <p className="text-gray-600">No hay datos de historial disponibles para este empleado.</p>
         </div>
@@ -332,7 +308,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                 onClick={onBack}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ChevronDown className="h-5 w-5 text-gray-600 rotate-90" />
+                <AlertTriangle className="h-5 w-5 text-gray-600 rotate-90" />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Historial</h1>
@@ -365,7 +341,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                 <p className="text-xs text-gray-500">registrados</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
-                <Activity className="h-6 w-6 text-blue-600" />
+                <Star className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -378,7 +354,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                 <p className="text-xs text-gray-500">último mes</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
-                <Clock className="h-6 w-6 text-green-600" />
+                <Calendar className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -404,7 +380,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                 <p className="text-xs text-gray-500">categorías</p>
               </div>
               <div className="p-3 bg-orange-100 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
+                <Star className="h-6 w-6 text-orange-600" />
               </div>
             </div>
           </div>
@@ -456,14 +432,14 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                   type="text"
                   placeholder="Buscar eventos..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
                 />
               </div>
               
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value)}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Todos los tipos</option>
@@ -479,7 +455,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
 
               <select
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Todas las categorías</option>
@@ -493,7 +469,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
 
               <select
                 value={filterUser}
-                onChange={(e) => setFilterUser(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterUser(e.target.value)}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Todos los usuarios</option>
@@ -504,7 +480,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
 
               <select
                 value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDateRange(e.target.value)}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Todas las fechas</option>
@@ -524,7 +500,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-6">Línea de Tiempo de Eventos</h3>
               <div className="space-y-6">
-                {filteredEvents.map((event, index) => (
+                {filteredEvents.map((event: HistoryEvent, index: number) => (
                   <div key={event.id} className="relative">
                     {/* Línea vertical */}
                     {index < filteredEvents.length - 1 && (
@@ -568,7 +544,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                               {/* Tags */}
                               {event.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-3">
-                                  {event.tags.map((tag, tagIndex) => (
+                                  {event.tags.map((tag: string, tagIndex: number) => (
                                     <span
                                       key={tagIndex}
                                       className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full"
@@ -642,7 +618,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredEvents.map((event) => (
+                  {filteredEvents.map((event: HistoryEvent) => (
                     <tr key={event.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">

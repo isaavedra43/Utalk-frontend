@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Package, Search, Filter, Calendar, Archive, Settings, Menu, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Package, Search, Calendar, Settings, Menu, RefreshCw, FileText } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useMobileMenuContext } from '../../../contexts/MobileMenuContext';
 import type { Platform } from '../types';
@@ -7,9 +7,10 @@ import { CargaCard } from './CargaCard';
 import { CreateCargaModal } from './CreateCargaModal';
 import { CargaDetailView } from './CargaDetailView';
 import { ConfigurationModal } from './ConfigurationModal';
+import { OfflineStatus } from './OfflineStatus';
 
 export const InventoryMainView: React.FC = () => {
-  const { cargas, loading, createPlatform, syncPendingPlatforms, syncStatus, refreshData } = useInventory();
+  const { cargas, loading, createPlatform, syncPendingPlatforms, syncStatus, refreshData, persistenceStatus } = useInventory();
   const { openMenu } = useMobileMenuContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Platform['status']>('all');
@@ -22,14 +23,14 @@ export const InventoryMainView: React.FC = () => {
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Obtener la plataforma seleccionada actualizada desde el estado global
-  const selectedPlatform = selectedPlatformId ? cargas.find(p => p.id === selectedPlatformId) : null;
+  const selectedPlatform = selectedPlatformId ? cargas.find((p: Platform) => p.id === selectedPlatformId) : null;
 
   // Filtrar cargas
-  const filteredCargas = cargas.filter(platform => {
+  const filteredCargas = cargas.filter((platform: Platform) => {
     const matchesSearch = 
       platform.platformNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (platform.materialTypes && platform.materialTypes.length > 0 && 
-       platform.materialTypes.some(material => material.toLowerCase().includes(searchTerm.toLowerCase())));
+       platform.materialTypes.some((material: string) => material.toLowerCase().includes(searchTerm.toLowerCase())));
     
     const matchesStatus = statusFilter === 'all' || platform.status === statusFilter;
     
@@ -39,9 +40,9 @@ export const InventoryMainView: React.FC = () => {
   // Estadísticas
   const stats = {
     total: cargas?.length || 0,
-    inProgress: cargas?.filter(p => p.status === 'in_progress').length || 0,
-    completed: cargas?.filter(p => p.status === 'completed').length || 0,
-    totalMeters: cargas?.reduce((sum, p) => sum + (p.totalLinearMeters || 0), 0) || 0
+    inProgress: cargas?.filter((p: Platform) => p.status === 'in_progress').length || 0,
+    completed: cargas?.filter((p: Platform) => p.status === 'completed').length || 0,
+    totalMeters: cargas?.reduce((sum: number, p: Platform) => sum + (p.totalLinearMeters || 0), 0) || 0
   };
 
   const handleCreatePlatform = async (data: {
@@ -148,6 +149,15 @@ export const InventoryMainView: React.FC = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          {/* Estado Offline */}
+          <div className="mb-3">
+            <OfflineStatus
+              isOnline={persistenceStatus.isOnline}
+              hasPendingSync={persistenceStatus.hasPendingSync}
+              lastSaveTime={persistenceStatus.lastSaveTime}
+              pendingCount={persistenceStatus.pendingCount}
+            />
+          </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
             <div className="flex items-center gap-3">
               {/* Botón del menú de módulos - Solo visible en móvil */}
@@ -161,7 +171,7 @@ export const InventoryMainView: React.FC = () => {
               
               <div className="flex-1">
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <Archive className="h-5 w-5 sm:h-7 sm:w-7 text-blue-600" />
+                  <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-blue-600" />
                   <span className="truncate">Inventario de Materiales</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">
@@ -230,7 +240,7 @@ export const InventoryMainView: React.FC = () => {
                   <p className="text-xs sm:text-sm text-green-600 font-medium truncate">Completadas</p>
                   <p className="text-xl sm:text-2xl font-bold text-green-900">{stats.completed}</p>
                 </div>
-                <Archive className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 self-end sm:self-auto" />
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 self-end sm:self-auto" />
               </div>
             </div>
 
@@ -240,7 +250,7 @@ export const InventoryMainView: React.FC = () => {
                   <p className="text-xs sm:text-sm text-purple-600 font-medium truncate">Metros Totales</p>
                   <p className="text-xl sm:text-2xl font-bold text-purple-900">{stats.totalMeters.toFixed(2)}</p>
                 </div>
-                <Archive className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 self-end sm:self-auto" />
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 self-end sm:self-auto" />
               </div>
             </div>
               </div>
@@ -255,12 +265,12 @@ export const InventoryMainView: React.FC = () => {
             >
               {showStats ? (
                 <>
-                  <ChevronUp className="h-4 w-4" />
+                  <Settings className="h-4 w-4" />
                   Ocultar estadísticas
                 </>
               ) : (
                 <>
-                  <ChevronDown className="h-4 w-4" />
+                  <Settings className="h-4 w-4" />
                   Mostrar estadísticas
                 </>
               )}
@@ -310,15 +320,15 @@ export const InventoryMainView: React.FC = () => {
                 type="text"
                 placeholder="Buscar carga..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+              <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value as 'all' | Platform['status'])}
                 className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">Todos</option>
@@ -358,7 +368,7 @@ export const InventoryMainView: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {filteredCargas.map(platform => (
+            {filteredCargas.map((platform: Platform) => (
               <CargaCard
                 key={platform.id}
                 platform={platform}

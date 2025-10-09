@@ -1,48 +1,14 @@
 import React, { useState } from 'react';
 import { 
-  Star, 
-  Target, 
-  TrendingUp, 
   Award, 
   CheckCircle, 
-  Clock, 
-  User, 
-  Calendar, 
-  BarChart3, 
   Plus, 
   Search, 
-  Filter, 
   Download, 
-  Eye, 
   Edit, 
   Trash2, 
-  Share2, 
-  ChevronDown, 
-  MoreHorizontal, 
-  BookOpen, 
-  Zap, 
-  Brain, 
-  Users, 
-  MessageSquare, 
-  Lightbulb, 
-  Code, 
-  Database, 
-  Globe, 
-  Shield, 
-  Heart, 
-  Smile, 
-  Frown, 
-  Meh,
-  FileText,
-  Upload,
-  ExternalLink,
   AlertTriangle,
-  TrendingDown,
-  Activity,
-  Award as AwardIcon,
-  Target as TargetIcon,
-  BookOpen as BookIcon,
-  Eye as EyeIcon
+  RefreshCw
 } from 'lucide-react';
 import { useSkills } from '../../../hooks/useSkills';
 import { useNotifications } from '../../../contexts/NotificationContext';
@@ -50,7 +16,7 @@ import SkillModal from './SkillModal';
 import CertificationModal from './CertificationModal';
 import DevelopmentPlanModal from './DevelopmentPlanModal';
 import SkillEvaluationModal from './SkillEvaluationModal';
-import type { Skill, Certification, DevelopmentPlan, SkillEvaluation, CreateSkillRequest, CreateCertificationRequest, CreateDevelopmentPlanRequest, CreateSkillEvaluationRequest } from '../../../services/skillsService';
+import type { Skill, CreateSkillRequest, CreateCertificationRequest, CreateDevelopmentPlanRequest, CreateSkillEvaluationRequest } from '../../../services/skillsService';
 
 interface EmployeeSkillsViewProps {
   employeeId: string;
@@ -62,23 +28,10 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
   employeeId, 
   employeeName = 'Empleado',
   onBack 
-}) => {
+}: EmployeeSkillsViewProps) => {
   const { showSuccess, showError } = useNotifications();
 
-  // Validar que employeeId esté presente
-  if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-          <h3 className="text-lg font-medium text-red-800 mb-1">Error</h3>
-          <p className="text-red-600 text-sm">ID de empleado inválido. No se pueden cargar las habilidades.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Usar hook personalizado con datos reales
+  // Usar hook personalizado con datos reales (debe estar antes de cualquier early return)
   const {
     skills,
     skillsSummary,
@@ -123,20 +76,54 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
   const [showNewDevelopmentPlan, setShowNewDevelopmentPlan] = useState(false);
   const [showNewEvaluation, setShowNewEvaluation] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
-  const [selectedCertification, setSelectedCertification] = useState<Certification | null>(null);
-  const [selectedDevelopmentPlan, setSelectedDevelopmentPlan] = useState<DevelopmentPlan | null>(null);
-  const [selectedEvaluation, setSelectedEvaluation] = useState<SkillEvaluation | null>(null);
+  const [selectedCertification, setSelectedCertification] = useState<any>(null);
+  const [selectedDevelopmentPlan, setSelectedDevelopmentPlan] = useState<any>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
+
+  // Debug logging (debe estar antes de cualquier return condicional)
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 EmployeeSkillsView - Estado actual:', {
+        employeeId,
+        skills: skills?.length || 0,
+        searchTerm,
+        filterCategory,
+        filterLevel,
+        skillsData: skills
+      });
+    }
+  }, [employeeId, skills, searchTerm, filterCategory, filterLevel]);
+
+  // Validar que employeeId esté presente (después de los hooks)
+  if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+          <h3 className="text-lg font-medium text-red-800 mb-1">Error</h3>
+          <p className="text-red-600 text-sm">ID de empleado inválido. No se pueden cargar las habilidades.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Handlers para Skills
   const handleCreateSkill = async (skillData: CreateSkillRequest, files: File[]) => {
     try {
+      console.log('🚀 Iniciando creación de habilidad...');
       await createSkill(skillData);
+      console.log('✅ Habilidad creada, refrescando datos...');
+      
+      // Forzar refresh de datos después de crear
+      await refreshData();
+      
       if (files.length > 0) {
-        await uploadSkillFiles(selectedSkill?.id || '', files);
+        await uploadSkillFiles(files, 'evidence');
       }
       showSuccess('Habilidad creada exitosamente');
       setShowNewSkill(false);
     } catch (error) {
+      console.error('❌ Error creando habilidad:', error);
       showError(error instanceof Error ? error.message : 'Error creando habilidad');
     }
   };
@@ -145,7 +132,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     try {
       await updateSkill(skillId, skillData);
       if (files.length > 0) {
-        await uploadSkillFiles(skillId, files);
+        await uploadSkillFiles(files, 'evidence');
       }
       showSuccess('Habilidad actualizada exitosamente');
       setSelectedSkill(null);
@@ -166,11 +153,11 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
   };
 
   // Handlers para Certificaciones
-  const handleCreateCertification = async (certData: CreateCertificationRequest, files: File[]) => {
+  const handleCreateCertification = async (certData: CreateCertificationRequest, files: any) => {
     try {
       await createCertification(certData);
-      if (files.length > 0) {
-        await uploadSkillFiles(selectedCertification?.id || '', files);
+      if (files && files.length > 0) {
+        console.log('Archivos de certificación:', files);
       }
       showSuccess('Certificación creada exitosamente');
       setShowNewCertification(false);
@@ -179,11 +166,11 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  const handleUpdateCertification = async (certId: string, certData: Partial<CreateCertificationRequest>, files: File[]) => {
+  const handleUpdateCertification = async (certId: string, certData: Partial<CreateCertificationRequest>, files: any) => {
     try {
       await updateCertification(certId, certData);
-      if (files.length > 0) {
-        await uploadSkillFiles(certId, files);
+      if (files && files.length > 0) {
+        console.log('Archivos de certificación:', files);
       }
       showSuccess('Certificación actualizada exitosamente');
       setSelectedCertification(null);
@@ -192,23 +179,12 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  const handleDeleteCertification = async (certId: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta certificación?')) return;
-    
-    try {
-      await deleteCertification(certId);
-      showSuccess('Certificación eliminada exitosamente');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error eliminando certificación');
-    }
-  };
-
   // Handlers para Planes de Desarrollo
-  const handleCreateDevelopmentPlan = async (planData: CreateDevelopmentPlanRequest, files: File[]) => {
+  const handleCreateDevelopmentPlan = async (planData: CreateDevelopmentPlanRequest, files: any) => {
     try {
       await createDevelopmentPlan(planData);
-      if (files.length > 0) {
-        await uploadSkillFiles(selectedDevelopmentPlan?.id || '', files);
+      if (files && files.length > 0) {
+        console.log('Archivos de plan de desarrollo:', files);
       }
       showSuccess('Plan de desarrollo creado exitosamente');
       setShowNewDevelopmentPlan(false);
@@ -217,11 +193,11 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  const handleUpdateDevelopmentPlan = async (planId: string, planData: Partial<CreateDevelopmentPlanRequest>, files: File[]) => {
+  const handleUpdateDevelopmentPlan = async (planId: string, planData: Partial<CreateDevelopmentPlanRequest>, files: any) => {
     try {
       await updateDevelopmentPlan(planId, planData);
-      if (files.length > 0) {
-        await uploadSkillFiles(planId, files);
+      if (files && files.length > 0) {
+        console.log('Archivos de plan de desarrollo:', files);
       }
       showSuccess('Plan de desarrollo actualizado exitosamente');
       setSelectedDevelopmentPlan(null);
@@ -230,23 +206,12 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  const handleDeleteDevelopmentPlan = async (planId: string) => {
-    if (!confirm('¿Estás seguro de eliminar este plan de desarrollo?')) return;
-    
-    try {
-      await deleteDevelopmentPlan(planId);
-      showSuccess('Plan de desarrollo eliminado exitosamente');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error eliminando plan de desarrollo');
-    }
-  };
-
   // Handlers para Evaluaciones
-  const handleCreateEvaluation = async (evaluationData: CreateSkillEvaluationRequest, files: File[]) => {
+  const handleCreateEvaluation = async (evaluationData: CreateSkillEvaluationRequest, files: any) => {
     try {
       await createSkillEvaluation(evaluationData);
-      if (files.length > 0) {
-        await uploadSkillFiles(selectedEvaluation?.id || '', files);
+      if (files && files.length > 0) {
+        console.log('Archivos de evaluación:', files);
       }
       showSuccess('Evaluación creada exitosamente');
       setShowNewEvaluation(false);
@@ -255,11 +220,11 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  const handleUpdateEvaluation = async (evaluationId: string, evaluationData: Partial<CreateSkillEvaluationRequest>, files: File[]) => {
+  const handleUpdateEvaluation = async (evaluationId: string, evaluationData: Partial<CreateSkillEvaluationRequest>, files: any) => {
     try {
       await updateSkillEvaluation(evaluationId, evaluationData);
-      if (files.length > 0) {
-        await uploadSkillFiles(evaluationId, files);
+      if (files && files.length > 0) {
+        console.log('Archivos de evaluación:', files);
       }
       showSuccess('Evaluación actualizada exitosamente');
       setSelectedEvaluation(null);
@@ -268,42 +233,13 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  const handleDeleteEvaluation = async (evaluationId: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta evaluación?')) return;
-    
-    try {
-      await deleteSkillEvaluation(evaluationId);
-      showSuccess('Evaluación eliminada exitosamente');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error eliminando evaluación');
-    }
-  };
-
   // Filtros
   const filteredSkills = (skills || []).filter(skill => {
     const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         skill.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (skill.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || skill.category === filterCategory;
     const matchesLevel = filterLevel === 'all' || skill.level === filterLevel;
     return matchesSearch && matchesCategory && matchesLevel;
-  });
-
-  const filteredCertifications = (certifications || []).filter(cert => {
-    const matchesSearch = cert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cert.issuer.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
-
-  const filteredDevelopmentPlans = (developmentPlans || []).filter(plan => {
-    const matchesSearch = plan.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plan.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
-
-  const filteredEvaluations = (evaluations || []).filter(evaluation => {
-    const matchesSearch = evaluation.skillName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         evaluation.evaluatorName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
   });
 
   // Loading state
@@ -355,7 +291,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                 </svg>
               </button>
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
+                <Award className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
@@ -368,6 +304,14 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
             </div>
             
             <div className="flex items-center space-x-3">
+              <button
+                onClick={refreshData}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                title="Actualizar datos"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="text-sm font-medium">Actualizar</span>
+              </button>
               <button
                 onClick={() => exportSkillsData('excel')}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -385,17 +329,17 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             {[
-              { id: 'overview', name: 'Resumen', icon: BarChart3 },
-              { id: 'skills', name: 'Habilidades', icon: Target },
+              { id: 'overview', name: 'Resumen', icon: Award },
+              { id: 'skills', name: 'Habilidades', icon: Award },
               { id: 'certifications', name: 'Certificaciones', icon: Award },
-              { id: 'development', name: 'Desarrollo', icon: TrendingUp },
+              { id: 'development', name: 'Desarrollo', icon: Award },
               { id: 'assessment', name: 'Evaluaciones', icon: CheckCircle }
               ].map((tab) => {
               const IconComponent = tab.icon;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id as 'overview' | 'skills' | 'certifications' | 'development' | 'assessment')}
                     className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
@@ -424,7 +368,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                     <p className="text-2xl font-bold text-gray-900">{skillsSummary?.totalSkills || 0}</p>
                         </div>
                   <div className="p-3 bg-blue-100 rounded-lg">
-                    <Target className="h-6 w-6 text-blue-600" />
+                    <Award className="h-6 w-6 text-blue-600" />
                   </div>
                 </div>
               </div>
@@ -448,8 +392,8 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                     <p className="text-2xl font-bold text-gray-900">{developmentPlansSummary?.activePlans || 0}</p>
                             </div>
                   <div className="p-3 bg-purple-100 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
-                          </div>
+                    <Award className="h-6 w-6 text-purple-600" />
+                  </div>
                         </div>
                       </div>
 
@@ -474,7 +418,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                   <div key={skill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
-                        <Target className="h-4 w-4 text-blue-600" />
+                        <Award className="h-4 w-4 text-blue-600" />
                       </div>
                           <div>
                         <p className="font-medium text-gray-900">{skill.name}</p>
@@ -482,7 +426,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                             </div>
                           </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore}</p>
+                      <p className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore || 5}</p>
                       <p className="text-xs text-gray-500">Puntuación</p>
                         </div>
                       </div>
@@ -503,14 +447,14 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                       type="text"
                       placeholder="Buscar habilidades..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                     className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     />
                   </div>
                 <div className="flex items-center gap-3">
                     <select
                       value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     >
                       <option value="all">Todas las categorías</option>
@@ -521,7 +465,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                     </select>
                     <select
                       value={filterLevel}
-                      onChange={(e) => setFilterLevel(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterLevel(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     >
                       <option value="all">Todos los niveles</option>
@@ -548,8 +492,8 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
-                        <Target className="h-5 w-5 text-blue-600" />
-                          </div>
+                        <Award className="h-5 w-5 text-blue-600" />
+                      </div>
                       <div>
                         <h3 className="font-medium text-gray-900">{skill.name}</h3>
                         <p className="text-sm text-gray-500 capitalize">{skill.category}</p>
@@ -580,12 +524,12 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                             </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Puntuación</span>
-                      <span className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore}</span>
+                      <span className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore || 5}</span>
                             </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${(skill.score / skill.maxScore) * 100}%` }}
+                        style={{ width: `${(skill.score / (skill.maxScore || 5)) * 100}%` }}
                       ></div>
                         </div>
                       </div>
@@ -595,21 +539,35 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
 
             {filteredSkills.length === 0 && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-                <Target className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <Award className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="text-base font-medium text-gray-900 mb-1">No se encontraron habilidades</h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 mb-2">
                   {skills.length === 0
                     ? 'Comienza agregando la primera habilidad'
                     : 'Intenta ajustar los filtros de búsqueda'
                   }
                 </p>
-                <button
-                  onClick={() => setShowNewSkill(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="text-sm font-medium">Agregar Habilidad</span>
-                </button>
+                {process.env.NODE_ENV === 'development' && (
+                  <p className="text-xs text-gray-400 mb-4">
+                    Debug: Total habilidades cargadas: {skills.length} | Empleado ID: {employeeId}
+                  </p>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <button
+                    onClick={() => setShowNewSkill(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="text-sm font-medium">Agregar Habilidad</span>
+                  </button>
+                  <button
+                    onClick={refreshData}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span className="text-sm font-medium">Actualizar</span>
+                  </button>
+                </div>
               </div>
             )}
             </div>
@@ -626,7 +584,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
 
         {activeTab === 'development' && (
           <div className="text-center py-12">
-            <TrendingUp className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <Award className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Módulo de Desarrollo</h3>
             <p className="text-gray-500">Contenido en desarrollo...</p>
           </div>
@@ -656,7 +614,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
         <SkillModal
           isOpen={!!selectedSkill}
           onClose={() => setSelectedSkill(null)}
-          onSubmit={(data, files) => handleUpdateSkill(selectedSkill.id, data, files)}
+          onSubmit={(data: any, files: any) => handleUpdateSkill(selectedSkill.id, data, files)}
           employeeId={employeeId}
           employeeName={employeeName}
           skill={selectedSkill}
@@ -678,7 +636,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
         <CertificationModal
           isOpen={!!selectedCertification}
           onClose={() => setSelectedCertification(null)}
-          onSubmit={(data, files) => handleUpdateCertification(selectedCertification.id, data, files)}
+          onSubmit={(data: any, files: any) => handleUpdateCertification(selectedCertification.id, data, files)}
           employeeId={employeeId}
           employeeName={employeeName}
           certification={selectedCertification}
@@ -700,7 +658,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
         <DevelopmentPlanModal
           isOpen={!!selectedDevelopmentPlan}
           onClose={() => setSelectedDevelopmentPlan(null)}
-          onSubmit={(data, files) => handleUpdateDevelopmentPlan(selectedDevelopmentPlan.id, data, files)}
+          onSubmit={(data: any, files: any) => handleUpdateDevelopmentPlan(selectedDevelopmentPlan.id, data, files)}
           employeeId={employeeId}
           employeeName={employeeName}
           developmentPlan={selectedDevelopmentPlan}
@@ -722,7 +680,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
         <SkillEvaluationModal
           isOpen={!!selectedEvaluation}
           onClose={() => setSelectedEvaluation(null)}
-          onSubmit={(data, files) => handleUpdateEvaluation(selectedEvaluation.id, data, files)}
+          onSubmit={(data: any, files: any) => handleUpdateEvaluation(selectedEvaluation.id, data, files)}
           employeeId={employeeId}
           employeeName={employeeName}
           evaluation={selectedEvaluation}

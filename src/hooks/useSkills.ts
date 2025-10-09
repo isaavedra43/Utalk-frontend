@@ -78,6 +78,7 @@ interface UseSkillsReturn {
   refreshDevelopmentPlans: () => Promise<void>;
   refreshEvaluations: () => Promise<void>;
   refreshAll: () => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 // ============================================================================
@@ -123,16 +124,16 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
         throw new Error('Empleado inválido: falta employeeId');
       }
 
-      const [skillsData] = await Promise.all([
-        skillsService.getEmployeeSkills(employeeId)
-      ]);
+      const skillsData = await skillsService.getEmployeeSkills(employeeId);
+      console.log('📊 Datos recibidos del servicio:', skillsData);
 
       setSkills(skillsData.skills || []);
       setSkillsSummary(skillsData.summary || null);
 
       console.log('✅ Datos de habilidades cargados:', {
         totalSkills: skillsData.skills?.length || 0,
-        summary: skillsData.summary
+        summary: skillsData.summary,
+        skills: skillsData.skills
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error cargando habilidades';
@@ -146,9 +147,14 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
   const createSkill = useCallback(async (skillData: CreateSkillRequest): Promise<Skill> => {
     try {
       setSkillsError(null);
+      console.log('📝 Creando habilidad:', { employeeId, skillData });
       const result = await skillsService.createSkill(employeeId, skillData);
+      console.log('✅ Habilidad creada exitosamente');
 
+      // Actualizar estado local inmediatamente
       setSkills(prev => [result, ...prev]);
+      
+      // Refrescar datos para asegurar consistencia
       await refreshSkills();
 
       return result;
@@ -459,6 +465,11 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
     ]);
   }, [refreshSkills, refreshCertifications, refreshDevelopmentPlans, refreshEvaluations]);
 
+  const refreshData = useCallback(async () => {
+    console.log('🔄 Forzando refresh de datos de habilidades...');
+    await refreshSkills();
+  }, [refreshSkills]);
+
   // ========== EFECTOS ==========
 
   // Cargar datos inicialmente
@@ -535,7 +546,8 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
     refreshCertifications,
     refreshDevelopmentPlans,
     refreshEvaluations,
-    refreshAll
+    refreshAll,
+    refreshData
   };
 };
 

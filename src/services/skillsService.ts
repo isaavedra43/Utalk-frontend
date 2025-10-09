@@ -21,13 +21,19 @@ export interface Skill {
   category: 'technical' | 'soft' | 'leadership' | 'language' | 'other';
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   score: number;
-  lastEvaluated: string;
+  maxScore?: number;
+  lastEvaluated?: string;
   evidence: string;
   isRequired: boolean;
   developmentPlan: string;
   resources: string[];
   targetLevel?: string;
   targetDate?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface CreateSkillRequest {

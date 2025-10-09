@@ -1,33 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  CalendarDays, 
-  Clock, 
+  Calendar, 
   CheckCircle,
-  XCircle,
   AlertTriangle,
   Download,
-  Filter,
   Search,
-  ChevronDown,
   Share2,
-  Timer,
-  UserCheck,
-  UserX,
-  Home,
-  Car,
-  Plane,
-  Heart,
-  Zap,
-  Target,
-  BarChart3,
-  Building,
   Plus,
-  CreditCard,
-  Calendar,
   X,
   FileSpreadsheet,
-  FileText,
-  File
+  FileText
 } from 'lucide-react';
 import AttendanceChart from './AttendanceChart';
 import EmployeeExtrasModal from './EmployeeExtrasModal';
@@ -50,6 +32,9 @@ interface AttendanceRecord {
   status: 'present' | 'late' | 'absent' | 'half_day' | 'vacation' | 'sick_leave';
   notes?: string;
   location: 'office' | 'remote' | 'field';
+  dailySalary?: number;
+  deduction?: number;
+  canEdit?: boolean;
 }
 
 interface OvertimeRecord {
@@ -128,7 +113,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   employeeId, 
   employee,
   onBack 
-}) => {
+}: EmployeeAttendanceViewProps) => {
   const { showSuccess, showError } = useNotifications();
   const [attendanceData, setAttendanceData] = useState<EmployeeAttendanceData | null>(null);
   const [filterType, setFilterType] = useState('all');
@@ -152,6 +137,8 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     label: 'Esta semana',
     type: 'current_week'
   });
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<string>('');
 
   // Función para obtener el lunes de una semana
   const getMondayOfWeek = (date: Date): Date => {
@@ -298,7 +285,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       await loadAllData();
       
       // Forzar actualización de todas las tablas
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev: number) => prev + 1);
       
       console.log('✅ Extra registrado exitosamente');
     } catch (error) {
@@ -681,20 +668,20 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     switch (status) {
       case 'present': return <CheckCircle className="h-4 w-4" />;
       case 'late': return <AlertTriangle className="h-4 w-4" />;
-      case 'absent': return <XCircle className="h-4 w-4" />;
-      case 'half_day': return <Clock className="h-4 w-4" />;
-      case 'vacation': return <Plane className="h-4 w-4" />;
-      case 'sick_leave': return <Heart className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
+      case 'absent': return <AlertTriangle className="h-4 w-4" />;
+      case 'half_day': return <Calendar className="h-4 w-4" />;
+      case 'vacation': return <Calendar className="h-4 w-4" />;
+      case 'sick_leave': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Calendar className="h-4 w-4" />;
     }
   };
 
   const getLocationIcon = (location: string) => {
     switch (location) {
-      case 'office': return <Building className="h-4 w-4" />;
-      case 'remote': return <Home className="h-4 w-4" />;
-      case 'field': return <Car className="h-4 w-4" />;
-      default: return <Building className="h-4 w-4" />;
+      case 'office': return <Calendar className="h-4 w-4" />;
+      case 'remote': return <Calendar className="h-4 w-4" />;
+      case 'field': return <Calendar className="h-4 w-4" />;
+      default: return <Calendar className="h-4 w-4" />;
     }
   };
 
@@ -726,7 +713,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
         return [];
       }
-      return attendanceData.attendance.filter(record => {
+      return attendanceData.attendance.filter((record: any) => {
         if (!record) return false;
         const matchesSearch = record.date?.includes(searchTerm) || 
                              record.status?.includes(searchTerm.toLowerCase());
@@ -754,7 +741,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontró información</h3>
           <p className="text-gray-600">No hay datos de asistencia disponibles para este empleado.</p>
         </div>
@@ -773,7 +760,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 onClick={onBack}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ChevronDown className="h-5 w-5 text-gray-600 rotate-90" />
+                <AlertTriangle className="h-5 w-5 text-gray-600 rotate-90" />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Extras y Asistencia</h1>
@@ -792,7 +779,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
               >
                 <Calendar className="h-4 w-4" />
                 <span>{selectedDateRange.label}</span>
-                <ChevronDown className="h-3 w-3" />
+                <AlertTriangle className="h-3 w-3" />
               </button>
               <button 
                 onClick={() => setIsExtrasModalOpen(true)}
@@ -832,7 +819,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                       onClick={() => handleExport('csv')}
                       className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
                     >
-                      <File className="h-4 w-4 text-blue-600" />
+                      <FileText className="h-4 w-4 text-blue-600" />
                       <span>Exportar CSV</span>
                     </button>
                   </div>
@@ -854,7 +841,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <p className="text-xs text-gray-500">de {attendanceData?.currentPeriod?.totalDays || 0} días</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
-                <UserCheck className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -867,7 +854,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <p className="text-xs text-gray-500">Promedio: {(attendanceData?.currentPeriod?.averageHours || 0).toFixed(1)}h/día</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
-                <Timer className="h-6 w-6 text-blue-600" />
+                <Calendar className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -880,7 +867,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <p className="text-xs text-gray-500">Este período</p>
               </div>
               <div className="p-3 bg-orange-100 rounded-lg">
-                <Zap className="h-6 w-6 text-orange-600" />
+                <AlertTriangle className="h-6 w-6 text-orange-600" />
               </div>
             </div>
           </div>
@@ -893,7 +880,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <p className="text-xs text-gray-500">Score general</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
-                <Target className="h-6 w-6 text-purple-600" />
+                <AlertTriangle className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -904,12 +891,12 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
               {[
-                { id: 'overview', label: 'Resumen', icon: BarChart3 },
+                { id: 'overview', label: 'Resumen', icon: Calendar },
                 { id: 'extras', label: 'Extras', icon: Plus },
-                { id: 'attendance', label: 'Asistencia', icon: CalendarDays },
-                { id: 'overtime', label: 'Horas Extra', icon: Zap },
-                { id: 'absences', label: 'Ausencias', icon: UserX },
-                { id: 'loans', label: 'Préstamos', icon: CreditCard }
+                { id: 'attendance', label: 'Asistencia', icon: Calendar },
+                { id: 'overtime', label: 'Horas Extra', icon: Calendar },
+                { id: 'absences', label: 'Ausencias', icon: AlertTriangle },
+                { id: 'loans', label: 'Préstamos', icon: FileText }
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -945,7 +932,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                         if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
                           return [];
                         }
-                        return attendanceData.attendance.map(record => ({
+                        return attendanceData.attendance.map((record: any) => ({
                           date: record?.date || '',
                           present: record?.status === 'present' ? 1 : 0,
                           late: record?.status === 'late' ? 1 : 0,
@@ -972,7 +959,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                         if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
                           return [];
                         }
-                        return attendanceData.attendance.map(record => ({
+                        return attendanceData.attendance.map((record: any) => ({
                           date: record?.date || '',
                           regular: (record?.totalHours || 0) - (record?.overtimeHours || 0),
                           overtime: record?.overtimeHours || 0
@@ -1090,15 +1077,15 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                         type="text"
                         placeholder="Buscar por fecha..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                         className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div className="relative">
-                      <Filter className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <select
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value)}
                         className="pl-10 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="all">Todos</option>
@@ -1130,7 +1117,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAttendance.length > 0 ? (
-                      filteredAttendance.map((record) => (
+                      filteredAttendance.map((record: any) => (
                         <tr key={record?.id || Math.random()} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {formatDate(record?.date || '')}
@@ -1279,7 +1266,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   Selecciona el período que deseas visualizar. Los datos siempre se mostrarán por semanas completas (lunes a domingo).
                 </p>
                 
-                {Object.entries(getDateRanges()).map(([key, range]) => (
+                {Object.entries(getDateRanges()).map(([key, range]: [string, any]) => (
                   <button
                     key={key}
                     onClick={() => handleDateRangeChange(key)}

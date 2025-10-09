@@ -7,7 +7,7 @@ interface PiecesTableProps {
   pieces: Piece[];
   standardWidth: number;
   onDeletePiece: (pieceId: string) => void;
-  onUpdatePiece: (pieceId: string, updates: { length?: number; material?: string }) => void;
+  onUpdatePiece: (pieceId: string, updates: { length?: number; material?: string; standardWidth?: number }) => void;
 }
 
 export const PiecesTable: React.FC<PiecesTableProps> = ({
@@ -15,21 +15,31 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
   standardWidth,
   onDeletePiece,
   onUpdatePiece
-}) => {
+}: PiecesTableProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [editMaterial, setEditMaterial] = useState('');
+  const [editWidth, setEditWidth] = useState('');
 
   const handleStartEdit = (piece: Piece) => {
     setEditingId(piece.id);
     setEditValue(piece.length.toString());
     setEditMaterial(piece.material);
+    setEditWidth(piece.standardWidth.toString());
   };
 
   const handleSaveEdit = (pieceId: string) => {
     const newLength = parseFloat(editValue);
-    if (!isNaN(newLength) && newLength > 0 && editMaterial.trim()) {
-      onUpdatePiece(pieceId, { length: newLength, material: editMaterial });
+    const newWidth = parseFloat(editWidth);
+    
+    if (!isNaN(newLength) && newLength > 0 && 
+        !isNaN(newWidth) && newWidth > 0 && 
+        editMaterial.trim()) {
+      onUpdatePiece(pieceId, { 
+        length: newLength, 
+        material: editMaterial, 
+        standardWidth: newWidth 
+      });
       setEditingId(null);
     }
   };
@@ -38,16 +48,17 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
     setEditingId(null);
     setEditValue('');
     setEditMaterial('');
+    setEditWidth('');
   };
 
   // Calcular totales
   const totals = {
-    totalLength: pieces.reduce((sum, p) => sum + p.length, 0),
-    totalMeters: pieces.reduce((sum, p) => sum + p.linearMeters, 0)
+    totalLength: pieces.reduce((sum: number, p: Piece) => sum + p.length, 0),
+    totalMeters: pieces.reduce((sum: number, p: Piece) => sum + p.linearMeters, 0)
   };
 
   // Verificar si hay materiales registrados (excluyendo "Sin especificar")
-  const hasMaterials = pieces.some(piece => 
+  const hasMaterials = pieces.some((piece: Piece) => 
     piece.material && 
     piece.material.trim() !== '' && 
     piece.material.trim() !== 'Sin especificar'
@@ -107,7 +118,7 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {pieces.map((piece, index) => (
+            {pieces.map((piece: Piece, index: number) => (
               <tr key={piece.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="w-16 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
                   {piece.number}
@@ -118,7 +129,7 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
                       <input
                         type="text"
                         value={editMaterial}
-                        onChange={(e) => setEditMaterial(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditMaterial(e.target.value)}
                         className="w-full px-2 py-1.5 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     ) : (
@@ -134,8 +145,8 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
                       type="number"
                       inputMode="decimal"
                       value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value)}
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                         if (e.key === 'Enter') handleSaveEdit(piece.id);
                         if (e.key === 'Escape') handleCancelEdit();
                       }}
@@ -148,7 +159,24 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
                   )}
                 </td>
                 <td className="w-20 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-700 font-mono text-center">
-                  {formatNumber(piece.standardWidth, 2)}
+                  {editingId === piece.id ? (
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={editWidth}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditWidth(e.target.value)}
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') handleSaveEdit(piece.id);
+                        if (e.key === 'Escape') handleCancelEdit();
+                      }}
+                      step="0.01"
+                      min="0.01"
+                      max="5"
+                      className="w-full px-2 py-1.5 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <span className="font-mono text-center block">{formatNumber(piece.standardWidth, 2)}</span>
+                  )}
                 </td>
                 <td className="w-28 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-bold text-green-600 font-mono text-center">
                   {formatNumber(piece.linearMeters, 3)}

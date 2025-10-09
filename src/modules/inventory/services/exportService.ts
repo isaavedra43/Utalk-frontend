@@ -105,52 +105,57 @@ export class ExportService {
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: Arial, sans-serif;
-            padding: 40px;
+            padding: 15px;
             background: white;
+            font-size: 11px;
+            line-height: 1.3;
           }
           .header {
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
           }
           .header h1 {
-            font-size: 24px;
+            font-size: 18px;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
           }
           .info {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 30px;
-            padding: 15px;
+            gap: 5px;
+            margin-bottom: 15px;
+            padding: 10px;
             background: #f5f5f5;
-            border-radius: 8px;
+            border-radius: 6px;
           }
           .info-item {
             display: flex;
-            gap: 10px;
+            gap: 5px;
           }
           .info-label {
             font-weight: bold;
             color: #555;
+            font-size: 10px;
           }
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
           }
           th {
             background: #4F46E5;
             color: white;
-            padding: 12px;
+            padding: 6px 8px;
             text-align: left;
             font-weight: 600;
+            font-size: 10px;
           }
           td {
-            padding: 10px 12px;
+            padding: 4px 6px;
             border-bottom: 1px solid #ddd;
+            font-size: 10px;
           }
           tr:nth-child(even) {
             background: #f9f9f9;
@@ -159,22 +164,22 @@ export class ExportService {
             background: #4F46E5 !important;
             color: white !important;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 12px;
           }
           .totals td {
-            padding: 15px 12px;
+            padding: 6px 8px;
             border: none;
           }
           .footer {
-            margin-top: 30px;
+            margin-top: 15px;
             text-align: center;
             color: #666;
-            font-size: 12px;
+            font-size: 10px;
             border-top: 1px solid #ddd;
-            padding-top: 20px;
+            padding-top: 10px;
           }
           @media print {
-            body { padding: 20px; }
+            body { padding: 10px; }
             .header { page-break-after: avoid; }
           }
         </style>

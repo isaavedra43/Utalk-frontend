@@ -20,14 +20,51 @@ export class SimpleExportService {
   }
 
   /**
-   * Exporta a PDF directamente como archivo HTML descargable
+   * Exporta a PDF completamente offline usando APIs nativas del navegador
    */
   static exportToPDF(platform: Platform): void {
     try {
+      console.log('📄 Generando PDF offline...');
+      
+      // Generar contenido HTML optimizado para impresión
       const printContent = this.generatePrintContent(platform);
       
-      // Descargar directamente como archivo HTML (compatible con navegadores)
-      this.downloadFile(printContent, `Reporte_Inventario_${platform.platformNumber}_${this.getDateString()}.html`, 'text/html');
+      // Crear ventana de impresión
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      
+      if (!printWindow) {
+        throw new Error('No se pudo abrir la ventana de impresión. Verifica los permisos del navegador.');
+      }
+      
+      // Escribir contenido en la ventana
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Esperar a que se cargue y luego imprimir
+      printWindow.onload = () => {
+        setTimeout(() => {
+          try {
+            printWindow.focus();
+            printWindow.print();
+            
+            // Cerrar ventana después de imprimir
+            setTimeout(() => {
+              printWindow.close();
+            }, 1000);
+            
+            console.log('✅ PDF generado exitosamente');
+          } catch (printError) {
+            console.error('Error al imprimir:', printError);
+            this.showError('Error al generar PDF. Intenta descargar el archivo HTML.');
+          }
+        }, 500);
+      };
+      
+      // Fallback: Si falla la impresión, descargar como HTML
+      printWindow.onerror = () => {
+        console.log('🔄 Fallback: Descargando como archivo HTML...');
+        this.downloadFile(printContent, `Reporte_Inventario_${platform.platformNumber}_${this.getDateString()}.html`, 'text/html');
+      };
       
     } catch (error) {
       console.error('Error al exportar PDF:', error);
@@ -36,10 +73,12 @@ export class SimpleExportService {
   }
 
   /**
-   * Exporta como imagen usando canvas
+   * Exporta como imagen usando canvas completamente offline
    */
   static exportToImage(platform: Platform): void {
     try {
+      console.log('🖼️ Generando imagen offline...');
+      
       // Verificar si hay materiales especificados
       const hasMaterials = platform.pieces.some(piece => piece.material && piece.material !== 'Sin especificar');
       
@@ -344,10 +383,11 @@ export class SimpleExportService {
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
-            padding: 30px; 
+            padding: 15px; 
             background: #ffffff;
             color: #1a1a1a;
-            line-height: 1.6;
+            line-height: 1.3;
+            font-size: 12px;
         }
         /* Barra móvil con acciones */
         .mobile-toolbar { position: sticky; top: 0; z-index: 9999; display: none; gap: 8px; padding: 10px; background: #ffffffcc; backdrop-filter: blur(8px); border-bottom: 1px solid #e2e8f0; }
@@ -356,79 +396,79 @@ export class SimpleExportService {
         @media (max-width: 768px) { .mobile-toolbar { display: flex; } }
         .header { 
             text-align: center; 
-            margin-bottom: 40px; 
-            padding: 30px 0;
+            margin-bottom: 20px; 
+            padding: 15px 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
         .title { 
-            font-size: 32px; 
+            font-size: 20px; 
             font-weight: 700; 
-            margin-bottom: 15px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 8px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
         .subtitle {
-            font-size: 18px;
+            font-size: 14px;
             opacity: 0.9;
             font-weight: 300;
         }
         .info { 
-            font-size: 16px; 
-            margin: 8px 0; 
+            font-size: 12px; 
+            margin: 4px 0; 
             font-weight: 500;
         }
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-            padding: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
             background: #f8fafc;
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
         .info-item {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 2px;
         }
         .info-label {
             font-weight: 600;
             color: #4a5568;
-            font-size: 14px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .info-value {
-            font-size: 16px;
+            font-size: 12px;
             color: #2d3748;
             font-weight: 500;
         }
         table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin: 30px 0; 
+            margin: 15px 0; 
             background: white;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         th { 
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white; 
-            padding: 16px 12px; 
+            padding: 8px 6px; 
             text-align: left; 
             font-weight: 600;
-            font-size: 14px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         td { 
-            padding: 14px 12px; 
+            padding: 6px 6px; 
             border-bottom: 1px solid #e2e8f0; 
-            font-size: 15px;
+            font-size: 11px;
         }
         tr:nth-child(even) {
             background: #f8fafc;
@@ -440,69 +480,71 @@ export class SimpleExportService {
             background: linear-gradient(135deg, #059669 0%, #047857 100%);
             color: white; 
             font-weight: 700;
-            font-size: 16px;
+            font-size: 12px;
         }
         .total-row td {
             border: none;
-            padding: 18px 12px;
+            padding: 8px 6px;
         }
         .summary { 
-            margin-top: 40px; 
-            padding: 30px; 
+            margin-top: 20px; 
+            padding: 15px; 
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-radius: 16px;
+            border-radius: 8px;
             border: 1px solid #cbd5e0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         .summary h3 { 
             color: #2d3748; 
-            margin-bottom: 20px; 
-            font-size: 24px;
+            margin-bottom: 10px; 
+            font-size: 16px;
             font-weight: 700;
             text-align: center;
         }
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
         }
         .summary-item { 
-            padding: 15px;
+            padding: 8px;
             background: white;
-            border-radius: 8px;
-            border-left: 4px solid #4f46e5;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            border-left: 3px solid #4f46e5;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         }
         .summary-label {
             font-weight: 600;
             color: #4a5568;
-            font-size: 14px;
-            margin-bottom: 5px;
+            font-size: 10px;
+            margin-bottom: 2px;
         }
         .summary-value {
-            font-size: 18px;
+            font-size: 12px;
             color: #2d3748;
             font-weight: 700;
         }
         .footer {
-            margin-top: 40px;
+            margin-top: 20px;
             text-align: center;
-            padding: 20px;
+            padding: 10px;
             color: #718096;
-            font-size: 14px;
+            font-size: 10px;
             border-top: 1px solid #e2e8f0;
         }
         @media print {
-            body { margin: 0; padding: 20px; }
+            body { margin: 0; padding: 10px; }
             .no-print { display: none; }
             .mobile-toolbar { display: none !important; }
             .header { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
             .total-row { background: #059669 !important; -webkit-print-color-adjust: exact; }
             th { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
+            .info-grid { margin: 10px 0; padding: 10px; }
+            .summary { margin-top: 15px; padding: 10px; }
+            .footer { margin-top: 15px; padding: 8px; }
         }
     </style>
-    <!-- html2canvas para compartir como imagen en iOS -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Sistema completamente offline - sin dependencias externas -->
 </head>
 <body>
     <div class="mobile-toolbar no-print">
@@ -611,21 +653,12 @@ export class SimpleExportService {
         if(shareBtn){
           shareBtn.onclick = async () => {
             try {
-              // Compartir como imagen usando html2canvas (mejor compatibilidad iOS)
-              const target = document.body.cloneNode(true);
-              // Ocultar barra en captura
-              const bar = target.querySelector('.mobile-toolbar');
-              if (bar) bar.remove();
-              const container = document.createElement('div');
-              container.style.position = 'fixed';
-              container.style.left = '-10000px';
-              container.appendChild(target);
-              document.body.appendChild(container);
-              const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-              document.body.removeChild(container);
-              const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-              if (!blob) { alert('No se pudo preparar el archivo para compartir'); return; }
-              const file = new File([blob], 'Reporte_Plataforma_${platform.platformNumber}.png', { type: 'image/png' });
+              // ✅ SISTEMA COMPLETAMENTE OFFLINE - Sin dependencias externas
+              // Generar PDF/HTML para compartir
+              const htmlContent = document.documentElement.outerHTML;
+              const blob = new Blob([htmlContent], { type: 'text/html' });
+              const file = new File([blob], 'Reporte_Plataforma_${platform.platformNumber}.html', { type: 'text/html' });
+              
               if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                   files: [file],
@@ -633,15 +666,19 @@ export class SimpleExportService {
                   text: 'Reporte Plataforma ${platform.platformNumber}'
                 });
               } else {
-                // Fallback: descargar la imagen
+                // Fallback: descargar el archivo HTML
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = 'Reporte_Plataforma_${platform.platformNumber}.png';
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                a.href = url; 
+                a.download = 'Reporte_Plataforma_${platform.platformNumber}.html';
+                document.body.appendChild(a); 
+                a.click(); 
+                document.body.removeChild(a);
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
               }
             } catch (e) {
-              alert('No se pudo compartir el reporte');
+              console.error('Error compartiendo reporte:', e);
+              alert('No se pudo compartir el reporte. Intenta descargarlo directamente.');
             }
           }
         }

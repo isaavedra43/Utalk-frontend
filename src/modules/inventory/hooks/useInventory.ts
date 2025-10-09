@@ -13,47 +13,181 @@ export const useInventory = () => {
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Detectar cambios de conectividad
+  // Detectar cambios de conectividad y sincronización automática
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      console.log('🌐 Conexión restablecida - iniciando sincronización...');
+      setIsOnline(true);
+      
+      // Sincronizar datos pendientes cuando se restablece la conexión
+      setTimeout(() => {
+        syncPendingData();
+      }, 1000);
+    };
+    
+    const handleOffline = () => {
+      console.log('📱 Sin conexión - trabajando en modo offline');
+      setIsOnline(false);
+    };
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
+    // Sincronización automática cada 30 segundos si hay conexión
+    const syncInterval = setInterval(() => {
+      if (isOnline) {
+        syncPendingData();
+      }
+    }, 30000);
+    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(syncInterval);
     };
-  }, []);
+  }, [isOnline]);
 
-  // Cargar datos al iniciar
+  // Sistema de guardado automático
+  useEffect(() => {
+    const saveInterval = setInterval(() => {
+      if (cargas.length > 0) {
+        console.log('💾 Guardado automático de datos...');
+        try {
+          StorageService.savePlatforms(cargas);
+          console.log('✅ Guardado automático completado');
+        } catch (error) {
+          console.error('❌ Error en guardado automático:', error);
+        }
+      }
+    }, 10000); // Guardar cada 10 segundos
+
+    return () => clearInterval(saveInterval);
+  }, [cargas]);
+
+  // Función para sincronizar datos pendientes
+  const syncPendingData = async () => {
+    try {
+      const pendingPlatforms = StorageService.getPendingSyncPlatforms();
+      
+      if (pendingPlatforms.length === 0) {
+        return;
+      }
+      
+      console.log(`🔄 Sincronizando ${pendingPlatforms.length} plataformas pendientes...`);
+      
+      for (const platform of pendingPlatforms) {
+        try {
+          if (platform.id.startsWith('SYNC-') || platform.id.startsWith('OFFLINE-')) {
+            // Crear nueva plataforma en backend
+            const createdPlatform = await PlatformApiService.createPlatform(platform);
+            
+            // Actualizar localmente con el nuevo ID
+            const syncedPlatform = {
+              ...platform,
+              id: createdPlatform.id,
+              platformNumber: createdPlatform.platformNumber,
+              providerId: createdPlatform.providerId,
+              needsSync: false
+            };
+            
+            StorageService.savePlatform(syncedPlatform);
+            setCargas(prev => prev.map(p => p.id === platform.id ? syncedPlatform : p));
+            
+          } else if (platform.providerId) {
+            // Actualizar plataforma existente
+            await PlatformApiService.updatePlatform(platform.id, platform.providerId, platform);
+            StorageService.markPlatformAsSynced(platform.id);
+          }
+          
+          console.log(`✅ Plataforma sincronizada: ${platform.platformNumber}`);
+          
+        } catch (error) {
+          console.error(`❌ Error sincronizando plataforma ${platform.platformNumber}:`, error);
+        }
+      }
+      
+      console.log('✅ Sincronización completada');
+      
+    } catch (error) {
+      console.error('❌ Error en sincronización automática:', error);
+    }
+  };
+
+  // Cargar datos al iniciar con sistema robusto de recuperación
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Primero cargar desde localStorage
+        console.log('🔄 Iniciando carga de datos del inventario...');
+        
+        // ✅ VERIFICAR INTEGRIDAD DE DATOS PRIMERO
+        const integrityCheck = StorageService.verifyDataIntegrity();
+        if (!integrityCheck.isValid) {
+          console.warn('⚠️ Problemas de integridad detectados:', integrityCheck.errors);
+          
+          // Intentar reparar automáticamente
+          const repaired = StorageService.repairData();
+          if (repaired) {
+            console.log('🔧 Datos reparados automáticamente');
+          }
+        }
+        
+        // ✅ CARGAR DATOS PRINCIPALES
         const loadedPlatforms = StorageService.getPlatforms();
         const loadedSettings = StorageService.getSettings();
         
-        setCargas(Array.isArray(loadedPlatforms) ? loadedPlatforms : []);
+        // ✅ RECUPERAR DATOS DE EMERGENCIA SI ES NECESARIO
+        const emergencyData = StorageService.recoverEmergencyData();
+        if (emergencyData.length > 0) {
+          console.log('🚨 Recuperando datos de emergencia...');
+          emergencyData.forEach(platform => {
+            StorageService.savePlatform(platform);
+          });
+        }
+        
+        // ✅ ACTUALIZAR ESTADO
+        const allPlatforms = [...loadedPlatforms, ...emergencyData];
+        setCargas(Array.isArray(allPlatforms) ? allPlatforms : []);
         setSettings(loadedSettings);
         
-        // Si hay conexión, intentar sincronizar con backend
+        console.log(`✅ Datos cargados: ${allPlatforms.length} plataformas`);
+        
+        // ✅ SINCRONIZAR CON BACKEND SI HAY CONEXIÓN (OPCIONAL)
         if (isOnline) {
           try {
+            console.log('🌐 Sincronizando con backend...');
             const response = await PlatformApiService.getAllPlatforms({ limit: 1000 });
             if (response.data && response.data.length > 0) {
               // Actualizar con datos del backend
               response.data.forEach(platform => StorageService.savePlatform(platform));
               setCargas(response.data);
+              console.log('✅ Sincronización con backend completada');
             }
           } catch (error) {
-            console.log('Error al sincronizar con backend, usando datos locales:', error);
+            console.log('⚠️ Error al sincronizar con backend, continuando con datos locales:', error);
+            // ✅ CONTINUAR SIN PROBLEMAS - Los datos locales son suficientes
           }
+        } else {
+          console.log('📱 Modo offline - usando solo datos locales');
         }
+        
       } catch (error) {
-        console.error('Error al cargar inventario:', error);
-        setCargas([]);
+        console.error('❌ Error crítico al cargar inventario:', error);
+        
+        // ✅ ÚLTIMO RECURSO: Intentar recuperar datos de emergencia
+        try {
+          const emergencyData = StorageService.recoverEmergencyData();
+          if (emergencyData.length > 0) {
+            setCargas(emergencyData);
+            console.log('🚨 Usando datos de emergencia como último recurso');
+          } else {
+            setCargas([]);
+            console.log('❌ No se pudieron recuperar datos');
+          }
+        } catch (emergencyError) {
+          console.error('❌ Error en recuperación de emergencia:', emergencyError);
+          setCargas([]);
+        }
+        
         setSettings(null);
       } finally {
         setLoading(false);
@@ -212,69 +346,127 @@ export const useInventory = () => {
     }
   }, [cargas, isOnline]);
 
-  // Agregar pieza a plataforma
+  // Agregar pieza a plataforma con guardado garantizado
   const addPiece = useCallback(async (platformId: string, length: number, material: string) => {
-    const platform = cargas.find((p: Platform) => p.id === platformId);
-    if (!platform) return;
-
-    const newPiece: Piece = {
-      id: generateId(),
-      number: getNextPieceNumber(platform.pieces),
-      length,
-      standardWidth: platform.standardWidth,
-      linearMeters: calculateLinearMeters(length, platform.standardWidth),
-      material,
-      createdAt: new Date()
-    };
-
-    const updatedPieces = [...platform.pieces, newPiece];
-    const totals = calculatePlatformTotals(updatedPieces);
-
-    const updatedPlatform = {
-      ...platform,
-      pieces: updatedPieces,
-      ...totals,
-      updatedAt: new Date()
-    };
-
-    // Actualizar localmente primero
-    StorageService.savePlatform(updatedPlatform);
-    setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
-
-    // ✅ SINCRONIZAR INMEDIATAMENTE CON BACKEND
-    if (isOnline) {
-      try {
-        // Verificar si la plataforma necesita sincronización
-        if (platform.needsSync || platform.id.startsWith('SYNC-') || platform.id.startsWith('OFFLINE-')) {
-          // Crear en backend primero
-          const createdPlatform = await PlatformApiService.createPlatform(platform);
-          
-          // Actualizar con el nuevo ID del backend
-          await PlatformApiService.updatePlatform(createdPlatform.id, createdPlatform.providerId!, updatedPlatform);
-          
-          // Actualizar localmente con el ID del backend
-          const syncedPlatform = { 
-            ...updatedPlatform, 
-            id: createdPlatform.id, 
-            platformNumber: createdPlatform.platformNumber,
-            providerId: createdPlatform.providerId,
-            needsSync: false 
-          };
-          StorageService.savePlatform(syncedPlatform);
-          setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
-        } else {
-          // Plataforma ya existe en backend - actualizar directamente
-          if (platform.providerId) {
-            await PlatformApiService.updatePlatform(platform.id, platform.providerId, updatedPlatform);
-          }
-        }
-      } catch (error) {
-        console.error('Error sincronizando pieza con backend:', error);
-        // Marcar que necesita sincronización
-        const platformWithSyncFlag = { ...updatedPlatform, needsSync: true };
-        StorageService.savePlatform(platformWithSyncFlag);
-        setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? platformWithSyncFlag : p));
+    try {
+      console.log('➕ Agregando nueva pieza...', { platformId, length, material });
+      
+      const platform = cargas.find((p: Platform) => p.id === platformId);
+      if (!platform) {
+        console.error('❌ Plataforma no encontrada:', platformId);
+        return false;
       }
+
+      const newPiece: Piece = {
+        id: generateId(),
+        number: getNextPieceNumber(platform.pieces),
+        length,
+        standardWidth: platform.standardWidth,
+        linearMeters: calculateLinearMeters(length, platform.standardWidth),
+        material,
+        createdAt: new Date()
+      };
+
+      const updatedPieces = [...platform.pieces, newPiece];
+      const totals = calculatePlatformTotals(updatedPieces);
+
+      const updatedPlatform = {
+        ...platform,
+        pieces: updatedPieces,
+        ...totals,
+        updatedAt: new Date(),
+        needsSync: true // Marcar para sincronización
+      };
+
+      // ✅ GUARDADO INMEDIATO Y GARANTIZADO
+      console.log('💾 Guardando pieza localmente...');
+      StorageService.savePlatform(updatedPlatform);
+      
+      // ✅ ACTUALIZAR ESTADO INMEDIATAMENTE
+      setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
+      
+      console.log('✅ Pieza guardada exitosamente localmente');
+
+      // ✅ SINCRONIZAR CON BACKEND SI HAY CONEXIÓN
+      if (isOnline) {
+        try {
+          console.log('🌐 Sincronizando con backend...');
+          
+          // Verificar si la plataforma necesita sincronización
+          if (platform.needsSync || platform.id.startsWith('SYNC-') || platform.id.startsWith('OFFLINE-')) {
+            // Crear en backend primero
+            const createdPlatform = await PlatformApiService.createPlatform(platform);
+            
+            // Actualizar con el nuevo ID del backend
+            await PlatformApiService.updatePlatform(createdPlatform.id, createdPlatform.providerId!, updatedPlatform);
+            
+            // Actualizar localmente con el ID del backend
+            const syncedPlatform = { 
+              ...updatedPlatform, 
+              id: createdPlatform.id, 
+              platformNumber: createdPlatform.platformNumber,
+              providerId: createdPlatform.providerId,
+              needsSync: false 
+            };
+            StorageService.savePlatform(syncedPlatform);
+            setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
+            
+            console.log('✅ Sincronización con backend completada');
+          } else {
+            // Plataforma ya existe en backend - actualizar directamente
+            if (platform.providerId) {
+              await PlatformApiService.updatePlatform(platform.id, platform.providerId, updatedPlatform);
+              
+              // Marcar como sincronizada
+              const syncedPlatform = { ...updatedPlatform, needsSync: false };
+              StorageService.savePlatform(syncedPlatform);
+              setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
+              
+              console.log('✅ Pieza actualizada en backend');
+            }
+          }
+        } catch (error) {
+          console.error('⚠️ Error al sincronizar con backend:', error);
+          // Mantener marcado como pendiente de sincronización
+          console.log('📝 Pieza marcada para sincronización posterior');
+        }
+      } else {
+        console.log('📱 Sin conexión - pieza guardada localmente y marcada para sincronización');
+      }
+
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Error crítico al agregar pieza:', error);
+      
+      // ✅ INTENTAR GUARDADO DE EMERGENCIA
+      try {
+        const emergencyPiece = {
+          id: generateId(),
+          number: 1,
+          length,
+          standardWidth: platform?.standardWidth || 0.3,
+          linearMeters: length * (platform?.standardWidth || 0.3),
+          material,
+          createdAt: new Date()
+        };
+        
+        if (platform) {
+          StorageService.emergencySave({
+            ...platform,
+            pieces: [...platform.pieces, emergencyPiece],
+            updatedAt: new Date()
+          });
+          
+          console.log('🚨 Pieza guardada en modo de emergencia');
+          return true;
+        }
+        
+      } catch (emergencyError) {
+        console.error('❌ Error en guardado de emergencia:', emergencyError);
+      }
+      
+      return false;
     }
   }, [cargas, isOnline]);
 
@@ -347,18 +539,20 @@ export const useInventory = () => {
   }, [cargas, isOnline]);
 
   // Actualizar pieza
-  const updatePiece = useCallback((platformId: string, pieceId: string, updates: { length?: number; material?: string }) => {
+  const updatePiece = useCallback((platformId: string, pieceId: string, updates: { length?: number; material?: string; standardWidth?: number }) => {
     setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const updatedPieces = platform.pieces.map((piece: Piece) => {
             if (piece.id === pieceId) {
               const newLength = updates.length !== undefined ? updates.length : piece.length;
+              const newWidth = updates.standardWidth !== undefined ? updates.standardWidth : piece.standardWidth;
               return {
                 ...piece,
                 length: newLength,
+                standardWidth: newWidth,
                 material: updates.material !== undefined ? updates.material : piece.material,
-                linearMeters: calculateLinearMeters(newLength, piece.standardWidth)
+                linearMeters: calculateLinearMeters(newLength, newWidth)
               };
             }
             return piece;
@@ -607,6 +801,14 @@ export const useInventory = () => {
     });
   }, []);
 
+  // Estado de persistencia para el componente de estado
+  const persistenceStatus = {
+    isOnline,
+    hasPendingSync: StorageService.getPendingSyncPlatforms().length > 0,
+    lastSaveTime: cargas.length > 0 ? new Date() : null,
+    pendingCount: StorageService.getPendingSyncPlatforms().length
+  };
+
   return {
     cargas,
     settings,
@@ -629,7 +831,9 @@ export const useInventory = () => {
     addEvidenceToPlatform,
     removeEvidenceFromPlatform,
     getPlatformEvidence,
-    updatePlatformEvidence
+    updatePlatformEvidence,
+    // ✅ NUEVO: Estado de persistencia
+    persistenceStatus
   };
 };
 

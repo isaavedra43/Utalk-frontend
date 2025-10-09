@@ -400,12 +400,25 @@ class EquipmentService {
       
       const response = await api.get(url);
       
+      // La API devuelve los datos directamente en response.data.data como array
+      // y la paginación en response.data.pagination
+      const reviewsData = response.data.data || [];
+      const paginationData = response.data.pagination || {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0
+      };
+
       console.log('✅ Revisiones del empleado obtenidas:', {
-        totalReviews: response.data.data?.reviews?.length || 0,
-        pagination: response.data.data?.pagination
+        totalReviews: reviewsData.length,
+        pagination: paginationData
       });
       
-      return response.data.data || response.data;
+      return {
+        reviews: reviewsData,
+        pagination: paginationData
+      };
     } catch (error) {
       this.handleError(error, 'getEmployeeReviews');
     }

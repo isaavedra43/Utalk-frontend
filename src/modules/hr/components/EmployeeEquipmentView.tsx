@@ -3,30 +3,14 @@ import {
   Package,
   Plus,
   Search,
-  Filter,
   Download,
   AlertTriangle,
   CheckCircle,
-  Clock,
-  DollarSign,
-  Eye,
   Edit,
   Trash2,
   FileText,
-  BarChart3,
-  Shield,
-  Wrench,
   AlertCircle,
-  ChevronDown,
-  Laptop,
-  Car,
-  Phone,
-  ShirtIcon,
-  Armchair,
-  HardHat,
-  TrendingUp,
-  TrendingDown,
-  Activity
+  RefreshCw
 } from 'lucide-react';
 import { useEquipment } from '../../../hooks/useEquipment';
 import { useNotifications } from '../../../contexts/NotificationContext';
@@ -44,7 +28,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
   employeeId,
   employeeName = 'Empleado',
   onBack
-}) => {
+}: EmployeeEquipmentViewProps) => {
   const { showSuccess, showError } = useNotifications();
 
   const {
@@ -54,9 +38,6 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
     error,
     assignEquipment,
     updateEquipment,
-    returnEquipment,
-    reportLost,
-    reportDamage,
     deleteEquipment,
     createReview,
     getEmployeeReviews,
@@ -93,7 +74,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
   });
 
   // Función para cargar revisiones
-  const loadReviews = async (page = 1) => {
+  const loadReviews = React.useCallback(async (page = 1) => {
     try {
       setReviewsLoading(true);
       setReviewsError(null);
@@ -123,20 +104,28 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
         pagination: result.pagination
       });
     } catch (error) {
+      console.error('❌ Error cargando revisiones:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error cargando revisiones';
       setReviewsError(errorMessage);
-      console.error('❌ Error cargando revisiones:', error);
+      // Limpiar datos en caso de error
+      setReviews([]);
+      setReviewsPagination({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0
+      });
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [reviewsFilters, reviewsPagination.limit, getEmployeeReviews]);
 
   // Cargar revisiones cuando cambie el tab activo
   React.useEffect(() => {
     if (activeTab === 'reviews') {
       loadReviews();
     }
-  }, [activeTab]);
+  }, [activeTab, loadReviews]);
 
   // Handlers
   const handleSubmitEquipment = async (
@@ -281,13 +270,13 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
   // Helpers
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'uniform': return <ShirtIcon className="h-5 w-5" />;
-      case 'tools': return <Wrench className="h-5 w-5" />;
-      case 'computer': return <Laptop className="h-5 w-5" />;
-      case 'vehicle': return <Car className="h-5 w-5" />;
-      case 'phone': return <Phone className="h-5 w-5" />;
-      case 'furniture': return <Armchair className="h-5 w-5" />;
-      case 'safety': return <HardHat className="h-5 w-5" />;
+      case 'uniform': return <Package className="h-5 w-5" />;
+      case 'tools': return <Package className="h-5 w-5" />;
+      case 'computer': return <Package className="h-5 w-5" />;
+      case 'vehicle': return <Package className="h-5 w-5" />;
+      case 'phone': return <Package className="h-5 w-5" />;
+      case 'furniture': return <Package className="h-5 w-5" />;
+      case 'safety': return <Package className="h-5 w-5" />;
       default: return <Package className="h-5 w-5" />;
     }
   };
@@ -420,7 +409,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                 onClick={onBack}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ChevronDown className="h-5 w-5 text-gray-600 rotate-90" />
+                <AlertCircle className="h-5 w-5 text-gray-600 rotate-90" />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Equipo Asignado</h1>
@@ -488,7 +477,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                 <p className="text-xs text-gray-500">{summary?.maintenanceDue || 0} pendientes</p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-lg">
-                <Wrench className="h-6 w-6 text-yellow-600" />
+                <Package className="h-6 w-6 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -501,7 +490,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                 <p className="text-xs text-gray-500">Score promedio</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
-                <Activity className="h-6 w-6 text-purple-600" />
+                <Package className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -512,7 +501,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
               {[
-                { id: 'overview', label: 'Resumen', icon: BarChart3 },
+                { id: 'overview', label: 'Resumen', icon: Package },
                 { id: 'equipment', label: 'Equipo', icon: Package },
                 { id: 'reviews', label: 'Revisiones', icon: CheckCircle },
                 { id: 'reports', label: 'Reportes', icon: FileText }
@@ -593,7 +582,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
               {(summary?.warrantyExpiringSoon ?? 0) > 0 && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <div className="flex items-start space-x-3">
-                    <Shield className="h-5 w-5 text-orange-600 mt-0.5" />
+                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
                     <div>
                       <p className="font-medium text-orange-900">Garantías por Vencer</p>
                       <p className="text-sm text-orange-800 mt-1">
@@ -647,14 +636,14 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                       type="text"
                       placeholder="Buscar equipo..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                       className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
                     />
                   </div>
 
                   <select
                     value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)}
                     className="px-4 py-2 text-sm border border-gray-300 rounded-lg"
                   >
                     <option value="all">Todas las categorías</option>
@@ -670,7 +659,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
 
                   <select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value)}
                     className="px-4 py-2 text-sm border border-gray-300 rounded-lg"
                   >
                     <option value="all">Todos los estados</option>
@@ -789,7 +778,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                     </label>
                     <select
                       value={reviewsFilters.equipmentId}
-                      onChange={(e) => setReviewsFilters(prev => ({ ...prev, equipmentId: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReviewsFilters((prev: any) => ({ ...prev, equipmentId: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Todos los equipos</option>
@@ -807,7 +796,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                     </label>
                     <select
                       value={reviewsFilters.reviewType}
-                      onChange={(e) => setReviewsFilters(prev => ({ ...prev, reviewType: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReviewsFilters((prev: any) => ({ ...prev, reviewType: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Todos los tipos</option>
@@ -826,7 +815,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                     </label>
                     <select
                       value={reviewsFilters.condition}
-                      onChange={(e) => setReviewsFilters(prev => ({ ...prev, condition: e.target.value }))}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReviewsFilters((prev: any) => ({ ...prev, condition: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Todas las condiciones</option>
@@ -867,9 +856,18 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Historial de Revisiones</h3>
-                  <span className="text-sm text-gray-500">
-                    {reviewsPagination.total} revisiones encontradas
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500">
+                      {reviewsPagination.total} revisiones encontradas
+                    </span>
+                    <button
+                      onClick={() => loadReviews()}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      title="Actualizar revisiones"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {reviewsLoading ? (
@@ -899,7 +897,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {reviews.map((review) => (
+                    {reviews.map((review: any) => (
                       <div key={review.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -1034,14 +1032,14 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                       type: 'maintenance' as const,
                       title: 'Mantenimiento',
                       description: 'Historial y programación de mantenimientos',
-                      icon: Wrench,
+                      icon: Package,
                       color: 'yellow'
                     },
                     {
                       type: 'depreciation' as const,
                       title: 'Depreciación',
                       description: 'Análisis de depreciación de activos',
-                      icon: TrendingDown,
+                      icon: Package,
                       color: 'red'
                     },
                     {
