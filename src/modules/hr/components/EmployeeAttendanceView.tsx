@@ -280,6 +280,46 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     }
   }, [employee?.contract?.salary, employee?.salary?.baseSalary]);
 
+  // Función para obtener horas de trabajo del día específico
+  const getWorkHoursForDate = useCallback((dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const dayOfWeek = date.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+      
+      // Mapear días de la semana
+      const dayMap: { [key: number]: string } = {
+        0: 'domingo',
+        1: 'lunes', 
+        2: 'martes',
+        3: 'miercoles',
+        4: 'jueves',
+        5: 'viernes',
+        6: 'sabado'
+      };
+      
+      const dayName = dayMap[dayOfWeek];
+      const schedule = (employee?.contract as { customSchedule?: { days?: { [key: string]: { enabled?: boolean; startTime?: string; endTime?: string } } } })?.customSchedule?.days?.[dayName];
+      
+      if (schedule && schedule.enabled) {
+        return {
+          startTime: schedule.startTime || '09:00',
+          endTime: schedule.endTime || '18:00'
+        };
+      }
+      
+      // Fallback a horario por defecto
+      return {
+        startTime: '09:00',
+        endTime: '18:00'
+      };
+    } catch {
+      return {
+        startTime: '09:00',
+        endTime: '18:00'
+      };
+    }
+  }, [employee?.contract]);
+
   // Función para manejar el registro de asistencia
   const handleAttendanceRegistration = async (attendanceData: {
     date: string;
@@ -289,10 +329,11 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     notes?: string;
   }) => {
     try {
-      const isAbsent = attendanceData.status === 'absent';
+      console.log('📝 Registrando asistencia:', attendanceData);
       
-      // Si es ausencia, crear deducción automática
-      if (isAbsent) {
+      // Solo registrar movimientos en extras para casos que afectan la nómina
+      if (attendanceData.status === 'absent') {
+        // Ausencia completa = descuento de 1 día completo
         await extrasService.registerMovement(employeeId, {
           type: 'absence',
           date: attendanceData.date,
@@ -302,20 +343,27 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           absenceType: 'other',
           location: 'office'
         });
+        console.log('✅ Ausencia registrada en extras para descuento');
+        
+      } else if (attendanceData.status === 'half_day') {
+        // Medio día = descuento de 0.5 días
+        await extrasService.registerMovement(employeeId, {
+          type: 'absence',
+          date: attendanceData.date,
+          description: `Medio día del ${new Date(attendanceData.date).toLocaleDateString('es-MX')}`,
+          reason: attendanceData.notes || 'Medio día trabajado',
+          duration: 0.5,
+          absenceType: 'other',
+          location: 'office'
+        });
+        console.log('✅ Medio día registrado en extras para descuento');
       }
+      
+      // Para presente y tardanza NO se registra nada en extras porque no hay descuento
+      // El registro de asistencia se maneja por el sistema de asistencia normal
+      console.log(`✅ Asistencia ${attendanceData.status} registrada (sin impacto en extras)`);
 
-      // Registrar asistencia (esto debería ser un endpoint específico para RH)
-      // Por ahora usamos el endpoint de movimientos para registrar la asistencia
-      await extrasService.registerMovement(employeeId, {
-        type: attendanceData.status === 'present' ? 'overtime' : 'absence', // Temporal
-        date: attendanceData.date,
-        description: `Asistencia registrada por RH - ${attendanceData.status}`,
-        reason: `Registro de asistencia: ${attendanceData.status}`,
-        hours: attendanceData.status === 'present' ? 8 : 0,
-        location: 'office'
-      });
-
-      // Recargar datos
+      // Recargar datos para mostrar los cambios
       await loadAllData();
       setRefreshKey((prev: number) => prev + 1);
       
@@ -1555,29 +1603,29 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hora de Entrada
-                  </label>
-                  <input
-                    type="time"
-                    id="checkInTime"
-                    defaultValue={selectedAttendanceRecord?.checkIn || ''}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                     Hora de Entrada
+                   </label>
+                   <input
+                     type="time"
+                     id="checkInTime"
+                     defaultValue={selectedAttendanceRecord?.checkIn || getWorkHoursForDate(selectedAttendanceDate).startTime}
+                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                   />
+                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hora de Salida
-                  </label>
-                  <input
-                    type="time"
-                    id="checkOutTime"
-                    defaultValue={selectedAttendanceRecord?.checkOut || ''}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                     Hora de Salida
+                   </label>
+                   <input
+                     type="time"
+                     id="checkOutTime"
+                     defaultValue={selectedAttendanceRecord?.checkOut || getWorkHoursForDate(selectedAttendanceDate).endTime}
+                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                   />
+                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
