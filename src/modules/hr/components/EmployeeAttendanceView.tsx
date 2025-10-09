@@ -22,6 +22,12 @@ import { extrasService, MovementsSummary, ChartData } from '../../../services/ex
 import { ExportService } from '../../../services/exportService';
 import { useNotifications } from '../../../contexts/NotificationContext';
 
+interface DateRange {
+  startDate: string;
+  endDate: string;
+  label: string;
+}
+
 interface AttendanceRecord {
   id: string;
   date: string;
@@ -263,6 +269,63 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     }
   }, [selectedDateRange, getDateRanges]);
 
+  // Función para calcular salario diario
+  const calculateDailySalary = useCallback((): number => {
+    try {
+      const baseSalary = employee?.contract?.salary || employee?.salary?.baseSalary || 25000;
+      return baseSalary / 30; // Salario mensual dividido entre 30 días
+    } catch {
+      return 25000 / 30; // Fallback
+    }
+  }, [employee?.contract?.salary, employee?.salary?.baseSalary]);
+
+  // Función para manejar el registro de asistencia
+  const handleAttendanceRegistration = async (attendanceData: {
+    date: string;
+    status: 'present' | 'late' | 'absent' | 'half_day';
+    checkIn?: string;
+    checkOut?: string;
+    notes?: string;
+  }) => {
+    try {
+      const isAbsent = attendanceData.status === 'absent';
+      
+      // Si es ausencia, crear deducción automática
+      if (isAbsent) {
+        await extrasService.registerMovement(employeeId, {
+          type: 'absence',
+          date: attendanceData.date,
+          description: `Ausencia del ${new Date(attendanceData.date).toLocaleDateString('es-MX')}`,
+          reason: attendanceData.notes || 'Ausencia no justificada',
+          duration: 1,
+          absenceType: 'other',
+          location: 'office'
+        });
+      }
+
+      // Registrar asistencia (esto debería ser un endpoint específico para RH)
+      // Por ahora usamos el endpoint de movimientos para registrar la asistencia
+      await extrasService.registerMovement(employeeId, {
+        type: attendanceData.status === 'present' ? 'overtime' : 'absence', // Temporal
+        date: attendanceData.date,
+        description: `Asistencia registrada por RH - ${attendanceData.status}`,
+        reason: `Registro de asistencia: ${attendanceData.status}`,
+        hours: attendanceData.status === 'present' ? 8 : 0,
+        location: 'office'
+      });
+
+      // Recargar datos
+      await loadAllData();
+      setRefreshKey((prev: number) => prev + 1);
+      
+      showSuccess('Asistencia registrada exitosamente');
+      setIsAttendanceModalOpen(false);
+    } catch (error) {
+      console.error('Error registrando asistencia:', error);
+      showError('Error al registrar la asistencia');
+    }
+  };
+
   // Función para manejar el registro de extras
   const handleExtrasSubmit = async (data: {
     id?: string;
@@ -404,6 +467,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       }
 
       // Crear datos de asistencia combinados usando datos reales
+      const dailySalary = calculateDailySalary();
       const combinedAttendanceData: EmployeeAttendanceData = {
         employeeId: employeeId || 'EMP001',
         employeeName: (employeeInfo as { name?: string }).name || 
@@ -421,17 +485,26 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           overtimeHours: metrics.overtimeHours,
           averageHours: metrics.totalDays > 0 ? metrics.totalHours / metrics.totalDays : 0
         },
-        attendance: charts.map((chart: { date: string; present: number; late: number; absent: number; hours: number; overtimeHours: number }, index: number) => ({
-          id: `att-${chart.date}-${index}`,
-          date: chart.date,
-          checkIn: chart.present ? '09:00' : '',
-          checkOut: chart.present ? '18:00' : '',
-          totalHours: chart.hours || 0,
-          overtimeHours: chart.overtimeHours || 0,
-          status: chart.present === 1 ? 'present' : chart.late === 1 ? 'late' : 'absent',
-          location: 'office',
-          notes: chart.present === 1 ? 'Asistencia completa' : chart.late === 1 ? 'Llegada tardía' : 'Ausencia'
-        })),
+        attendance: charts.map((chart: ChartData, index: number) => {
+          const isPresent = chart.present === 1;
+          const isLate = chart.late === 1;
+          const isAbsent = chart.absent === 1;
+          
+          return {
+            id: `att-${chart.date}-${index}`,
+            date: chart.date,
+            checkIn: isPresent || isLate ? '09:00' : '',
+            checkOut: isPresent || isLate ? '18:00' : '',
+            totalHours: chart.hours || 0,
+            overtimeHours: chart.overtimeHours || 0,
+            status: isPresent ? 'present' : isLate ? 'late' : 'absent',
+            location: 'office',
+            notes: isPresent ? 'Asistencia completa' : isLate ? 'Llegada tardía' : 'Ausencia',
+            dailySalary: dailySalary,
+            deduction: isAbsent ? dailySalary : 0,
+            canEdit: true // RH puede editar cualquier día
+          };
+        }),
         overtime: summary.byType?.overtime?.count > 0 ? [{
           id: 'ot-summary',
           date: new Date().toISOString().split('T')[0],
@@ -513,7 +586,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [employeeId, employee, selectedDateRange.startDate, selectedDateRange.endDate, selectedDateRange.label]);
+  }, [employeeId, employee, selectedDateRange.startDate, selectedDateRange.endDate, selectedDateRange.label, calculateDailySalary]);
 
   // Inicializar fechas al montar el componente
   useEffect(() => {
@@ -558,6 +631,51 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showExportMenu]);
+
+  // Efecto para actualizar información de deducción en el modal
+  useEffect(() => {
+    if (isAttendanceModalOpen) {
+      const updateDeductionInfo = () => {
+        const statusSelect = document.getElementById('attendanceStatus') as HTMLSelectElement;
+        const deductionInfo = document.getElementById('deductionInfo') as HTMLElement;
+        
+        if (statusSelect && deductionInfo) {
+          const status = statusSelect.value;
+          const dailySalary = calculateDailySalary();
+          
+          switch (status) {
+            case 'present':
+              deductionInfo.innerHTML = '<span class="text-green-600">✓ Presente:</span> Sin descuento';
+              break;
+            case 'late':
+              deductionInfo.innerHTML = '<span class="text-yellow-600">⚠ Tardanza:</span> Sin descuento';
+              break;
+            case 'absent':
+              deductionInfo.innerHTML = `<span class="text-red-600">✗ Ausente:</span> Descuento de $${dailySalary.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+              break;
+            case 'half_day':
+              deductionInfo.innerHTML = `<span class="text-orange-600">△ Medio día:</span> Descuento de $${(dailySalary * 0.5).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+              break;
+          }
+        }
+      };
+
+      // Actualizar al abrir el modal
+      setTimeout(updateDeductionInfo, 100);
+
+      // Agregar listener para cambios en el select
+      const statusSelect = document.getElementById('attendanceStatus');
+      if (statusSelect) {
+        statusSelect.addEventListener('change', updateDeductionInfo);
+      }
+
+      return () => {
+        if (statusSelect) {
+          statusSelect.removeEventListener('change', updateDeductionInfo);
+        }
+      };
+    }
+  }, [isAttendanceModalOpen, calculateDailySalary]);
 
   // Función para exportar datos
   const handleExport = async (format: 'excel' | 'pdf' | 'csv') => {
@@ -713,7 +831,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
         return [];
       }
-      return attendanceData.attendance.filter((record: any) => {
+      return attendanceData.attendance.filter((record: AttendanceRecord) => {
         if (!record) return false;
         const matchesSearch = record.date?.includes(searchTerm) || 
                              record.status?.includes(searchTerm.toLowerCase());
@@ -932,7 +1050,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                         if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
                           return [];
                         }
-                        return attendanceData.attendance.map((record: any) => ({
+                        return attendanceData.attendance.map((record: AttendanceRecord) => ({
                           date: record?.date || '',
                           present: record?.status === 'present' ? 1 : 0,
                           late: record?.status === 'late' ? 1 : 0,
@@ -959,7 +1077,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                         if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
                           return [];
                         }
-                        return attendanceData.attendance.map((record: any) => ({
+                        return attendanceData.attendance.map((record: AttendanceRecord) => ({
                           date: record?.date || '',
                           regular: (record?.totalHours || 0) - (record?.overtimeHours || 0),
                           overtime: record?.overtimeHours || 0
@@ -1110,14 +1228,17 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entrada</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salida</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salario Diario</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deducción</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Extra</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notas</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAttendance.length > 0 ? (
-                      filteredAttendance.map((record: any) => (
+                      filteredAttendance.map((record: AttendanceRecord) => (
                         <tr key={record?.id || Math.random()} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {formatDate(record?.date || '')}
@@ -1140,6 +1261,22 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                             {record?.totalHours || 0}h
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span className="font-medium">
+                              ${(record?.dailySalary || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {(record?.deduction || 0) > 0 ? (
+                              <span className="text-red-600 font-medium">
+                                -${(record.deduction || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                              </span>
+                            ) : (
+                              <span className="text-green-600 font-medium">
+                                +${(record?.dailySalary || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {(record?.overtimeHours || 0) > 0 ? (
                               <span className="text-orange-600 font-medium">+{record.overtimeHours}h</span>
                             ) : (
@@ -1155,11 +1292,23 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                           <td className="px-6 py-4 text-sm text-gray-500">
                             {record?.notes || '-'}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => {
+                                setSelectedAttendanceDate(record?.date || '');
+                                setIsAttendanceModalOpen(true);
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Registrar
+                            </button>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                        <td colSpan={11} className="px-6 py-4 text-center text-sm text-gray-500">
                           No hay registros de asistencia disponibles.
                         </td>
                       </tr>
@@ -1266,7 +1415,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   Selecciona el período que deseas visualizar. Los datos siempre se mostrarán por semanas completas (lunes a domingo).
                 </p>
                 
-                {Object.entries(getDateRanges()).map(([key, range]: [string, any]) => (
+                {Object.entries(getDateRanges()).map(([key, range]) => (
                   <button
                     key={key}
                     onClick={() => handleDateRangeChange(key)}
@@ -1276,9 +1425,9 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <div className="font-medium">{range.label}</div>
+                    <div className="font-medium">{(range as DateRange).label}</div>
                     <div className="text-sm text-gray-500">
-                      {new Date(range.startDate).toLocaleDateString('es-ES')} - {new Date(range.endDate).toLocaleDateString('es-ES')}
+                      {new Date((range as DateRange).startDate).toLocaleDateString('es-ES')} - {new Date((range as DateRange).endDate).toLocaleDateString('es-ES')}
                     </div>
                   </button>
                 ))}
@@ -1336,6 +1485,130 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Registrar Asistencia */}
+      {isAttendanceModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Registrar Asistencia
+              </h3>
+              <button
+                onClick={() => setIsAttendanceModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedAttendanceDate}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado de Asistencia
+                  </label>
+                  <select
+                    id="attendanceStatus"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="present">Presente</option>
+                    <option value="late">Tardanza</option>
+                    <option value="absent">Ausente</option>
+                    <option value="half_day">Medio día</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hora de Entrada
+                  </label>
+                  <input
+                    type="time"
+                    id="checkInTime"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hora de Salida
+                  </label>
+                  <input
+                    type="time"
+                    id="checkOutTime"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notas (opcional)
+                  </label>
+                  <textarea
+                    id="attendanceNotes"
+                    rows={3}
+                    placeholder="Observaciones sobre la asistencia..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-800 mb-2">Impacto en Nómina:</h4>
+                  <div className="text-sm text-blue-700">
+                    <p><strong>Salario diario:</strong> ${calculateDailySalary().toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                    <p id="deductionInfo" className="mt-1">
+                      <span className="text-green-600">✓ Presente:</span> Sin descuento
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setIsAttendanceModalOpen(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const statusSelect = document.getElementById('attendanceStatus') as HTMLSelectElement;
+                  const checkInInput = document.getElementById('checkInTime') as HTMLInputElement;
+                  const checkOutInput = document.getElementById('checkOutTime') as HTMLInputElement;
+                  const notesTextarea = document.getElementById('attendanceNotes') as HTMLTextAreaElement;
+                  
+                  const attendanceData = {
+                    date: selectedAttendanceDate,
+                    status: statusSelect.value as 'present' | 'late' | 'absent' | 'half_day',
+                    checkIn: checkInInput.value,
+                    checkOut: checkOutInput.value,
+                    notes: notesTextarea.value
+                  };
+                  
+                  handleAttendanceRegistration(attendanceData);
+                }}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Registrar Asistencia
               </button>
             </div>
           </div>
