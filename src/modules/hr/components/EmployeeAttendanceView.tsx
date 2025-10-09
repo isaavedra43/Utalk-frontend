@@ -145,6 +145,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   });
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<string>('');
+  const [selectedAttendanceRecord, setSelectedAttendanceRecord] = useState<AttendanceRecord | null>(null);
 
   // Función para obtener el lunes de una semana
   const getMondayOfWeek = (date: Date): Date => {
@@ -320,6 +321,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       
       showSuccess('Asistencia registrada exitosamente');
       setIsAttendanceModalOpen(false);
+      setSelectedAttendanceRecord(null);
     } catch (error) {
       console.error('Error registrando asistencia:', error);
       showError('Error al registrar la asistencia');
@@ -660,8 +662,21 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         }
       };
 
-      // Actualizar al abrir el modal
-      setTimeout(updateDeductionInfo, 100);
+      // Establecer valores por defecto cuando se abre el modal
+      const initializeModalValues = () => {
+        const statusSelect = document.getElementById('attendanceStatus') as HTMLSelectElement;
+        
+        if (statusSelect && selectedAttendanceRecord) {
+          // Establecer el estado por defecto basado en el registro existente
+          statusSelect.value = selectedAttendanceRecord.status || 'present';
+        }
+        
+        // Actualizar información de deducción
+        updateDeductionInfo();
+      };
+
+      // Inicializar valores al abrir el modal
+      setTimeout(initializeModalValues, 100);
 
       // Agregar listener para cambios en el select
       const statusSelect = document.getElementById('attendanceStatus');
@@ -675,7 +690,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         }
       };
     }
-  }, [isAttendanceModalOpen, calculateDailySalary]);
+  }, [isAttendanceModalOpen, calculateDailySalary, selectedAttendanceRecord]);
 
   // Función para exportar datos
   const handleExport = async (format: 'excel' | 'pdf' | 'csv') => {
@@ -1296,6 +1311,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                             <button
                               onClick={() => {
                                 setSelectedAttendanceDate(record?.date || '');
+                                setSelectedAttendanceRecord(record);
                                 setIsAttendanceModalOpen(true);
                               }}
                               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -1500,7 +1516,10 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 Registrar Asistencia
               </h3>
               <button
-                onClick={() => setIsAttendanceModalOpen(false)}
+                onClick={() => {
+                  setIsAttendanceModalOpen(false);
+                  setSelectedAttendanceRecord(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="h-5 w-5" />
@@ -1543,6 +1562,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   <input
                     type="time"
                     id="checkInTime"
+                    defaultValue={selectedAttendanceRecord?.checkIn || ''}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -1554,6 +1574,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   <input
                     type="time"
                     id="checkOutTime"
+                    defaultValue={selectedAttendanceRecord?.checkOut || ''}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -1565,6 +1586,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   <textarea
                     id="attendanceNotes"
                     rows={3}
+                    defaultValue={selectedAttendanceRecord?.notes || ''}
                     placeholder="Observaciones sobre la asistencia..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -1584,7 +1606,10 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
             
             <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
               <button
-                onClick={() => setIsAttendanceModalOpen(false)}
+                onClick={() => {
+                  setIsAttendanceModalOpen(false);
+                  setSelectedAttendanceRecord(null);
+                }}
                 className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancelar
