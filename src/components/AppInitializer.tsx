@@ -51,13 +51,13 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
       }
     };
 
-    // ✅ Timeout de seguridad para evitar pantallas en blanco indefinidas
+    // ✅ Timeout de seguridad reducido para evitar esperas largas
     const initTimeout = setTimeout(() => {
       if (!isInitialized) {
         console.warn('⚠️ AppInitializer - Timeout de inicialización alcanzado, forzando inicialización');
         setIsInitialized(true);
       }
-    }, 5000); // 5 segundos máximo
+    }, 2000); // 2 segundos máximo
 
     initializeApp();
 

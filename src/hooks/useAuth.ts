@@ -123,10 +123,10 @@ export const useAuth = (): AuthState => {
     return authenticated;
   }, [authStore.user, authStore.backendUser, authStore.isAuthenticating, authStore.loading]);
 
-  // Verificar estado inicial de autenticación - SINGLETON PATTERN
+  // ✅ Verificar estado inicial de autenticación - CORREGIDO
   useEffect(() => {
     // Solo ejecutar una vez al montar el componente
-    if (hasCheckedInitialAuth.current || !authStore.loading) {
+    if (hasCheckedInitialAuth.current) {
       return;
     }
 
@@ -134,7 +134,24 @@ export const useAuth = (): AuthState => {
       try {
         hasCheckedInitialAuth.current = true;
         
-        // Usar singleton pattern para evitar múltiples inicializaciones
+        // ✅ Verificar si hay tokens antes de intentar inicializar
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+        
+        if (!accessToken || 
+            accessToken === 'undefined' || 
+            accessToken === 'null' ||
+            !refreshToken || 
+            refreshToken === 'undefined' || 
+            refreshToken === 'null') {
+          infoLog('🔐 useAuth - No hay tokens válidos, saltando inicialización');
+          authStore.clearAuth();
+          authStore.setLoading(false);
+          return;
+        }
+        
+        // ✅ Solo inicializar si hay tokens que parecen válidos
+        infoLog('🔐 useAuth - Tokens encontrados, iniciando validación...');
         await getInitializationPromise(authStore);
         
         infoLog('🔐 useAuth - Inicialización completada');

@@ -117,60 +117,70 @@ export const useAuthStore = create<AuthStore>()(
           set({ error: null });
         },
 
-        // Validar token con el backend - MEJORADO
+        // Validar token con el backend - CORREGIDO
         validateToken: async (accessToken: string): Promise<BackendUser | null> => {
           try {
             logger.authInfo('Validando token con backend...');
             
-            // Validación más estricta del token
+            // ✅ Validación más estricta del token
             if (!accessToken || 
                 accessToken === 'undefined' || 
                 accessToken === 'null' || 
                 accessToken.length < 10 ||
                 !accessToken.startsWith('eyJ')) {
-              logger.authError('Token inválido, undefined, null o malformado', new Error('Token inválido'));
+              logger.authInfo('Token inválido, undefined, null o malformado - no validando');
               return null;
             }
             
-            // Verificar que el header Authorization no contenga undefined
+            // ✅ Verificar que el header Authorization no contenga undefined
             const authHeader = `Bearer ${accessToken}`;
             if (authHeader.includes('undefined')) {
-              logger.authError('Header Authorization contiene undefined', new Error('Header inválido'));
+              logger.authInfo('Header Authorization contiene undefined - no validando');
               return null;
             }
             
-            // USAR RETRY SYSTEM PARA VALIDACIÓN DE TOKEN
-            const validateResult = await retryAuthOperation(async () => {
-              return await api.get('/api/auth/profile', {
+            // ✅ Validación directa SIN retry para evitar loops de error
+            try {
+              const response = await api.get('/api/auth/profile', {
                 headers: {
                   Authorization: authHeader
                 }
               });
-            });
-            
-            if (!validateResult.success) {
-              logger.authError('Validación de token falló', validateResult.error as Error);
+              
+              if (!response.data.success) {
+                logger.authInfo('Validación de token falló - respuesta del backend');
+                return null;
+              }
+              
+              // El backend devuelve { success, data: { user, ... } }
+              const backendUser = (response.data && response.data.data && response.data.data.user) || null;
+              if (!backendUser) {
+                logger.authInfo('Estructura inesperada en /api/auth/profile - no user encontrado');
+                return null;
+              }
+              
+              logger.authInfo('Token válido, usuario encontrado');
+              return backendUser;
+              
+            } catch (apiError: any) {
+              // ✅ Manejo graceful de errores de API
+              if (apiError.response?.status === 401) {
+                logger.authInfo('Token expirado o inválido (401)');
+              } else if (apiError.response?.status >= 500) {
+                logger.authInfo('Error del servidor al validar token');
+              } else {
+                logger.authInfo('Error de red al validar token');
+              }
               return null;
             }
             
-            const response = validateResult.data!;
-            
-            // El backend devuelve { success, data: { user, ... } }
-            const backendUser = (response.data && response.data.data && response.data.data.user) || null;
-            if (!backendUser) {
-              logger.authError('Estructura inesperada en /api/auth/profile', new Error('Perfil sin user'));
-              return null;
-            }
-            
-            logger.authInfo('Token válido, usuario autenticado');
-            return backendUser as BackendUser;
           } catch (error) {
-            logger.authError('Token inválido o expirado', error as Error);
+            logger.authInfo('Error general en validación de token:', error);
             return null;
           }
         },
         
-        // Inicialización robusta de autenticación - NUEVO
+        // Inicialización robusta de autenticación - CORREGIDA
         initializeAuth: async () => {
           const currentState = get();
           
@@ -186,17 +196,32 @@ export const useAuthStore = create<AuthStore>()(
             
             const accessToken = localStorage.getItem('access_token');
             const refreshToken = localStorage.getItem('refresh_token');
-            const storedUser = localStorage.getItem('user');
             
-            // Verificar si hay tokens válidos
-            if (!accessToken || accessToken === 'undefined' || !refreshToken || refreshToken === 'undefined') {
-              logger.authInfo('No hay tokens válidos, limpiando autenticación');
+            // ✅ VALIDACIÓN PREVIA ESTRICTA - Evitar errores de validación
+            if (!accessToken || 
+                accessToken === 'undefined' || 
+                accessToken === 'null' || 
+                accessToken.length < 10 ||
+                !accessToken.startsWith('eyJ')) {
+              logger.authInfo('Token de acceso inválido o malformado, limpiando autenticación');
               get().clearAuth();
-              set({ hasInitialized: true, isInitializing: false });
+              set({ hasInitialized: true, isInitializing: false, loading: false });
               return;
             }
             
-            // Intentar validar el token actual
+            if (!refreshToken || 
+                refreshToken === 'undefined' || 
+                refreshToken === 'null' || 
+                refreshToken.length < 10 ||
+                !refreshToken.startsWith('eyJ')) {
+              logger.authInfo('Token de refresh inválido o malformado, limpiando autenticación');
+              get().clearAuth();
+              set({ hasInitialized: true, isInitializing: false, loading: false });
+              return;
+            }
+            
+            // ✅ Solo intentar validar si los tokens parecen válidos
+            logger.authInfo('Tokens parecen válidos, validando con backend...');
             const validatedUser = await get().validateToken(accessToken);
             if (validatedUser) {
               logger.authInfo('Token válido, restaurando sesión');
@@ -211,52 +236,11 @@ export const useAuthStore = create<AuthStore>()(
               return;
             }
             
-            // Si el token no es válido, intentar refresh
-            logger.authInfo('Token inválido, intentando refresh...');
-            try {
-              // USAR RETRY SYSTEM PARA REFRESH EN INICIALIZACIÓN
-              const refreshResult = await retryAuthOperation(async () => {
-                return await api.post('/api/auth/refresh', { refreshToken });
-              });
-              
-              if (!refreshResult.success) {
-                logger.authError('Refresh en inicialización falló', refreshResult.error as Error);
-                throw refreshResult.error || new Error('Refresh falló');
-              }
-              
-              const refreshResponse = refreshResult.data!;
-              
-              if (refreshResponse.data && refreshResponse.data.accessToken) {
-                const newAccessToken = refreshResponse.data.accessToken;
-                const newRefreshToken = refreshResponse.data.refreshToken || refreshToken;
-                
-                // Guardar nuevos tokens
-                localStorage.setItem('access_token', newAccessToken);
-                localStorage.setItem('refresh_token', newRefreshToken);
-                
-                // Validar el nuevo token
-                const newValidatedUser = await get().validateToken(newAccessToken);
-                if (newValidatedUser) {
-                  logger.authInfo('Refresh exitoso, sesión restaurada');
-                  set({
-                    backendUser: newValidatedUser,
-                    user: { uid: newValidatedUser.id, email: newValidatedUser.email, displayName: newValidatedUser.displayName },
-                    isAuthenticated: true,
-                    loading: false,
-                    isInitializing: false,
-                    hasInitialized: true
-                  });
-                  return;
-                }
-              }
-            } catch (refreshError) {
-              logger.authError('Refresh falló', refreshError as Error);
-            }
-            
-            // Si llegamos aquí, tanto validación como refresh fallaron
-            logger.authInfo('Autenticación falló completamente, limpiando');
+            // ✅ Si el token no es válido, NO intentar refresh automáticamente
+            // Solo limpiar y dejar que el usuario haga login manualmente
+            logger.authInfo('Token inválido, limpiando autenticación (sin intentar refresh automático)');
             get().clearAuth();
-            set({ hasInitialized: true, isInitializing: false });
+            set({ hasInitialized: true, isInitializing: false, loading: false });
             
           } catch (error) {
             logger.authError('Error en inicialización de autenticación', error as Error);
@@ -264,7 +248,8 @@ export const useAuthStore = create<AuthStore>()(
             set({ 
               error: 'Error al inicializar autenticación',
               hasInitialized: true, 
-              isInitializing: false 
+              isInitializing: false,
+              loading: false
             });
           }
         },

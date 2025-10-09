@@ -191,6 +191,48 @@ class EmployeeService {
     return response.data;
   }
 
+  /**
+   * Registrar asistencia manualmente (para RH)
+   */
+  async registerAttendance(employeeId: string, attendanceData: {
+    date: string;
+    status: 'present' | 'late' | 'absent' | 'half_day';
+    checkIn?: string;
+    checkOut?: string;
+    notes?: string;
+    isManual?: boolean;
+    approvedBy?: string;
+  }): Promise<any> {
+    try {
+      console.log('📝 Registrando asistencia manual:', { employeeId, attendanceData });
+      
+      const response = await api.post(`${this.baseEndpoint}/${employeeId}/attendance`, {
+        date: attendanceData.date,
+        status: attendanceData.status,
+        clockIn: attendanceData.checkIn,
+        clockOut: attendanceData.checkOut,
+        justification: attendanceData.notes,
+        isManual: attendanceData.isManual || true,
+        approvedBy: attendanceData.approvedBy,
+        // Campos adicionales para el backend
+        isHoliday: false,
+        isWeekend: false,
+        totalHours: attendanceData.status === 'present' ? 8 : 
+                   attendanceData.status === 'half_day' ? 4 : 0,
+        regularHours: attendanceData.status === 'present' ? 8 : 
+                     attendanceData.status === 'half_day' ? 4 : 0,
+        overtimeHours: 0,
+        breakHours: 0
+      });
+      
+      console.log('✅ Asistencia registrada exitosamente');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error registrando asistencia:', error);
+      throw error;
+    }
+  }
+
   // ===== MÉTODOS DE VACACIONES =====
 
   /**

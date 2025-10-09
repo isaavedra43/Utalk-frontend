@@ -19,6 +19,7 @@ import AbsencesTable from './AbsencesTable';
 import LoansTable from './LoansTable';
 import ErrorBoundary from './ErrorBoundary';
 import { extrasService, MovementsSummary, ChartData } from '../../../services/extrasService';
+import employeeService from '../../../services/employeeService';
 import { ExportService } from '../../../services/exportService';
 import { useNotifications } from '../../../contexts/NotificationContext';
 
@@ -320,7 +321,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     }
   }, [employee?.contract]);
 
-  // Función para manejar el registro de asistencia
+  // Función para manejar el registro de asistencia - CORREGIDA COMPLETAMENTE
   const handleAttendanceRegistration = async (attendanceData: {
     date: string;
     status: 'present' | 'late' | 'absent' | 'half_day';
@@ -329,11 +330,24 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     notes?: string;
   }) => {
     try {
-      console.log('📝 Registrando asistencia:', attendanceData);
+      console.log('📝 Iniciando registro de asistencia:', attendanceData);
       
-      // Solo registrar movimientos en extras para casos que afectan la nómina
+      // 1. PRIMERO: Registrar asistencia usando el endpoint correcto de asistencia
+      await employeeService.registerAttendance(employeeId, {
+        date: attendanceData.date,
+        status: attendanceData.status,
+        checkIn: attendanceData.checkIn,
+        checkOut: attendanceData.checkOut,
+        notes: attendanceData.notes,
+        isManual: true,
+        approvedBy: 'rh_user' // TODO: Obtener ID del usuario actual
+      });
+      console.log('✅ Asistencia registrada en el sistema de asistencia');
+
+      // 2. SEGUNDO: Solo si hay descuento, registrar en extras
       if (attendanceData.status === 'absent') {
         // Ausencia completa = descuento de 1 día completo
+        console.log('💰 Creando deducción por ausencia completa...');
         await extrasService.registerMovement(employeeId, {
           type: 'absence',
           date: attendanceData.date,
@@ -343,10 +357,11 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           absenceType: 'other',
           location: 'office'
         });
-        console.log('✅ Ausencia registrada en extras para descuento');
+        console.log('✅ Deducción por ausencia registrada en extras');
         
       } else if (attendanceData.status === 'half_day') {
         // Medio día = descuento de 0.5 días
+        console.log('💰 Creando deducción por medio día...');
         await extrasService.registerMovement(employeeId, {
           type: 'absence',
           date: attendanceData.date,
@@ -356,23 +371,23 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           absenceType: 'other',
           location: 'office'
         });
-        console.log('✅ Medio día registrado en extras para descuento');
+        console.log('✅ Deducción por medio día registrada en extras');
+      } else {
+        // Para presente y tardanza NO hay descuento
+        console.log(`✅ Asistencia ${attendanceData.status} registrada (sin descuento)`);
       }
-      
-      // Para presente y tardanza NO se registra nada en extras porque no hay descuento
-      // El registro de asistencia se maneja por el sistema de asistencia normal
-      console.log(`✅ Asistencia ${attendanceData.status} registrada (sin impacto en extras)`);
 
-      // Recargar datos para mostrar los cambios
+      // 3. TERCERO: Recargar todos los datos
       await loadAllData();
       setRefreshKey((prev: number) => prev + 1);
       
       showSuccess('Asistencia registrada exitosamente');
       setIsAttendanceModalOpen(false);
       setSelectedAttendanceRecord(null);
+      
     } catch (error) {
-      console.error('Error registrando asistencia:', error);
-      showError('Error al registrar la asistencia');
+      console.error('❌ Error registrando asistencia:', error);
+      showError('Error al registrar la asistencia. Verifica los datos e intenta nuevamente.');
     }
   };
 
