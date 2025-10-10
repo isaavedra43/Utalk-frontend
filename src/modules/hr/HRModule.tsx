@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  BarChart3, 
-  DollarSign, 
-  Shield, 
+import {
+  Users,
+  BarChart3,
+  DollarSign,
   Bot,
   Calendar,
-  Download,
   Settings,
   Bell,
   User,
   LogOut,
   Menu,
-  X,
   FileText
 } from 'lucide-react';
 import { EmployeeList } from './components/EmployeeList';
@@ -87,7 +84,7 @@ const HRModule: React.FC = () => {
           <EmployeeDetail 
             employee={selectedEmployee} 
             onBack={() => setSelectedEmployee(null)}
-            onEdit={(employee) => setSelectedEmployee(employee)}
+            onEdit={(employee: Employee) => setSelectedEmployee(employee)}
           />
         ) : (
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />

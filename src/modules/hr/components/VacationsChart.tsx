@@ -1,10 +1,9 @@
 import React from 'react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   BarChart3,
   PieChart,
@@ -33,15 +32,15 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
   data, 
   type, 
   height = 200 
-}) => {
-  const getMaxValue = () => {
+}: VacationsChartProps) => {
+  const getMaxValue = (): number => {
     if (data.length === 0) return 10;
-    return Math.max(...data.map(d => d.days), 1);
+    return Math.max(...data.map((d: VacationDataPoint) => d.days), 1);
   };
 
-  const getMinValue = () => {
+  const getMinValue = (): number => {
     if (data.length === 0) return 0;
-    return Math.min(...data.map(d => d.days), 0);
+    return Math.min(...data.map((d: VacationDataPoint) => d.days), 0);
   };
 
   const getTypeColor = (type: string) => {
@@ -57,18 +56,6 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'vacation': return <Plane className="h-4 w-4" />;
-      case 'personal': return <User className="h-4 w-4" />;
-      case 'sick_leave': return <Heart className="h-4 w-4" />;
-      case 'maternity': return <Baby className="h-4 w-4" />;
-      case 'paternity': return <Baby className="h-4 w-4" />;
-      case 'unpaid': return <Clock className="h-4 w-4" />;
-      case 'compensatory': return <Gift className="h-4 w-4" />;
-      default: return <Calendar className="h-4 w-4" />;
-    }
-  };
 
   const getTypeText = (type: string) => {
     switch (type) {
@@ -113,33 +100,33 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
   };
 
   // Generate SVG path for line chart
-  const generatePath = () => {
+  const generatePath = (): string => {
     if (data.length < 2) return '';
-    
+
     let path = '';
-    data.forEach((point, index) => {
+    data.forEach((point: VacationDataPoint, index: number) => {
       const x = getX(index);
       const y = getY(point.days);
-      
+
       if (index === 0) {
         path += `M ${x} ${y}`;
       } else {
         path += ` L ${x} ${y}`;
       }
     });
-    
+
     return path;
   };
 
   // Generate area path for filled area
-  const generateAreaPath = () => {
+  const generateAreaPath = (): string => {
     if (data.length < 2) return '';
-    
+
     const linePath = generatePath();
     const firstX = getX(0);
     const lastX = getX(data.length - 1);
     const bottomY = height;
-    
+
     return `${linePath} L ${lastX} ${bottomY} L ${firstX} ${bottomY} Z`;
   };
 
@@ -172,10 +159,10 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
         />
         
         {/* Data points */}
-        {data.map((point, index) => {
+        {data.map((point: VacationDataPoint, index: number) => {
           const x = getX(index);
           const y = getY(point.days);
-          
+
           return (
             <g key={index}>
               <circle
@@ -203,7 +190,7 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
 
   const renderDistributionChart = () => {
     // Group data by type
-    const typeGroups = data.reduce((acc, point) => {
+    const typeGroups = data.reduce((acc: Record<string, number>, point: VacationDataPoint) => {
       if (!acc[point.type]) {
         acc[point.type] = 0;
       }
@@ -211,9 +198,9 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
       return acc;
     }, {} as Record<string, number>);
 
-    const total = Object.values(typeGroups).reduce((sum, days) => sum + days, 0);
+    const total = Object.values(typeGroups).reduce((sum: number, days: number) => sum + days, 0);
     const types = Object.keys(typeGroups);
-    
+
     if (types.length === 0) return null;
 
     const centerX = 100;
@@ -224,29 +211,29 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
     
     return (
       <svg width="100%" height={height} className="overflow-visible">
-        {types.map((type, index) => {
+        {types.map((type: string) => {
           const days = typeGroups[type];
           const percentage = days / total;
           const angle = percentage * 2 * Math.PI;
           const startAngle = currentAngle;
           const endAngle = currentAngle + angle;
-          
+
           const x1 = centerX + radius * Math.cos(startAngle);
           const y1 = centerY + radius * Math.sin(startAngle);
           const x2 = centerX + radius * Math.cos(endAngle);
           const y2 = centerY + radius * Math.sin(endAngle);
-          
+
           const largeArcFlag = angle > Math.PI ? 1 : 0;
-          
+
           const pathData = [
             `M ${centerX} ${centerY}`,
             `L ${x1} ${y1}`,
             `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
             'Z'
           ].join(' ');
-          
+
           currentAngle += angle;
-          
+
           return (
             <path
               key={type}
@@ -331,7 +318,7 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
         {/* X-axis labels for usage chart */}
         {type === 'usage' && (
           <div className="flex justify-between mt-2">
-            {data.map((point, index) => (
+            {data.map((point: VacationDataPoint, index: number) => (
               <div key={index} className="text-xs text-gray-600 text-center">
                 {new Date(point.date).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' })}
               </div>
@@ -344,17 +331,17 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
       {type === 'distribution' && (
         <div className="flex flex-wrap items-center justify-center space-x-4 mt-4">
           {Object.entries(
-            data.reduce((acc, point) => {
+            data.reduce((acc: Record<string, number>, point: VacationDataPoint) => {
               if (!acc[point.type]) {
                 acc[point.type] = 0;
               }
               acc[point.type] += point.days;
               return acc;
             }, {} as Record<string, number>)
-          ).map(([type, days]) => (
+          ).map(([type, days]: [string, number]) => (
             <div key={type} className="flex items-center space-x-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
+              <div
+                className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: getTypeColor(type) }}
               ></div>
               <span className="text-sm text-gray-600">{getTypeText(type)}</span>
@@ -369,7 +356,7 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
         <div className="text-center">
           <p className="text-xs text-gray-600">Promedio</p>
           <p className="font-medium text-gray-900">
-            {data.length > 0 ? (data.reduce((sum, d) => sum + d.days, 0) / data.length).toFixed(1) : '0.0'} días
+            {data.length > 0 ? (data.reduce((sum: number, d: VacationDataPoint) => sum + d.days, 0) / data.length).toFixed(1) : '0.0'} días
           </p>
         </div>
         <div className="text-center">

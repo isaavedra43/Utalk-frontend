@@ -2,20 +2,11 @@ import React, { useState, useMemo } from 'react';
 import {
   Settings,
   Plus,
-  Edit,
   Trash2,
-  Eye,
-  Copy,
   CheckCircle,
   XCircle,
-  Clock,
   Calendar,
-  Users,
-  Building,
-  Target,
   AlertTriangle,
-  Shield,
-  FileText,
   Save,
   X,
   MoreVertical,
@@ -24,16 +15,16 @@ import {
 import { useVacationsManagement } from '../../../../hooks/useVacationsManagement';
 import { useNotifications } from '../../../../contexts/NotificationContext';
 import {
-  VacationPolicy,
-  VacationPolicyForm,
-  VacationFilters
+  VacationPolicy
 } from '../../../../services/vacationsManagementService';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface VacationsPoliciesTabProps {}
+interface VacationsPoliciesTabProps {
+  onBack?: () => void;
+}
 
 // ============================================================================
 // POLICY CARD COMPONENT
@@ -53,7 +44,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({
   onDelete,
   onDuplicate,
   onToggle
-}) => {
+}: PolicyCardProps) => {
   const [showActions, setShowActions] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -192,7 +183,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({
         <div className="mb-4">
           <p className="text-sm font-medium text-gray-700 mb-2">Períodos Restringidos:</p>
           <div className="space-y-1">
-            {policy.blackoutPeriods.slice(0, 3).map((period, index) => (
+            {policy.blackoutPeriods.slice(0, 3).map((period: any, index: number) => (
               <div key={index} className="text-xs text-gray-600 bg-red-50 px-2 py-1 rounded">
                 {formatDate(period.startDate)} - {formatDate(period.endDate)}: {period.reason}
               </div>
@@ -223,7 +214,7 @@ interface PolicyFormModalProps {
   isOpen: boolean;
   policy?: VacationPolicy | null;
   onClose: () => void;
-  onSubmit: (policyData: VacationPolicyForm) => Promise<void>;
+  onSubmit: (policyData: any) => Promise<void>;
 }
 
 const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
@@ -231,11 +222,11 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
   policy,
   onClose,
   onSubmit
-}) => {
+}: PolicyFormModalProps) => {
   const { showSuccess, showError } = useNotifications();
   const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState<VacationPolicyForm>({
+  const [formData, setFormData] = useState<any>({
     name: policy?.name || '',
     description: policy?.description || '',
     appliesTo: policy?.appliesTo || {
@@ -306,7 +297,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
   };
 
   const addBlackoutPeriod = () => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       blackoutPeriods: [
         ...prev.blackoutPeriods,
@@ -324,18 +315,18 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
   };
 
   const updateBlackoutPeriod = (index: number, field: string, value: string | boolean) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
-      blackoutPeriods: prev.blackoutPeriods.map((period, i) =>
+      blackoutPeriods: prev.blackoutPeriods.map((period: any, i: number) =>
         i === index ? { ...period, [field]: value } : period
       )
     }));
   };
 
   const removeBlackoutPeriod = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
-      blackoutPeriods: prev.blackoutPeriods.filter((_, i) => i !== index)
+      blackoutPeriods: prev.blackoutPeriods.filter((_: any, i: number) => i !== index)
     }));
   };
 
@@ -395,7 +386,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({ ...prev, name: e.target.value }))}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.name ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -413,7 +404,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData((prev: VacationPolicyForm) => ({ ...prev, description: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={3}
                   placeholder="Descripción de la política de vacaciones"
@@ -430,7 +421,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     <input
                       type="checkbox"
                       checked={formData.appliesTo.allEmployees}
-                      onChange={(e) => setFormData(prev => ({
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                         ...prev,
                         appliesTo: { ...prev.appliesTo, allEmployees: e.target.checked }
                       }))}
@@ -448,9 +439,9 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                       <select
                         multiple
                         value={formData.appliesTo.departments || []}
-                        onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => option.value);
-                          setFormData(prev => ({
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          const values = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+                          setFormData((prev: any) => ({
                             ...prev,
                             appliesTo: { ...prev.appliesTo, departments: values }
                           }));
@@ -472,9 +463,9 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                       <select
                         multiple
                         value={formData.appliesTo.positions || []}
-                        onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => option.value);
-                          setFormData(prev => ({
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          const values = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+                          setFormData((prev: any) => ({
                             ...prev,
                             appliesTo: { ...prev.appliesTo, positions: values }
                           }));
@@ -496,9 +487,9 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                       <select
                         multiple
                         value={formData.appliesTo.employeeTypes || []}
-                        onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => option.value);
-                          setFormData(prev => ({
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          const values = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+                          setFormData((prev: any) => ({
                             ...prev,
                             appliesTo: { ...prev.appliesTo, employeeTypes: values }
                           }));
@@ -530,7 +521,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="number"
                     min="1"
                     value={formData.rules.annualDays}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, annualDays: Number(e.target.value) }
                     }))}
@@ -553,7 +544,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     min="0"
                     step="0.01"
                     value={formData.rules.accrualRate}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, accrualRate: Number(e.target.value) }
                     }))}
@@ -575,7 +566,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="number"
                     min="0"
                     value={formData.rules.maxCarryover}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, maxCarryover: Number(e.target.value) }
                     }))}
@@ -592,7 +583,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="number"
                     min="0"
                     value={formData.rules.probationPeriod}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, probationPeriod: Number(e.target.value) }
                     }))}
@@ -609,7 +600,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="number"
                     min="0"
                     value={formData.rules.advanceRequest}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, advanceRequest: Number(e.target.value) }
                     }))}
@@ -626,7 +617,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="number"
                     min="1"
                     value={formData.rules.maxConsecutiveDays}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, maxConsecutiveDays: Number(e.target.value) }
                     }))}
@@ -643,7 +634,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="number"
                     min="0"
                     value={formData.rules.autoApprovalLimit || ''}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, autoApprovalLimit: e.target.value ? Number(e.target.value) : undefined }
                     }))}
@@ -658,7 +649,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                     type="checkbox"
                     id="requiresApproval"
                     checked={formData.rules.requiresApproval}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                       ...prev,
                       rules: { ...prev.rules, requiresApproval: e.target.checked }
                     }))}
@@ -696,7 +687,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {formData.blackoutPeriods.map((period, index) => (
+                  {formData.blackoutPeriods.map((period: any, index: number) => (
                     <div key={period.id} className="p-4 border border-gray-200 rounded-lg">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
@@ -706,7 +697,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                           <input
                             type="text"
                             value={period.name}
-                            onChange={(e) => updateBlackoutPeriod(index, 'name', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateBlackoutPeriod(index, 'name', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Ej: Navidad"
                             disabled={loading}
@@ -720,7 +711,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                           <input
                             type="date"
                             value={period.startDate}
-                            onChange={(e) => updateBlackoutPeriod(index, 'startDate', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateBlackoutPeriod(index, 'startDate', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             disabled={loading}
                           />
@@ -733,7 +724,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                           <input
                             type="date"
                             value={period.endDate}
-                            onChange={(e) => updateBlackoutPeriod(index, 'endDate', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateBlackoutPeriod(index, 'endDate', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             disabled={loading}
                           />
@@ -758,7 +749,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                         <input
                           type="text"
                           value={period.reason}
-                          onChange={(e) => updateBlackoutPeriod(index, 'reason', e.target.value)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateBlackoutPeriod(index, 'reason', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Motivo del período restringido"
                           disabled={loading}
@@ -783,7 +774,7 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                   min="0"
                   max="100"
                   value={formData.restrictions.maxEmployeesOnVacation}
-                  onChange={(e) => setFormData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                     ...prev,
                     restrictions: { ...prev.restrictions, maxEmployeesOnVacation: Number(e.target.value) }
                   }))}
@@ -799,11 +790,11 @@ const PolicyFormModal: React.FC<PolicyFormModalProps> = ({
                 <input
                   type="text"
                   value={formData.restrictions.criticalPositions.join(', ')}
-                  onChange={(e) => setFormData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationPolicyForm) => ({
                     ...prev,
                     restrictions: {
                       ...prev.restrictions,
-                      criticalPositions: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      criticalPositions: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean)
                     }
                   }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -920,7 +911,7 @@ const VacationsPoliciesTab: React.FC<VacationsPoliciesTabProps> = () => {
     }
   };
 
-  const handleSubmitPolicy = async (policyData: VacationPolicyForm) => {
+  const handleSubmitPolicy = async (policyData: any) => {
     if (selectedPolicy?.id) {
       await updatePolicy(selectedPolicy.id, policyData);
     } else {
@@ -988,7 +979,7 @@ const VacationsPoliciesTab: React.FC<VacationsPoliciesTabProps> = () => {
             <label className="text-sm font-medium text-gray-700">Filtrar:</label>
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value as 'all' | 'active' | 'inactive')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Todas</option>
@@ -1054,7 +1045,7 @@ const VacationsPoliciesTab: React.FC<VacationsPoliciesTabProps> = () => {
           </div>
         ) : (
           <div className="grid gap-6">
-            {filteredPolicies.map((policy) => (
+            {filteredPolicies.map((policy: VacationPolicy) => (
               <PolicyCard
                 key={policy.id}
                 policy={policy}

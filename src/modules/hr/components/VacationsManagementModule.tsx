@@ -9,7 +9,7 @@ interface VacationsManagementModuleProps {
   onBack?: () => void;
 }
 
-const VacationsManagementModule: React.FC<VacationsManagementModuleProps> = ({ onBack }) => {
+const VacationsManagementModule: React.FC<VacationsManagementModuleProps> = ({ onBack }: VacationsManagementModuleProps) => {
   return (
     <div className="w-full">
       <VacationsManagementView onBack={onBack} />

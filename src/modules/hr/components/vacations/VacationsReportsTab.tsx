@@ -3,15 +3,12 @@ import {
   FileSpreadsheet,
   Download,
   Calendar,
-  Users,
   DollarSign,
   FileText,
   BarChart3,
   TrendingUp,
   AlertTriangle,
   Clock,
-  Filter,
-  Plus,
   Eye,
   Trash2,
   RefreshCw,
@@ -32,7 +29,9 @@ import {
 // TYPES
 // ============================================================================
 
-interface VacationsReportsTabProps {}
+interface VacationsReportsTabProps {
+  onBack?: () => void;
+}
 
 // ============================================================================
 // REPORT TYPE CARD COMPONENT
@@ -54,7 +53,7 @@ const ReportTypeCard: React.FC<ReportTypeCardProps> = ({
   color,
   onGenerate,
   loading = false
-}) => {
+}: ReportTypeCardProps) => {
   return (
     <div className={`bg-white border rounded-lg p-6 hover:shadow-md transition-shadow ${loading ? 'animate-pulse' : ''}`}>
       <div className="flex items-start space-x-4">
@@ -99,7 +98,7 @@ const GeneratedReportsList: React.FC<GeneratedReportsListProps> = ({
   onDownload,
   onDelete,
   loading = false
-}) => {
+}: GeneratedReportsListProps) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
       day: '2-digit',
@@ -174,7 +173,7 @@ const GeneratedReportsList: React.FC<GeneratedReportsListProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {reports.map((report) => (
+            {reports.map((report: VacationReport) => (
               <div key={report.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center space-x-3">
                   {getFormatIcon(report.format)}
@@ -246,7 +245,7 @@ const ReportGenerationForm: React.FC<ReportGenerationFormProps> = ({
   reportType,
   onClose,
   onSubmit
-}) => {
+}: ReportGenerationFormProps) => {
   const { showSuccess, showError } = useNotifications();
   const [loading, setLoading] = useState(false);
 
@@ -348,7 +347,7 @@ const ReportGenerationForm: React.FC<ReportGenerationFormProps> = ({
                   <input
                     type="date"
                     value={formData.dateRange.startDate}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationExportOptions) => ({
                       ...prev,
                       dateRange: { ...prev.dateRange, startDate: e.target.value }
                     }))}
@@ -369,7 +368,7 @@ const ReportGenerationForm: React.FC<ReportGenerationFormProps> = ({
                   <input
                     type="date"
                     value={formData.dateRange.endDate}
-                    onChange={(e) => setFormData(prev => ({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationExportOptions) => ({
                       ...prev,
                       dateRange: { ...prev.dateRange, endDate: e.target.value }
                     }))}
@@ -399,7 +398,7 @@ const ReportGenerationForm: React.FC<ReportGenerationFormProps> = ({
                   <button
                     key={value}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, format: value as any }))}
+                    onClick={() => setFormData((prev: VacationExportOptions) => ({ ...prev, format: value as 'excel' | 'pdf' | 'csv' }))}
                     className={`p-3 border-2 rounded-lg transition-all ${
                       formData.format === value
                         ? `${color} border-current`
@@ -431,7 +430,7 @@ const ReportGenerationForm: React.FC<ReportGenerationFormProps> = ({
                     <input
                       type="checkbox"
                       checked={formData.include[key as keyof typeof formData.include]}
-                      onChange={(e) => setFormData(prev => ({
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationExportOptions) => ({
                         ...prev,
                         include: { ...prev.include, [key]: e.target.checked }
                       }))}
@@ -451,7 +450,7 @@ const ReportGenerationForm: React.FC<ReportGenerationFormProps> = ({
                 <input
                   type="checkbox"
                   checked={formData.includeInactive}
-                  onChange={(e) => setFormData(prev => ({ ...prev, includeInactive: e.target.checked }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationExportOptions) => ({ ...prev, includeInactive: e.target.checked }))}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   disabled={loading}
                 />
@@ -571,7 +570,7 @@ const VacationsReportsTab: React.FC<VacationsReportsTabProps> = () => {
       const report = await generateReport(selectedReportType, options);
 
       // Add to generated reports list
-      setGeneratedReports(prev => [report, ...prev]);
+      setGeneratedReports((prev: VacationReport[]) => [report, ...prev]);
 
       // Auto-download if completed
       if (report.status === 'completed' && report.fileUrl) {
@@ -618,7 +617,7 @@ const VacationsReportsTab: React.FC<VacationsReportsTabProps> = () => {
     if (!confirm(`¿Estás seguro de eliminar el reporte "${report.name}"?`)) return;
 
     // Remove from local state (in real implementation, this would call an API)
-    setGeneratedReports(prev => prev.filter(r => r.id !== report.id));
+    setGeneratedReports((prev: VacationReport[]) => prev.filter((r: VacationReport) => r.id !== report.id));
     showSuccess('Reporte eliminado correctamente');
   };
 
@@ -626,11 +625,11 @@ const VacationsReportsTab: React.FC<VacationsReportsTabProps> = () => {
   const stats = useMemo(() => {
     return {
       total: generatedReports.length,
-      completed: generatedReports.filter(r => r.status === 'completed').length,
-      failed: generatedReports.filter(r => r.status === 'failed').length,
+      completed: generatedReports.filter((r: VacationReport) => r.status === 'completed').length,
+      failed: generatedReports.filter((r: VacationReport) => r.status === 'failed').length,
       totalSize: generatedReports
-        .filter(r => r.fileSize)
-        .reduce((sum, r) => sum + (r.fileSize || 0), 0)
+        .filter((r: VacationReport) => r.fileSize)
+        .reduce((sum: number, r: VacationReport) => sum + (r.fileSize || 0), 0)
     };
   }, [generatedReports]);
 

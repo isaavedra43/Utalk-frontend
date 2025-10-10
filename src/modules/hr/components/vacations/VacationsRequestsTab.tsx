@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Filter,
   Plus,
   MoreVertical,
   Eye,
@@ -14,12 +13,7 @@ import {
   Calendar,
   User,
   FileText,
-  Download,
-  RefreshCw,
-  ChevronDown,
-  Users,
-  Building,
-  Tag
+  Users
 } from 'lucide-react';
 import { useVacationsManagement } from '../../../../hooks/useVacationsManagement';
 import { useNotifications } from '../../../../contexts/NotificationContext';
@@ -34,7 +28,9 @@ import {
 // TYPES
 // ============================================================================
 
-interface VacationsRequestsTabProps {}
+interface VacationsRequestsTabProps {
+  onBack?: () => void;
+}
 
 // ============================================================================
 // REQUEST STATUS BADGE COMPONENT
@@ -44,8 +40,8 @@ interface StatusBadgeProps {
   status: VacationStatus;
 }
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const statusConfig = {
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }: StatusBadgeProps) => {
+  const statusConfig: Record<VacationStatus, { color: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
     draft: { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Borrador' },
     pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'Pendiente' },
     approved: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Aprobada' },
@@ -73,8 +69,8 @@ interface TypeBadgeProps {
   type: VacationType;
 }
 
-const TypeBadge: React.FC<TypeBadgeProps> = ({ type }) => {
-  const typeConfig = {
+const TypeBadge: React.FC<TypeBadgeProps> = ({ type }: TypeBadgeProps) => {
+  const typeConfig: Record<VacationType, { color: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
     vacation: { color: 'bg-blue-100 text-blue-800', icon: Calendar, label: 'Vacaciones' },
     personal: { color: 'bg-purple-100 text-purple-800', icon: User, label: 'Personal' },
     sick_leave: { color: 'bg-red-100 text-red-800', icon: AlertTriangle, label: 'Enfermedad' },
@@ -120,7 +116,7 @@ const RequestCard: React.FC<RequestCardProps> = ({
   onReject,
   onCancel,
   onDelete
-}) => {
+}: RequestCardProps) => {
   const [showActions, setShowActions] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -301,10 +297,10 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
   filters,
   onFiltersChange,
   onClearFilters
-}) => {
+}: RequestFiltersProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const updateFilter = (key: keyof VacationFilters, value: any) => {
+  const updateFilter = (key: keyof VacationFilters, value: string | string[] | boolean | undefined) => {
     onFiltersChange({
       ...filters,
       [key]: value
@@ -337,7 +333,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
           <select
             value={filters.status?.[0] || 'all'}
-            onChange={(e) => updateFilter('status', e.target.value === 'all' ? undefined : [e.target.value as VacationStatus])}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateFilter('status', e.target.value === 'all' ? undefined : [e.target.value as VacationStatus])}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">Todos</option>
@@ -354,7 +350,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
           <select
             value={filters.type?.[0] || 'all'}
-            onChange={(e) => updateFilter('type', e.target.value === 'all' ? undefined : [e.target.value as VacationType])}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateFilter('type', e.target.value === 'all' ? undefined : [e.target.value as VacationType])}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">Todos</option>
@@ -372,7 +368,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
           <select
             value={filters.departments?.[0] || 'all'}
-            onChange={(e) => updateFilter('departments', e.target.value === 'all' ? undefined : [e.target.value])}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateFilter('departments', e.target.value === 'all' ? undefined : [e.target.value])}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">Todos</option>
@@ -388,7 +384,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
           <select
             value={filters.priority?.[0] || 'all'}
-            onChange={(e) => updateFilter('priority', e.target.value === 'all' ? undefined : [e.target.value as any])}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateFilter('priority', e.target.value === 'all' ? undefined : [e.target.value])}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">Todas</option>
@@ -408,7 +404,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
               <input
                 type="date"
                 value={filters.dateRange?.startDate || ''}
-                onChange={(e) => updateFilter('dateRange', {
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFilter('dateRange', {
                   ...filters.dateRange,
                   startDate: e.target.value
                 })}
@@ -421,7 +417,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
               <input
                 type="date"
                 value={filters.dateRange?.endDate || ''}
-                onChange={(e) => updateFilter('dateRange', {
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFilter('dateRange', {
                   ...filters.dateRange,
                   endDate: e.target.value
                 })}
@@ -434,7 +430,7 @@ const RequestFilters: React.FC<RequestFiltersProps> = ({
                 <input
                   type="checkbox"
                   checked={filters.hasConflicts || false}
-                  onChange={(e) => updateFilter('hasConflicts', e.target.checked || undefined)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFilter('hasConflicts', e.target.checked || undefined)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">Solo conflictos</span>
@@ -648,7 +644,7 @@ const VacationsRequestsTab: React.FC<VacationsRequestsTabProps> = () => {
                 type="text"
                 placeholder="Buscar por empleado, departamento o motivo..."
                 value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -661,7 +657,7 @@ const VacationsRequestsTab: React.FC<VacationsRequestsTabProps> = () => {
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Filter className="h-4 w-4" />
+              <Search className="h-4 w-4" />
               <span>Filtros</span>
             </button>
           </div>
@@ -762,8 +758,8 @@ const VacationsRequestsTab: React.FC<VacationsRequestsTabProps> = () => {
                 <RequestCard
                   key={request.id}
                   request={request}
-                  onView={(request) => console.log('View request:', request.id)}
-                  onEdit={(request) => console.log('Edit request:', request.id)}
+                  onView={(request: VacationRequest) => console.log('View request:', request.id)}
+                  onEdit={(request: VacationRequest) => console.log('Edit request:', request.id)}
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onCancel={handleCancel}
@@ -783,7 +779,7 @@ const VacationsRequestsTab: React.FC<VacationsRequestsTabProps> = () => {
                   </span>
                   <select
                     value={requestsPagination.limit}
-                    onChange={(e) => changeRequestsPageSize(Number(e.target.value))}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => changeRequestsPageSize(Number(e.target.value))}
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                   >
                     <option value={10}>10</option>

@@ -909,15 +909,24 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
         return [];
       }
-      return attendanceData.attendance.filter((record: AttendanceRecord) => {
+      
+      // Filtrar registros
+      const filtered = attendanceData.attendance.filter((record: AttendanceRecord) => {
         if (!record) return false;
         const matchesSearch = record.date?.includes(searchTerm) || 
                              record.status?.includes(searchTerm.toLowerCase());
         const matchesFilter = filterType === 'all' || record.status === filterType;
         return matchesSearch && matchesFilter;
       });
+
+      // Ordenar por fecha descendente (más recientes primero)
+      return filtered.sort((a: AttendanceRecord, b: AttendanceRecord) => {
+        const dateA = new Date(a.date || '').getTime();
+        const dateB = new Date(b.date || '').getTime();
+        return dateB - dateA; // Descendente: fechas más recientes primero
+      });
     } catch (error) {
-      console.error('Error filtrando asistencia:', error);
+      console.error('Error filtrando y ordenando asistencia:', error);
       return [];
     }
   })();
@@ -1267,6 +1276,18 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Registro de Asistencia</h3>
                   <div className="flex items-center space-x-3">
+                    {/* Botón para registrar nueva asistencia */}
+                    <button
+                      onClick={() => {
+                        setSelectedAttendanceDate('');
+                        setSelectedAttendanceRecord(null);
+                        setIsAttendanceModalOpen(true);
+                      }}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Asistencia
+                    </button>
                     <div className="relative">
                       <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                       <input
@@ -1576,7 +1597,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                Registrar Asistencia
+                {selectedAttendanceRecord ? 'Editar Asistencia' : 'Registrar Nueva Asistencia'}
               </h3>
               <button
                 onClick={() => {
@@ -1597,10 +1618,19 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   </label>
                   <input
                     type="date"
-                    value={selectedAttendanceDate}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                    value={selectedAttendanceDate || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setSelectedAttendanceDate(e.target.value);
+                    }}
+                    max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Selecciona una fecha"
                   />
+                  {!selectedAttendanceDate && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Selecciona la fecha para registrar la asistencia
+                    </p>
+                  )}
                 </div>
                 
                 <div>
@@ -1679,6 +1709,12 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
               </button>
               <button
                 onClick={() => {
+                  // Validar que se haya seleccionado una fecha
+                  if (!selectedAttendanceDate) {
+                    showError('Por favor selecciona una fecha para registrar la asistencia');
+                    return;
+                  }
+
                   const statusSelect = document.getElementById('attendanceStatus') as HTMLSelectElement;
                   const checkInInput = document.getElementById('checkInTime') as HTMLInputElement;
                   const checkOutInput = document.getElementById('checkOutTime') as HTMLInputElement;
@@ -1694,7 +1730,12 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                   
                   handleAttendanceRegistration(attendanceData);
                 }}
-                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={!selectedAttendanceDate}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedAttendanceDate 
+                    ? 'text-white bg-blue-600 hover:bg-blue-700' 
+                    : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                }`}
               >
                 Registrar Asistencia
               </button>
