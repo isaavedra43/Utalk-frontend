@@ -30,7 +30,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   report,
   onSubmit,
   onCancel
-}) => {
+}: AttendanceFormProps) => {
   const [formData, setFormData] = useState<CreateAttendanceReportRequest>({
     date: new Date().toISOString().split('T')[0],
     employees: [],
@@ -69,7 +69,8 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
 
       generateInitialReport();
     }
-    // Ejecutar solo al montar o cuando cambie el report
+    // ✅ CORREGIDO: Solo ejecutar cuando cambie el report, no cuando cambie formData
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report]);
 
   const handleQuickReport = async (template: 'normal' | 'weekend' | 'holiday') => {
@@ -84,19 +85,19 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
     }
   };
 
-  const handleEmployeeStatusChange = (employeeId: string, status: any) => {
-    setFormData(prev => ({
+  const handleEmployeeStatusChange = (employeeId: string, status: string) => {
+    setFormData((prev: CreateAttendanceReportRequest) => ({
       ...prev,
-      employees: prev.employees.map(emp =>
+      employees: prev.employees.map((emp: any) =>
         emp.employeeId === employeeId ? { ...emp, status } : emp
       )
     }));
   };
 
   const handleEmployeeHoursChange = (employeeId: string, field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev: CreateAttendanceReportRequest) => ({
       ...prev,
-      employees: prev.employees.map(emp =>
+      employees: prev.employees.map((emp: any) =>
         emp.employeeId === employeeId ? { ...emp, [field]: value } : emp
       )
     }));

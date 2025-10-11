@@ -22,18 +22,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatHours } from '@/utils/dateUtils';
 
 // Error Boundary para el módulo de asistencia
+interface AttendanceErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
 class AttendanceErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
+  AttendanceErrorBoundaryState
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): AttendanceErrorBoundaryState {
     // Solo capturar errores reales, no objetos vacíos o errores sin mensaje
-    if (error && error.message && error.message.trim() !== '' && error.message !== '{}') {
+    if (error && 
+        error.message && 
+        error.message.trim() !== '' && 
+        error.message !== '{}' &&
+        error.message !== 'undefined' &&
+        !error.message.includes('Minified React error')) {
       return { hasError: true, error };
     }
     return { hasError: false };
@@ -103,6 +113,7 @@ const AttendanceModule: React.FC = () => {
   }, []);
 
   const handleCreateReport = () => {
+    console.log('🔄 Iniciando creación de reporte de asistencia...');
     setSelectedReport(null);
     setActiveView('form');
   };
@@ -146,14 +157,22 @@ const AttendanceModule: React.FC = () => {
   };
 
   const handleFormSubmit = async (data: CreateAttendanceReportRequest) => {
-    if (selectedReport) {
-      await updateReport(selectedReport.id, data);
-    } else {
-      await createReport(data);
+    try {
+      console.log('📝 Enviando reporte de asistencia:', data);
+      if (selectedReport) {
+        await updateReport(selectedReport.id, data);
+        console.log('✅ Reporte actualizado exitosamente');
+      } else {
+        await createReport(data);
+        console.log('✅ Reporte creado exitosamente');
+      }
+      setActiveView('list');
+      setSelectedReport(null);
+      loadReports();
+    } catch (error) {
+      console.error('❌ Error en reporte de asistencia:', error);
+      // No recargar la página, solo mostrar error
     }
-    setActiveView('list');
-    setSelectedReport(null);
-    loadReports();
   };
 
   const handleFormCancel = () => {
@@ -229,6 +248,19 @@ const AttendanceModule: React.FC = () => {
           >
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Reporte
+          </Button>
+          <Button 
+            onClick={() => {
+              console.log('🧪 Prueba del módulo de asistencia');
+              console.log('📊 Reportes actuales:', reports.length);
+              console.log('🔐 Permisos:', permissions);
+              console.log('⏳ Loading:', loading);
+              console.log('❌ Error:', error);
+            }}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            🧪 Prueba
           </Button>
         </div>
       </div>
