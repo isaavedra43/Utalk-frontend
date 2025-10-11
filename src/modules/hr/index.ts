@@ -30,3 +30,9 @@ export { HRDocumentsModule } from './components/HRDocumentsModule';
 
 // Módulo de Gestión General de Vacaciones
 export { default as VacationsManagementModule } from './components/VacationsManagementModule';
+
+// Módulo de Asistencia
+export { default as AttendanceModule } from './@Attendance/AttendanceModule';
+export { attendanceService } from './@Attendance/attendanceService';
+export { useAttendance } from './@Attendance/hooks/useAttendance';
+export * from './@Attendance/types';

@@ -18,9 +18,9 @@ import { AttendanceForm } from './components/AttendanceForm';
 import { attendanceService } from './attendanceService';
 import { useAttendance } from './hooks/useAttendance';
 import { AttendanceReport } from './types';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const AttendanceModule: React.FC = () => {
   const [activeView, setActiveView] = useState<'list' | 'detail' | 'form'>('list');

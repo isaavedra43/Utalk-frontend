@@ -20,11 +20,11 @@ import {
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
 import { AttendanceDetailResponse, EmployeeAttendance } from '../types';
-import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AttendanceStatsComponent } from './AttendanceStats';
-import { formatDate, formatTime } from '../../../../utils/dateUtils';
+import { formatDate, formatTime } from '@/utils/dateUtils';
 
 interface AttendanceDetailProps {
   reportId: string;

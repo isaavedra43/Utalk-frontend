@@ -13,7 +13,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { AttendanceStats } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AttendanceStatsProps {
   stats: AttendanceStats;

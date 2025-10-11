@@ -11,9 +11,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { AttendanceReport } from '../types';
-import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
-import { formatDate } from '../../../../utils/dateUtils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/utils/dateUtils';
 
 interface AttendanceListProps {
   reports: AttendanceReport[];
