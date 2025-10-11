@@ -145,6 +145,11 @@ export const LeftSidebar: React.FC = () => {
       return [];
     }
 
+    // Proteger contra arrays undefined
+    if (!allNavigationItems || !Array.isArray(allNavigationItems)) {
+      return [];
+    }
+
     // Filtrar solo los módulos a los que tiene acceso
     return allNavigationItems.filter((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => canAccessModule(item.id));
   }, [allNavigationItems, canAccessModule, permissionsLoading]);

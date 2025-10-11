@@ -61,6 +61,10 @@ export class ErrorBoundary extends Component<Props, State> {
     // ✅ IGNORAR errores vacíos o sin información útil
     if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
       console.warn('🚨 ErrorBoundary - Error vacío ignorado:', error);
+      // Resetear el estado para que no se muestre el fallback
+      if (this.state.hasError) {
+        this.setState({ hasError: false, error: undefined, isRecovering: false });
+      }
       return;
     }
 
@@ -72,6 +76,10 @@ export class ErrorBoundary extends Component<Props, State> {
       console.error('🚨 ErrorBoundary - Error info:', errorInfo);
     } else {
       console.warn('🚨 ErrorBoundary - Error sin información útil ignorado:', error);
+      // Resetear el estado para que no se muestre el fallback
+      if (this.state.hasError) {
+        this.setState({ hasError: false, error: undefined, isRecovering: false });
+      }
       return;
     }
 

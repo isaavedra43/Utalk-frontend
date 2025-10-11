@@ -352,7 +352,9 @@ api.interceptors.response.use(
           
           const response = refreshResult.data!;
           
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
+          // El backend devuelve la estructura: { success, data: { accessToken, user, ... } }
+          const responseData = response.data?.data || response.data;
+          const { accessToken, refreshToken: newRefreshToken } = responseData;
           
           // VALIDACIÓN MEJORADA DE LA RESPUESTA DE REFRESH
           if (!accessToken || accessToken === 'undefined' || accessToken === 'null' || accessToken.length < 10 || !accessToken.startsWith('eyJ')) {
@@ -361,7 +363,8 @@ api.interceptors.response.use(
               accessTokenValue: accessToken,
               accessTokenLength: accessToken?.length,
               accessTokenStart: accessToken?.substring(0, 10),
-              responseData: response.data
+              responseData: responseData,
+              fullResponse: response.data
             });
             
             // Limpiar tokens inválidos y redirigir
@@ -376,15 +379,18 @@ api.interceptors.response.use(
           }
           
           localStorage.setItem('access_token', accessToken);
-          localStorage.setItem('refresh_token', newRefreshToken);
+          
+          // Solo actualizar refresh token si viene en la respuesta
+          if (newRefreshToken && newRefreshToken !== 'undefined' && newRefreshToken !== 'null') {
+            localStorage.setItem('refresh_token', newRefreshToken);
+          }
           
           // VALIDACIÓN FINAL ANTES DE GUARDAR
-          if (accessToken.includes('undefined') || newRefreshToken?.includes('undefined')) {
-            logger.authError('Tokens refrescados contienen undefined', new Error('Tokens malformados'), {
-              accessToken: accessToken,
-              newRefreshToken: newRefreshToken
+          if (accessToken.includes('undefined')) {
+            logger.authError('Access token refrescado contiene undefined', new Error('Token malformado'), {
+              accessToken: accessToken
             });
-            throw new Error('Tokens refrescados malformados');
+            throw new Error('Access token refrescado malformado');
           }
           
           logger.authInfo('Token refrescado exitosamente', {
