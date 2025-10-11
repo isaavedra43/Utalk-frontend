@@ -85,73 +85,21 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
       const response = await attendanceService.getReportDetail(reportId);
       console.log('✅ AttendanceDetail - Respuesta recibida:', response);
       
-      // 2. Obtener la lista completa de empleados para enriquecer los datos
-      console.log('🔍 AttendanceDetail - Obteniendo lista de empleados...');
-      const employeesResponse = await attendanceService.getEmployees();
-      console.log('✅ AttendanceDetail - Empleados obtenidos:', employeesResponse);
-      
-      // El backend devuelve una estructura diferente a la esperada
+      // El backend ya devuelve los datos completos con nombres de empleados
       // Según los logs: { success: true, data: { report: {...}, records: [...], stats: {...} } }
       if (response && (response as unknown as BackendResponse).data) {
         const backendData = (response as unknown as BackendResponse).data;
         
-        // 3. Enriquecer los registros con datos completos de empleados
-        const enrichedEmployees = (backendData.records || []).map((record: unknown) => {
-          const recordData = record as EmployeeRecord;
-          const employeeId = recordData.employeeId;
-          
-          // Buscar el empleado completo en la lista de empleados
-          const fullEmployee = employeesResponse?.employees?.find((emp: unknown) => {
-            const empData = emp as { id: string };
-            return empData.id === employeeId;
-          });
-          
-          if (fullEmployee) {
-            const empData = fullEmployee as {
-              id: string;
-              employeeNumber?: string;
-              personalInfo?: {
-                firstName?: string;
-                lastName?: string;
-              };
-              position?: {
-                department?: string;
-              };
-            };
-            console.log('🔍 AttendanceDetail - Enriqueciendo empleado:', {
-              employeeId,
-              firstName: empData.personalInfo?.firstName,
-              lastName: empData.personalInfo?.lastName,
-              employeeNumber: empData.employeeNumber,
-              department: empData.position?.department
-            });
-            
-            return {
-              ...recordData,
-              employeeName: `${empData.personalInfo?.firstName || ''} ${empData.personalInfo?.lastName || ''}`.trim(),
-              employeeNumber: empData.employeeNumber || '',
-              department: empData.position?.department || 'Sin departamento'
-            };
-          }
-          
-          // Si no se encuentra el empleado, usar datos por defecto
-          console.warn('⚠️ AttendanceDetail - Empleado no encontrado:', employeeId);
-          return {
-            ...recordData,
-            employeeName: `Empleado ${employeeId.slice(0, 8)}`,
-            employeeNumber: '',
-            department: 'Sin departamento'
-          };
-        });
+        console.log('🔍 AttendanceDetail - Usando datos directos del backend (ya incluyen nombres completos)');
         
         const transformedData = {
           report: backendData.report,
-          employees: enrichedEmployees, // Empleados enriquecidos
+          employees: backendData.records || [], // Los records ya vienen con employeeName completo
           stats: backendData.stats || {},
           movements: backendData.movements || [],
           exceptions: backendData.exceptions || []
         };
-        console.log('🔄 AttendanceDetail - Datos transformados y enriquecidos:', transformedData);
+        console.log('🔄 AttendanceDetail - Datos del backend (nombres completos incluidos):', transformedData);
         setData(transformedData);
       } else if (response && response.report) {
         // Si la respuesta ya tiene la estructura esperada

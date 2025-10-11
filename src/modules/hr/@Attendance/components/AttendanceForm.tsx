@@ -42,6 +42,57 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [quickReportLoading, setQuickReportLoading] = useState(false);
+  const [employeesData, setEmployeesData] = useState<Array<{
+    id: string;
+    employeeNumber?: string;
+    personalInfo?: {
+      firstName?: string;
+      lastName?: string;
+    };
+  }>>([]); // Para almacenar datos completos de empleados
+
+  // Función para cargar datos completos de empleados
+  const loadEmployeesData = async () => {
+    try {
+      console.log('🔍 AttendanceForm - Cargando datos de empleados...');
+      const response = await attendanceService.getEmployees();
+      if (response?.data?.employees) {
+        setEmployeesData(response.data.employees);
+        console.log('✅ AttendanceForm - Datos de empleados cargados:', response.data.employees.length);
+      }
+    } catch (error) {
+      console.error('❌ AttendanceForm - Error cargando empleados:', error);
+    }
+  };
+
+  // Función para obtener el nombre completo de un empleado
+  const getEmployeeFullName = (employeeId: string): string => {
+    const employee = employeesData.find((emp: { id: string; personalInfo?: { firstName?: string; lastName?: string } }) => emp.id === employeeId);
+    if (employee?.personalInfo) {
+      const firstName = employee.personalInfo.firstName || '';
+      const lastName = employee.personalInfo.lastName || '';
+      return `${firstName} ${lastName}`.trim();
+    }
+    return `Empleado ${employeeId.slice(0, 8)}`;
+  };
+
+  // Función para verificar si un empleado está en vacaciones (TODO: Integrar con módulo de vacaciones)
+  const isEmployeeOnVacation = async (employeeId: string, date: string): Promise<boolean> => {
+    try {
+      // TODO: Implementar consulta al módulo de vacaciones
+      // Por ahora retornamos false (no en vacaciones)
+      console.log('🔍 AttendanceForm - Verificando vacaciones para:', employeeId, 'en fecha:', date);
+      return false;
+    } catch (error) {
+      console.error('❌ AttendanceForm - Error verificando vacaciones:', error);
+      return false;
+    }
+  };
+
+  // Cargar datos de empleados al montar el componente
+  useEffect(() => {
+    loadEmployeesData();
+  }, []);
 
   // Monitorear cambios en formData
   useEffect(() => {
@@ -90,16 +141,23 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
           const employeesData = quickReportData.data.employees || [];
           console.log('🔍 Empleados extraídos:', employeesData);
           
-          const cleanedEmployees = employeesData.map((emp: QuickReportResponse['data']['employees'][0]): EmployeeFormData => ({
-            employeeId: emp.employeeId,
-            status: emp.status,
-            clockIn: emp.clockIn || '',
-            clockOut: emp.clockOut || '',
-            totalHours: emp.totalHours || 0,
-            overtimeHours: typeof emp.overtimeHours === 'string' ? parseFloat(emp.overtimeHours) : (emp.overtimeHours || 0),
-            breakHours: emp.breakHours || 60,
-            notes: emp.notes || ''
-          }));
+          const cleanedEmployees = await Promise.all(
+            employeesData.map(async (emp: QuickReportResponse['data']['employees'][0]): Promise<EmployeeFormData> => {
+              // Verificar si está en vacaciones
+              const onVacation = await isEmployeeOnVacation(emp.employeeId, todayDate);
+              
+              return {
+                employeeId: emp.employeeId,
+                status: onVacation ? 'vacation' : 'present', // ✅ PRESENTE por defecto, VACACIONES si corresponde
+                clockIn: emp.clockIn || '09:00',
+                clockOut: emp.clockOut || '18:00',
+                totalHours: emp.totalHours || 8,
+                overtimeHours: 0, // ✅ SIEMPRE 0 por defecto (no usar datos del backend)
+                breakHours: emp.breakHours || 60,
+                notes: emp.notes || ''
+              };
+            })
+          );
 
           const newFormData = {
             date: todayDate,
@@ -164,16 +222,23 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
 
       // Validar y limpiar los datos antes de establecerlos
       const employeesData = quickReportData.data.employees || [];
-      const cleanedEmployees = employeesData.map((emp: QuickReportResponse['data']['employees'][0]): EmployeeFormData => ({
-        employeeId: emp.employeeId,
-        status: emp.status,
-        clockIn: emp.clockIn || '',
-        clockOut: emp.clockOut || '',
-        totalHours: emp.totalHours || 0,
-        overtimeHours: typeof emp.overtimeHours === 'string' ? parseFloat(emp.overtimeHours) : (emp.overtimeHours || 0),
-        breakHours: emp.breakHours || 60,
-        notes: emp.notes || ''
-      }));
+      const cleanedEmployees = await Promise.all(
+        employeesData.map(async (emp: QuickReportResponse['data']['employees'][0]): Promise<EmployeeFormData> => {
+          // Verificar si está en vacaciones
+          const onVacation = await isEmployeeOnVacation(emp.employeeId, formData.date);
+          
+          return {
+            employeeId: emp.employeeId,
+            status: onVacation ? 'vacation' : 'present', // ✅ PRESENTE por defecto, VACACIONES si corresponde
+            clockIn: emp.clockIn || '09:00',
+            clockOut: emp.clockOut || '18:00',
+            totalHours: emp.totalHours || 8,
+            overtimeHours: 0, // ✅ SIEMPRE 0 por defecto (no usar datos del backend)
+            breakHours: emp.breakHours || 60,
+            notes: emp.notes || ''
+          };
+        })
+      );
 
       if (isMounted) {
         setFormData({
@@ -458,8 +523,11 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <h4 className="font-medium text-gray-900">
-                            Empleado #{employee.employeeId}
-                        </h4>
+                            {getEmployeeFullName(employee.employeeId)}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            ID: {employee.employeeId.slice(0, 8)}
+                          </p>
                         <p className="text-sm text-gray-600">
                           Estado: <Badge className={getStatusColor(employee.status)}>
                             {employee.status}
