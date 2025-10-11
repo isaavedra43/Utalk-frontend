@@ -96,7 +96,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   const handleEmployeeStatusChange = (employeeId: string, status: string) => {
     setFormData((prev: CreateAttendanceReportRequest) => ({
       ...prev,
-      employees: prev.employees.map((emp: { employeeId: string; status: string; clockIn: string; clockOut: string; totalHours: number; overtimeHours: number; breakHours: number; notes: string }) =>
+      employees: prev.employees.map((emp) =>
         emp.employeeId === employeeId ? { ...emp, status } : emp
       )
     }));
@@ -105,7 +105,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   const handleEmployeeHoursChange = (employeeId: string, field: string, value: string) => {
     setFormData((prev: CreateAttendanceReportRequest) => ({
       ...prev,
-      employees: prev.employees.map((emp: { employeeId: string; status: string; clockIn: string; clockOut: string; totalHours: number; overtimeHours: number; breakHours: number; notes: string }) =>
+      employees: prev.employees.map((emp) =>
         emp.employeeId === employeeId ? { ...emp, [field]: value } : emp
       )
     }));
@@ -178,7 +178,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                     id="date"
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: CreateAttendanceReportRequest) => ({ ...prev, date: e.target.value }))}
                     required
                   />
                 </div>
@@ -212,7 +212,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   id="notes"
                   placeholder="Notas adicionales sobre el reporte..."
                   value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData((prev: CreateAttendanceReportRequest) => ({ ...prev, notes: e.target.value }))}
                   rows={3}
                 />
               </div>
@@ -350,7 +350,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                             id={`clockIn-${employee.employeeId}`}
                             type="time"
                             value={employee.clockIn || ''}
-                            onChange={(e) => handleEmployeeHoursChange(employee.employeeId, 'clockIn', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'clockIn', e.target.value)}
                           />
                         </div>
 
@@ -360,7 +360,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                             id={`clockOut-${employee.employeeId}`}
                             type="time"
                             value={employee.clockOut || ''}
-                            onChange={(e) => handleEmployeeHoursChange(employee.employeeId, 'clockOut', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'clockOut', e.target.value)}
                           />
                         </div>
 
@@ -372,7 +372,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                             min="0"
                             step="0.5"
                             value={employee.overtimeHours || ''}
-                            onChange={(e) => handleEmployeeHoursChange(employee.employeeId, 'overtimeHours', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'overtimeHours', e.target.value)}
                             placeholder="0"
                           />
                         </div>
@@ -385,7 +385,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                         <Textarea
                           id={`notes-${employee.employeeId}`}
                           value={employee.notes || ''}
-                          onChange={(e) => handleEmployeeHoursChange(employee.employeeId, 'notes', e.target.value)}
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleEmployeeHoursChange(employee.employeeId, 'notes', e.target.value)}
                           placeholder="Especifica el motivo de la ausencia..."
                           rows={2}
                         />
