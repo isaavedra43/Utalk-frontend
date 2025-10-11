@@ -340,6 +340,16 @@ class EmployeesApiService {
       console.log('🌐 Realizando petición real a API de empleados:', params);
       const response = await api.get(`/api/employees?${searchParams.toString()}`);
       
+      // Limpiar referencias residuales de asistencia y nómina
+      if (response.data?.employees) {
+        response.data.employees = response.data.employees.map((employee: any) => {
+          if (employee.metrics?.attendanceRate !== undefined) {
+            delete employee.metrics.attendanceRate;
+          }
+          return employee;
+        });
+      }
+      
       // El backend devuelve { success: true, data: { employees, pagination, summary } }
       // Necesitamos extraer solo la parte 'data'
       let result: GetEmployeesResponse;

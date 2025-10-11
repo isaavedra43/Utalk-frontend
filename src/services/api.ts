@@ -354,13 +354,24 @@ api.interceptors.response.use(
           
           const { accessToken, refreshToken: newRefreshToken } = response.data;
           
-          // VALIDACIÓN DE LA RESPUESTA DE REFRESH
-          if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+          // VALIDACIÓN MEJORADA DE LA RESPUESTA DE REFRESH
+          if (!accessToken || accessToken === 'undefined' || accessToken === 'null' || accessToken.length < 10 || !accessToken.startsWith('eyJ')) {
             logger.authError('Respuesta de refresh contiene token inválido', new Error('Token de respuesta inválido'), {
               hasAccessToken: !!accessToken,
               accessTokenValue: accessToken,
+              accessTokenLength: accessToken?.length,
+              accessTokenStart: accessToken?.substring(0, 10),
               responseData: response.data
             });
+            
+            // Limpiar tokens inválidos y redirigir
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            
+            // Notificar que la autenticación falló
+            window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+            
             throw new Error('Token de acceso inválido en respuesta de refresh');
           }
           
@@ -413,6 +424,9 @@ api.interceptors.response.use(
           window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
           
           processQueue(refreshError as Error);
+          
+          // No propagar el error para evitar loops infinitos
+          return Promise.reject(new Error('Sesión expirada. Por favor, inicia sesión nuevamente.'));
           
           // Redirigir al login solo si no estamos ya en login
           if (window.location.pathname !== '/login') {
