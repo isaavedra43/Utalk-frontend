@@ -40,6 +40,16 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [quickReportLoading, setQuickReportLoading] = useState(false);
 
+  // Monitorear cambios en formData
+  useEffect(() => {
+    console.log('🔍 FormData cambió:', {
+      date: formData.date,
+      employeesLength: formData.employees?.length || 0,
+      employees: formData.employees,
+      notes: formData.notes
+    });
+  }, [formData]);
+
   useEffect(() => {
     if (report) {
       setFormData({
@@ -73,14 +83,23 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
           console.log('🔍 Datos limpios para establecer:', {
             date: todayDate,
             employees: cleanedEmployees,
+            employeesLength: cleanedEmployees.length,
             notes: quickReportData.notes || ''
           });
 
-          setFormData({
+          const newFormData = {
             date: todayDate,
             employees: cleanedEmployees,
             notes: quickReportData.notes || ''
-          });
+          };
+
+          console.log('🔍 Estableciendo formData:', newFormData);
+          setFormData(newFormData);
+          
+          // Verificar que se estableció correctamente
+          setTimeout(() => {
+            console.log('🔍 FormData después de establecer:', formData);
+          }, 100);
         } catch (error) {
           // Solo loggear errores reales, no objetos vacíos
           if (error && typeof error === 'object' && Object.keys(error).length > 0) {
@@ -452,9 +471,11 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-gray-500">No hay empleados para mostrar en el reporte.</p>
-                      <p className="text-sm text-gray-400 mt-2">
-                        Empleados en formData: {formData.employees?.length || 0}
-                      </p>
+                      <div className="text-sm text-gray-400 mt-2 space-y-1">
+                        <p>Empleados en formData: {formData.employees?.length || 0}</p>
+                        <p>FormData completo: {JSON.stringify(formData, null, 2)}</p>
+                        <p>Estado loading: {quickReportLoading ? 'Cargando...' : 'Listo'}</p>
+                      </div>
                     </div>
                   );
                 })()}
