@@ -9,7 +9,9 @@ import {
   User,
   LogOut,
   Menu,
-  FileText
+  FileText,
+  CheckCircle,
+  DollarSign
 } from 'lucide-react';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
@@ -44,6 +46,8 @@ const HRModule: React.FC = () => {
   const tabs = [
     { id: 'dashboard', name: 'Panorama', icon: Star },
     { id: 'employees', name: 'Empleados', icon: Users },
+    { id: 'attendance', name: 'Asistencia', icon: CheckCircle },
+    { id: 'payroll', name: 'Nómina', icon: DollarSign },
     { id: 'vacations', name: 'Vacaciones', icon: Calendar },
     { id: 'documents', name: 'Documentos', icon: FileText },
     { id: 'copilot', name: 'Copiloto', icon: MessageSquare },
@@ -83,6 +87,42 @@ const HRModule: React.FC = () => {
           />
         ) : (
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />
+        );
+      case 'attendance':
+        return (
+          <div className="p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+              <CheckCircle className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Módulo de Asistencia</h2>
+              <p className="text-gray-600 mb-6">
+                El módulo de asistencia está en desarrollo. Próximamente podrás gestionar 
+                el control de asistencia de los empleados.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800 text-sm">
+                  <strong>Nota:</strong> Este módulo se implementará en la carpeta @Attendance/
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'payroll':
+        return (
+          <div className="p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+              <DollarSign className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Módulo de Nómina</h2>
+              <p className="text-gray-600 mb-6">
+                El módulo de nómina está en desarrollo. Próximamente podrás gestionar 
+                la nómina general e individual de los empleados.
+              </p>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-800 text-sm">
+                  <strong>Nota:</strong> Este módulo se implementará en la carpeta @Payroll/
+                </p>
+              </div>
+            </div>
+          </div>
         );
       case 'vacations':
         return selectedEmployee ? (
