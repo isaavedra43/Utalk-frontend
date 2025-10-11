@@ -705,22 +705,6 @@ class VacationsManagementService {
     }
   }
 
-  /**
-   * Sincronizar con sistema de nómina
-   */
-  async syncWithPayroll(): Promise<{
-    syncedPayments: number;
-    errors: string[];
-    message: string;
-  }> {
-    try {
-      console.log('🔄 Sincronizando con nómina');
-      const response = await api.post(`${this.baseEndpoint}/sync/payroll`);
-      return response.data.data || response.data;
-    } catch (error) {
-      this.handleError(error, 'syncWithPayroll');
-    }
-  }
 
   /**
    * Sincronizar con calendario externo

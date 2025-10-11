@@ -110,7 +110,7 @@ export const useTeam = () => {
         vacationBalance: 0,
         sickLeaveBalance: 0,
         metrics: {
-          attendance: 100,
+          punctuality: 100,
           performance: agent.performance?.csat || 0,
           productivity: 0
         },

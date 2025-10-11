@@ -78,28 +78,6 @@ export const HRCopilot: React.FC = () => {
   const generateBotResponse = (userMessage: string): string => {
     const message = userMessage.toLowerCase();
     
-    if (message.includes('nómina') || message.includes('nomina')) {
-      return `**Análisis de Nómina - Ana García (Noviembre 2024)**
-
-**Resumen:**
-- Sueldo base: $30,000 MXN
-- SBC: $32,000 MXN
-- Percepciones totales: $32,000 MXN
-- Deducciones: $4,500 MXN
-- Neto a pagar: $27,500 MXN
-
-**Desglose de deducciones:**
-- ISR: $2,800 MXN (9.3%)
-- IMSS: $1,120 MXN (3.5%)
-- INFONAVIT: $580 MXN (1.8%)
-
-**Observaciones:**
-✅ Todas las deducciones están correctas según las tablas fiscales 2024
-✅ El SBC está actualizado y cumple con la normativa
-✅ No hay anomalías detectadas
-
-¿Te gustaría que analice algún periodo específico o compare con meses anteriores?`;
-    }
     
     if (message.includes('promoción') || message.includes('promocion') || message.includes('ascenso')) {
       return `**Recomendaciones de Promoción - Q4 2024**

@@ -11,8 +11,6 @@ export const useHRPermissions = () => {
     canRead: false,
     canUpdate: false,
     canDelete: false,
-    canViewPayroll: false,
-    canViewAttendance: false,
     canViewDocuments: false,
     canApproveVacations: false,
     scope: 'self'
@@ -57,8 +55,6 @@ export const useHRPermissions = () => {
       canRead: false,
       canUpdate: false,
       canDelete: false,
-      canViewPayroll: false,
-      canViewAttendance: false,
       canViewDocuments: false,
       canApproveVacations: false,
       scope: 'self'
@@ -72,8 +68,6 @@ export const useHRPermissions = () => {
           canRead: true,
           canUpdate: true,
           canDelete: true,
-          canViewPayroll: true,
-          canViewAttendance: true,
           canViewDocuments: true,
           canApproveVacations: true,
           scope: 'all'
@@ -87,8 +81,6 @@ export const useHRPermissions = () => {
           canRead: true,
           canUpdate: true,
           canDelete: false, // No puede eliminar empleados
-          canViewPayroll: true,
-          canViewAttendance: true,
           canViewDocuments: true,
           canApproveVacations: true,
           scope: 'department' // Solo su departamento
@@ -102,8 +94,6 @@ export const useHRPermissions = () => {
           canRead: true,
           canUpdate: false,
           canDelete: false,
-          canViewPayroll: false, // No puede ver nómina
-          canViewAttendance: true,
           canViewDocuments: false, // No puede ver documentos confidenciales
           canApproveVacations: false,
           scope: 'department'
@@ -118,8 +108,6 @@ export const useHRPermissions = () => {
             canRead: true,
             canUpdate: false,
             canDelete: false,
-            canViewPayroll: false,
-            canViewAttendance: true,
             canViewDocuments: true, // Sus propios documentos
             canApproveVacations: false,
             scope: 'self'
@@ -185,8 +173,6 @@ export const useHRPermissions = () => {
       if (hasPermission('canRead', employeeId)) actions.push('read');
       if (hasPermission('canUpdate', employeeId)) actions.push('update');
       if (hasPermission('canDelete', employeeId)) actions.push('delete');
-      if (hasPermission('canViewPayroll', employeeId)) actions.push('viewPayroll');
-      if (hasPermission('canViewAttendance', employeeId)) actions.push('viewAttendance');
       if (hasPermission('canViewDocuments', employeeId)) actions.push('viewDocuments');
       if (hasPermission('canApproveVacations', employeeId)) actions.push('approveVacations');
 
@@ -228,8 +214,6 @@ export const useHRPermissions = () => {
           return 'No tienes permisos para actualizar empleados';
         case 'delete':
           return 'No tienes permisos para eliminar empleados';
-        case 'viewPayroll':
-          return 'No tienes permisos para ver información de nómina';
         case 'viewDocuments':
           return 'No tienes permisos para ver documentos confidenciales';
         case 'approveVacations':

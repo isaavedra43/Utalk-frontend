@@ -498,15 +498,6 @@ export interface VacationNotificationSettings {
 // ============================================================================
 
 export interface VacationIntegration {
-  payroll: {
-    syncPayments: boolean;
-    autoCalculateAmount: boolean;
-    deductionCodes: Record<string, string>;
-  };
-  attendance: {
-    markAsAbsent: boolean;
-    syncWithTimesheet: boolean;
-  };
   notifications: {
     slackWebhook?: string;
     teamsWebhook?: string;

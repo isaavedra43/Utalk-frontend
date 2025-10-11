@@ -29,7 +29,7 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 
 interface LocalMovementRecord {
   id: string;
-  type: 'attendance' | 'absence' | 'overtime' | 'loan' | 'discount' | 'bonus' | 'deduction' | 'damage';
+  type: 'absence' | 'overtime' | 'loan' | 'discount' | 'bonus' | 'deduction' | 'damage';
   date: string;
   description: string;
   amount: number; // Positivo = suma, Negativo = resta
@@ -39,8 +39,8 @@ interface LocalMovementRecord {
   attachments?: string[];
   // Estado de pago
   paymentStatus?: 'unpaid' | 'paid';
-  payrollId?: string; // ID de la nómina donde se pagó
-  payrollPeriod?: string; // Período de la nómina (ej: "2025-09-14 - 2025-09-20")
+  periodId?: string; // ID del período donde se pagó
+  period?: string; // Período (ej: "2025-09-14 - 2025-09-20")
   paidAt?: string; // Fecha cuando se pagó
   paidBy?: string; // Quién procesó el pago
   metadata?: {
@@ -134,8 +134,8 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           attachments: record.attachments,
           // Estado de pago
           paymentStatus: record.paymentStatus || 'unpaid',
-          payrollId: record.payrollId,
-          payrollPeriod: record.payrollPeriod,
+          periodId: record.periodId,
+          period: record.period,
           paidAt: record.paidAt,
           paidBy: record.paidBy,
           metadata: {
@@ -161,29 +161,6 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
 
     const generateMockMovements = () => {
       const mockMovements: LocalMovementRecord[] = [
-        // Asistencias (positivas)
-        {
-          id: 'MOV001',
-          type: 'attendance',
-          date: '2024-01-15',
-          description: 'Jornada completa - 8 horas',
-          amount: dailySalary, // Se suma el salario diario
-          status: 'approved',
-          createdBy: 'Sistema',
-          createdAt: '2024-01-15T09:00:00Z',
-          metadata: { hours: 8, hourlyRate }
-        },
-        {
-          id: 'MOV002',
-          type: 'attendance',
-          date: '2024-01-16',
-          description: 'Jornada completa - 8 horas',
-          amount: dailySalary,
-          status: 'approved',
-          createdBy: 'Sistema',
-          createdAt: '2024-01-16T09:00:00Z',
-          metadata: { hours: 8, hourlyRate }
-        },
         // Horas extra (positivas)
         {
           id: 'MOV003',
@@ -195,8 +172,8 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           createdBy: 'Juan Pérez',
           createdAt: '2024-01-15T18:30:00Z',
           paymentStatus: 'paid',
-          payrollId: 'PAY001',
-          payrollPeriod: '2024-01-15 - 2024-01-21',
+          periodId: 'PAY001',
+          period: '2024-01-15 - 2024-01-21',
           paidAt: '2024-01-22T10:00:00Z',
           paidBy: 'admin@company.com',
           metadata: { hours: 2, hourlyRate, overtimeMultiplier: 1.5 }
@@ -223,8 +200,8 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           createdBy: 'María López',
           createdAt: '2024-01-20T14:00:00Z',
           paymentStatus: 'paid',
-          payrollId: 'PAY002',
-          payrollPeriod: '2024-01-22 - 2024-01-28',
+          periodId: 'PAY002',
+          period: '2024-01-22 - 2024-01-28',
           paidAt: '2024-01-29T09:30:00Z',
           paidBy: 'admin@company.com'
         },
@@ -308,7 +285,6 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'attendance': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'absence': return <UserX className="h-4 w-4 text-red-500" />;
       case 'overtime': return <Clock className="h-4 w-4 text-blue-500" />;
       case 'loan': return <CreditCard className="h-4 w-4 text-purple-500" />;
@@ -322,7 +298,6 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'attendance': return 'Asistencia';
       case 'absence': return 'Falta';
       case 'overtime': return 'Horas Extra';
       case 'loan': return 'Préstamo';
@@ -353,8 +328,8 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
   };
 
   const getPaymentStatusIcon = (movement: LocalMovementRecord) => {
-    // Simular estado de pago basado en si tiene payrollId
-    const paymentStatus = movement.payrollId ? 'paid' : 'unpaid';
+    // Simular estado de pago basado en si tiene periodId
+    const paymentStatus = movement.periodId ? 'paid' : 'unpaid';
     switch (paymentStatus) {
       case 'paid': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'unpaid': return <Clock className="h-4 w-4 text-orange-500" />;
@@ -363,10 +338,10 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
   };
 
   const getPaymentStatusLabel = (movement: LocalMovementRecord) => {
-    // Simular estado de pago basado en si tiene payrollId
-    const paymentStatus = movement.payrollId ? 'paid' : 'unpaid';
+    // Simular estado de pago basado en si tiene periodId
+    const paymentStatus = movement.periodId ? 'paid' : 'unpaid';
     switch (paymentStatus) {
-      case 'paid': return movement.payrollPeriod || 'Pagado';
+      case 'paid': return movement.period || 'Pagado';
       case 'unpaid': return 'No Pagado';
       default: return 'Desconocido';
     }
@@ -631,7 +606,6 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
               onChange={(e) => setFilterType(e.target.value)}
             >
               <option value="all">Todos los tipos</option>
-              <option value="attendance">Asistencia</option>
               <option value="absence">Falta</option>
               <option value="overtime">Horas Extra</option>
               <option value="loan">Préstamo</option>

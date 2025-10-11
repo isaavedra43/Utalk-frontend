@@ -28,11 +28,11 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 
 interface LoanPayment {
   id: string;
-  payrollPeriod: string;
+  period: string;
   paymentDate: string;
   amount: number;
   status: 'paid' | 'pending' | 'overdue';
-  payrollId?: string;
+  periodId?: string;
 }
 
 interface LoanRecord {
@@ -337,14 +337,14 @@ const LoansTable: React.FC<LoansTableProps> = ({
   };
 
   const handleAddPayment = async () => {
-    if (newPayment.payrollPeriod && newPayment.amount && editingLoan) {
+    if (newPayment.period && newPayment.amount && editingLoan) {
       try {
         const paymentData = {
-          payrollPeriod: newPayment.payrollPeriod,
+          period: newPayment.period,
           paymentDate: newPayment.paymentDate || new Date().toISOString().split('T')[0],
           amount: newPayment.amount,
           status: newPayment.status || 'pending',
-          payrollId: newPayment.payrollId
+          periodId: newPayment.periodId
         };
 
         // Llamar al API para agregar el pago
@@ -834,7 +834,7 @@ const LoansTable: React.FC<LoansTableProps> = ({
                       <tbody className="bg-white divide-y divide-gray-200">
                         {(isEditing && editingLoan ? editingLoan.payments : selectedLoan.payments).map((payment) => (
                           <tr key={payment.id}>
-                            <td className="px-4 py-2 text-sm text-gray-900">{payment.payrollPeriod}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{payment.period}</td>
                             <td className="px-4 py-2 text-sm text-gray-500">{formatDate(payment.paymentDate)}</td>
                             <td className="px-4 py-2 text-sm text-gray-900 font-medium">{formatCurrency(payment.amount)}</td>
                             <td className="px-4 py-2 text-sm">
@@ -847,7 +847,7 @@ const LoansTable: React.FC<LoansTableProps> = ({
                               </div>
                             </td>
                             <td className="px-4 py-2 text-sm text-gray-500">
-                              {payment.payrollId ? (
+                              {payment.periodId ? (
                                 <button className="text-blue-600 hover:text-blue-900 flex items-center space-x-1">
                                   <Receipt className="h-3 w-3" />
                                   <span>Ver</span>
@@ -987,8 +987,8 @@ const LoansTable: React.FC<LoansTableProps> = ({
                   <input
                     type="text"
                     placeholder="Ej: Mayo 2024"
-                    value={newPayment.payrollPeriod || ''}
-                    onChange={(e) => setNewPayment({ ...newPayment, payrollPeriod: e.target.value })}
+                    value={newPayment.period || ''}
+                    onChange={(e) => setNewPayment({ ...newPayment, period: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
@@ -1032,8 +1032,8 @@ const LoansTable: React.FC<LoansTableProps> = ({
                   <input
                     type="text"
                     placeholder="PAYROLL_MAY_2024"
-                    value={newPayment.payrollId || ''}
-                    onChange={(e) => setNewPayment({ ...newPayment, payrollId: e.target.value })}
+                    value={newPayment.periodId || ''}
+                    onChange={(e) => setNewPayment({ ...newPayment, periodId: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>

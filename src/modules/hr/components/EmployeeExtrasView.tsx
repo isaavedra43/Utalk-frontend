@@ -459,7 +459,7 @@ const EmployeeExtrasView: React.FC<EmployeeExtrasViewProps> = ({
                 <AlertTriangle className="h-5 w-5 text-gray-600 rotate-90" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Extras y Asistencia</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Extras</h1>
                 <p className="text-gray-600">{extrasData.employeeName} - {extrasData.position}</p>
               </div>
             </div>

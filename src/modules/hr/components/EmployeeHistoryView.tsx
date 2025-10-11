@@ -163,7 +163,7 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
   // Función helper para determinar categoría desde tipo
   const getCategoryFromType = (type: string): HistoryEvent['category'] => {
     if (type.includes('profile') || type.includes('personal')) return 'personal';
-    if (type.includes('salary') || type.includes('payroll')) return 'work';
+    if (type.includes('salary')) return 'work';
     if (type.includes('evaluation') || type.includes('performance')) return 'performance';
     if (type.includes('skill') || type.includes('certification')) return 'development';
     if (type.includes('incident') || type.includes('vacation')) return 'administrative';

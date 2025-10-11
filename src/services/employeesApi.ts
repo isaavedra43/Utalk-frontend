@@ -111,7 +111,6 @@ export interface Employee {
     totalEarnings?: number;
     totalDeductions?: number;
     netPay?: number;
-    attendanceRate?: number;
     lateArrivals?: number;
     absences?: number;
     vacationDaysUsed?: number;
@@ -130,54 +129,7 @@ export interface Employee {
   updatedBy?: string;
 }
 
-export interface PayrollPeriod {
-  id: string;
-  employeeId: string;
-  periodStart: string;
-  periodEnd: string;
-  weekNumber: number;
-  year: number;
-  grossSalary: number;
-  baseSalary: number;
-  overtime: number;
-  bonuses: number;
-  commissions: number;
-  taxes: number;
-  socialSecurity: number;
-  healthInsurance: number;
-  retirement: number;
-  otherDeductions: number;
-  netSalary: number;
-  status: 'draft' | 'calculated' | 'approved' | 'paid';
-  paidDate?: string;
-  paymentMethod?: string;
-  receiptUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
-export interface AttendanceRecord {
-  id: string;
-  employeeId: string;
-  date: string;
-  clockIn?: string;
-  clockOut?: string;
-  breakStart?: string;
-  breakEnd?: string;
-  totalHours: number;
-  regularHours: number;
-  overtimeHours: number;
-  breakHours: number;
-  status: 'present' | 'absent' | 'late' | 'early_leave' | 'half_day';
-  isHoliday: boolean;
-  isWeekend: boolean;
-  justification?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-}
 
 export interface VacationRequest {
   id: string;
@@ -307,19 +259,6 @@ export interface GetEmployeesResponse {
 export interface GetEmployeeResponse {
   employee: Employee;
   relatedData: {
-    payroll: PayrollPeriod[];
-    attendance: {
-      employeeId: string;
-      periodStart: string;
-      periodEnd: string;
-      totalDays: number;
-      presentDays: number;
-      absentDays: number;
-      lateDays: number;
-      totalHours: number;
-      overtimeHours: number;
-      punctualityScore: number;
-    };
     vacations: {
       employeeId: string;
       year: number;
@@ -601,100 +540,8 @@ class EmployeesApiService {
     return response.data;
   }
 
-  // Gestión de nómina
-  async getEmployeePayroll(employeeId: string, params: {
-    year?: number;
-    month?: number;
-    week?: number;
-    periodStart?: string;
-    periodEnd?: string;
-  } = {}): Promise<{
-    periods: PayrollPeriod[];
-    summary: {
-      totalGross: number;
-      totalNet: number;
-      totalDeductions: number;
-      averageGross: number;
-      averageNet: number;
-    };
-  }> {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        searchParams.append(key, value.toString());
-      }
-    });
 
-    const response = await api.get(`/api/employees/${employeeId}/payroll?${searchParams.toString()}`);
-    return response.data;
-  }
 
-  async getWeeklyPayroll(params: {
-    week: number;
-    year: number;
-    department?: string;
-  }): Promise<{
-    weekNumber: number;
-    startDate: string;
-    endDate: string;
-    totalEmployees: number;
-    totalCost: number;
-    averagePerEmployee: number;
-    status: string;
-    details: Array<{
-      employee: Employee;
-      gross: number;
-      net: number;
-      deductions: number;
-    }>;
-  }> {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    const response = await api.get(`/api/payroll/weekly?${searchParams.toString()}`);
-    return response.data;
-  }
-
-  // Gestión de asistencia
-  async getEmployeeAttendance(employeeId: string, params: {
-    startDate: string;
-    endDate: string;
-    includeWeekends?: boolean;
-    includeHolidays?: boolean;
-  }): Promise<{
-    records: AttendanceRecord[];
-    summary: {
-      employeeId: string;
-      periodStart: string;
-      periodEnd: string;
-      totalDays: number;
-      presentDays: number;
-      absentDays: number;
-      lateDays: number;
-      totalHours: number;
-      overtimeHours: number;
-      punctualityScore: number;
-    };
-    trends: Array<{
-      date: string;
-      hours: number;
-      status: string;
-    }>;
-  }> {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        searchParams.append(key, value.toString());
-      }
-    });
-
-    const response = await api.get(`/api/employees/${employeeId}/attendance?${searchParams.toString()}`);
-    return response.data;
-  }
 
   // Gestión de vacaciones
   async getEmployeeVacations(employeeId: string, params: {
