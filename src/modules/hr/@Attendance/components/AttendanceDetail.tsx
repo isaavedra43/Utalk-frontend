@@ -140,29 +140,14 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
     }
   };
 
-  // Función utilitaria para descargar archivos
-  const downloadFile = (blob: Blob, filename: string) => {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  };
-
   const handleExportPdf = async () => {
     console.log('📄 Exportando reporte como PDF:', reportId);
     try {
-      const blob = await attendanceService.exportReportAsPdf(reportId, {
+      await attendanceService.exportReportAsPdf(reportId, {
         creator: data?.report.createdBy || 'Sistema',
         approver: data?.report.approvedBy || 'Pendiente',
         mobileOptimized: true
       });
-      
-      const filename = `reporte-asistencia-${data?.report.date || reportId}.pdf`;
-      downloadFile(blob, filename);
       console.log('✅ PDF exportado exitosamente');
     } catch (error) {
       console.error('❌ Error exportando PDF:', error);
@@ -173,13 +158,10 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
   const handleExportExcel = async () => {
     console.log('📊 Exportando reporte como Excel:', reportId);
     try {
-      const blob = await attendanceService.exportReportAsExcel(reportId, {
+      await attendanceService.exportReportAsExcel(reportId, {
         creator: data?.report.createdBy || 'Sistema',
         approver: data?.report.approvedBy || 'Pendiente'
       });
-      
-      const filename = `reporte-asistencia-${data?.report.date || reportId}.xlsx`;
-      downloadFile(blob, filename);
       console.log('✅ Excel exportado exitosamente');
     } catch (error) {
       console.error('❌ Error exportando Excel:', error);
@@ -190,14 +172,11 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
   const handleExportImage = async () => {
     console.log('🖼️ Exportando reporte como imagen:', reportId);
     try {
-      const blob = await attendanceService.exportReportAsImage(reportId, {
+      await attendanceService.exportReportAsImage(reportId, {
         creator: data?.report.createdBy || 'Sistema',
         approver: data?.report.approvedBy || 'Pendiente',
         format: 'png'
       });
-      
-      const filename = `reporte-asistencia-${data?.report.date || reportId}.png`;
-      downloadFile(blob, filename);
       console.log('✅ Imagen exportada exitosamente');
     } catch (error) {
       console.error('❌ Error exportando imagen:', error);

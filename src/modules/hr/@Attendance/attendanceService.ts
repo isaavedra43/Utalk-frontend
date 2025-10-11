@@ -237,34 +237,37 @@ class AttendanceService {
   }
 
   /**
-   * Exportar reporte de asistencia como PDF
+   * Exportar reporte de asistencia como PDF (Cliente)
    */
   async exportReportAsPdf(reportId: string, options: {
     creator?: string;
     approver?: string;
     mobileOptimized?: boolean;
-  } = {}): Promise<Blob> {
+  } = {}): Promise<void> {
     try {
-      console.log('📄 AttendanceService - Exportando reporte como PDF:', reportId);
+      console.log('📄 AttendanceService - Exportando reporte como PDF (cliente):', reportId);
       
-      const response = await api({
-        url: `/reports/${reportId}/export/pdf`,
-        method: 'POST',
-        data: {
-          format: 'pdf',
-          options: {
-            mobileOptimized: true,
-            includeCreator: true,
-            includeApprover: true,
-            maxEmployeesPerPage: 20,
-            ...options
-          }
-        },
-        responseType: 'blob'
+      // Obtener datos del reporte
+      const reportDetail = await this.getReportDetail(reportId);
+      
+      // Importar dinámicamente el servicio de exportación
+      const { ExportService } = await import('./services/exportService');
+      
+      // Preparar datos para exportación
+      const exportData = {
+        report: reportDetail.report,
+        employees: reportDetail.employees || [],
+        stats: reportDetail.stats
+      };
+      
+      // Exportar usando el servicio del cliente
+      await ExportService.exportToPDF(exportData, {
+        ...options,
+        mobileOptimized: true,
+        maxEmployeesPerPage: 20
       });
       
-      console.log('✅ AttendanceService - PDF exportado exitosamente');
-      return response.data;
+      console.log('✅ AttendanceService - PDF exportado exitosamente (cliente)');
     } catch (error: any) {
       console.error('❌ AttendanceService - Error exportando PDF:', error);
       throw new Error('Error al exportar reporte como PDF');
@@ -272,32 +275,32 @@ class AttendanceService {
   }
 
   /**
-   * Exportar reporte de asistencia como Excel
+   * Exportar reporte de asistencia como Excel (Cliente)
    */
   async exportReportAsExcel(reportId: string, options: {
     creator?: string;
     approver?: string;
-  } = {}): Promise<Blob> {
+  } = {}): Promise<void> {
     try {
-      console.log('📊 AttendanceService - Exportando reporte como Excel:', reportId);
+      console.log('📊 AttendanceService - Exportando reporte como Excel (cliente):', reportId);
       
-      const response = await api({
-        url: `/reports/${reportId}/export/excel`,
-        method: 'POST',
-        data: {
-          format: 'excel',
-          options: {
-            includeCreator: true,
-            includeApprover: true,
-            includeStatistics: true,
-            ...options
-          }
-        },
-        responseType: 'blob'
-      });
+      // Obtener datos del reporte
+      const reportDetail = await this.getReportDetail(reportId);
       
-      console.log('✅ AttendanceService - Excel exportado exitosamente');
-      return response.data;
+      // Importar dinámicamente el servicio de exportación
+      const { ExportService } = await import('./services/exportService');
+      
+      // Preparar datos para exportación
+      const exportData = {
+        report: reportDetail.report,
+        employees: reportDetail.employees || [],
+        stats: reportDetail.stats
+      };
+      
+      // Exportar usando el servicio del cliente
+      await ExportService.exportToExcel(exportData, options);
+      
+      console.log('✅ AttendanceService - Excel exportado exitosamente (cliente)');
     } catch (error: any) {
       console.error('❌ AttendanceService - Error exportando Excel:', error);
       throw new Error('Error al exportar reporte como Excel');
@@ -305,35 +308,33 @@ class AttendanceService {
   }
 
   /**
-   * Exportar reporte de asistencia como Imagen
+   * Exportar reporte de asistencia como Imagen (Cliente)
    */
   async exportReportAsImage(reportId: string, options: {
     creator?: string;
     approver?: string;
     format?: 'png' | 'jpg';
-  } = {}): Promise<Blob> {
+  } = {}): Promise<void> {
     try {
-      console.log('🖼️ AttendanceService - Exportando reporte como imagen:', reportId);
+      console.log('🖼️ AttendanceService - Exportando reporte como imagen (cliente):', reportId);
       
-      const response = await api({
-        url: `/reports/${reportId}/export/image`,
-        method: 'POST',
-        data: {
-          format: 'image',
-          imageFormat: options.format || 'png',
-          options: {
-            includeCreator: true,
-            includeApprover: true,
-            highQuality: true,
-            mobileOptimized: true,
-            ...options
-          }
-        },
-        responseType: 'blob'
-      });
+      // Obtener datos del reporte
+      const reportDetail = await this.getReportDetail(reportId);
       
-      console.log('✅ AttendanceService - Imagen exportada exitosamente');
-      return response.data;
+      // Importar dinámicamente el servicio de exportación
+      const { ExportService } = await import('./services/exportService');
+      
+      // Preparar datos para exportación
+      const exportData = {
+        report: reportDetail.report,
+        employees: reportDetail.employees || [],
+        stats: reportDetail.stats
+      };
+      
+      // Exportar usando el servicio del cliente
+      await ExportService.exportToImage(exportData, options);
+      
+      console.log('✅ AttendanceService - Imagen exportada exitosamente (cliente)');
     } catch (error: any) {
       console.error('❌ AttendanceService - Error exportando imagen:', error);
       throw new Error('Error al exportar reporte como imagen');
