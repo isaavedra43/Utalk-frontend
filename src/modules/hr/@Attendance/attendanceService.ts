@@ -237,9 +237,114 @@ class AttendanceService {
   }
 
   /**
-   * Exportar reporte
+   * Exportar reporte de asistencia como PDF
+   */
+  async exportReportAsPdf(reportId: string, options: {
+    creator?: string;
+    approver?: string;
+    mobileOptimized?: boolean;
+  } = {}): Promise<Blob> {
+    try {
+      console.log('📄 AttendanceService - Exportando reporte como PDF:', reportId);
+      
+      const response = await api({
+        url: `/reports/${reportId}/export/pdf`,
+        method: 'POST',
+        data: {
+          format: 'pdf',
+          options: {
+            mobileOptimized: true,
+            includeCreator: true,
+            includeApprover: true,
+            maxEmployeesPerPage: 20,
+            ...options
+          }
+        },
+        responseType: 'blob'
+      });
+      
+      console.log('✅ AttendanceService - PDF exportado exitosamente');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ AttendanceService - Error exportando PDF:', error);
+      throw new Error('Error al exportar reporte como PDF');
+    }
+  }
+
+  /**
+   * Exportar reporte de asistencia como Excel
+   */
+  async exportReportAsExcel(reportId: string, options: {
+    creator?: string;
+    approver?: string;
+  } = {}): Promise<Blob> {
+    try {
+      console.log('📊 AttendanceService - Exportando reporte como Excel:', reportId);
+      
+      const response = await api({
+        url: `/reports/${reportId}/export/excel`,
+        method: 'POST',
+        data: {
+          format: 'excel',
+          options: {
+            includeCreator: true,
+            includeApprover: true,
+            includeStatistics: true,
+            ...options
+          }
+        },
+        responseType: 'blob'
+      });
+      
+      console.log('✅ AttendanceService - Excel exportado exitosamente');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ AttendanceService - Error exportando Excel:', error);
+      throw new Error('Error al exportar reporte como Excel');
+    }
+  }
+
+  /**
+   * Exportar reporte de asistencia como Imagen
+   */
+  async exportReportAsImage(reportId: string, options: {
+    creator?: string;
+    approver?: string;
+    format?: 'png' | 'jpg';
+  } = {}): Promise<Blob> {
+    try {
+      console.log('🖼️ AttendanceService - Exportando reporte como imagen:', reportId);
+      
+      const response = await api({
+        url: `/reports/${reportId}/export/image`,
+        method: 'POST',
+        data: {
+          format: 'image',
+          imageFormat: options.format || 'png',
+          options: {
+            includeCreator: true,
+            includeApprover: true,
+            highQuality: true,
+            mobileOptimized: true,
+            ...options
+          }
+        },
+        responseType: 'blob'
+      });
+      
+      console.log('✅ AttendanceService - Imagen exportada exitosamente');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ AttendanceService - Error exportando imagen:', error);
+      throw new Error('Error al exportar reporte como imagen');
+    }
+  }
+
+  /**
+   * Método legacy para compatibilidad
    */
   async exportReport(reportId: string, format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<any> {
+    console.log('⚠️ AttendanceService - Usando método legacy exportReport, considere usar métodos específicos');
     return await this.makeRequest(`/reports/${reportId}/export?format=${format}`);
   }
 

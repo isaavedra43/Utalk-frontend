@@ -23,6 +23,32 @@ import { Badge } from '@/components/ui/badge';
 // Tipo para los empleados en el formulario
 type EmployeeFormData = CreateAttendanceReportRequest['employees'][0];
 
+// Función utilitaria para manejar fechas correctamente (evitar problemas de zona horaria)
+const formatDateForAPI = (dateInput: string | Date): string => {
+  let date: Date;
+  
+  if (typeof dateInput === 'string') {
+    // Si es string, crear fecha en zona horaria local
+    const [year, month, day] = dateInput.split('-').map(Number);
+    date = new Date(year, month - 1, day); // month es 0-indexado
+  } else {
+    date = dateInput;
+  }
+  
+  // Formatear como YYYY-MM-DD en zona horaria local
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+};
+
+// Función para obtener la fecha actual en formato YYYY-MM-DD (zona horaria local)
+const getTodayDate = (): string => {
+  const today = new Date();
+  return formatDateForAPI(today);
+};
+
 interface AttendanceFormProps {
   report?: AttendanceReport | null;
   onSubmit: (data: CreateAttendanceReportRequest) => void;
@@ -35,7 +61,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   onCancel
 }: AttendanceFormProps) => {
   const [formData, setFormData] = useState<CreateAttendanceReportRequest>({
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayDate(), // ✅ Usar función que maneja zona horaria correctamente
     employees: [],
     notes: ''
   });
@@ -125,7 +151,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
             setQuickReportLoading(true);
           }
           
-          const todayDate = new Date().toISOString().split('T')[0];
+          const todayDate = getTodayDate(); // ✅ Usar función que maneja zona horaria correctamente
           console.log('🔍 Fecha para reporte:', todayDate);
           
           const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
@@ -213,7 +239,11 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
         setQuickReportLoading(true);
       }
       
-      const quickReportData = await attendanceService.generateQuickReport(formData.date, template);
+      // ✅ Formatear fecha correctamente antes de enviar al backend
+      const formattedDate = formatDateForAPI(formData.date);
+      console.log('🔍 Fecha formateada para reporte rápido:', formattedDate);
+      
+      const quickReportData = await attendanceService.generateQuickReport(formattedDate, template);
 
       if (!isMounted) {
         console.log('⚠️ Componente desmontado, cancelando actualización de reporte rápido');
@@ -304,7 +334,18 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
         setLoading(true);
       }
       
-      await onSubmit(formData);
+      // ✅ Formatear fecha correctamente antes de enviar
+      const formattedFormData = {
+        ...formData,
+        date: formatDateForAPI(formData.date)
+      };
+      
+      console.log('🔍 Datos formateados para envío:', {
+        fechaOriginal: formData.date,
+        fechaFormateada: formattedFormData.date
+      });
+      
+      await onSubmit(formattedFormData);
       
       if (isMounted) {
         console.log('✅ Reporte enviado exitosamente');
@@ -379,7 +420,12 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                     id="date"
                     type="date"
                     value={formData.date}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: CreateAttendanceReportRequest) => ({ ...prev, date: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const inputDate = e.target.value;
+                      const formattedDate = formatDateForAPI(inputDate);
+                      console.log('🔍 Cambio de fecha:', { inputDate, formattedDate });
+                      setFormData((prev: CreateAttendanceReportRequest) => ({ ...prev, date: formattedDate }));
+                    }}
                     required
                   />
                 </div>

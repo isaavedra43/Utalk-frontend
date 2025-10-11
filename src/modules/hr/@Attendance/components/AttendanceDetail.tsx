@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
 import { AttendanceDetailResponse, EmployeeAttendance } from '../types';
+import { ExportModal } from './ExportModal';
 
 // Tipos temporales para manejar la respuesta del backend
 interface BackendResponse {
@@ -70,6 +71,7 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
   const [data, setData] = useState<AttendanceDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   useEffect(() => {
     loadReportDetail();
@@ -138,17 +140,68 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
     }
   };
 
-  const handleExport = async () => {
-    console.log('📊 Exportar reporte:', reportId);
+  // Función utilitaria para descargar archivos
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportPdf = async () => {
+    console.log('📄 Exportando reporte como PDF:', reportId);
     try {
-      // Llamar al servicio de exportación
-      const exportData = await attendanceService.exportReport(reportId, 'pdf');
-      console.log('✅ Reporte exportado:', exportData);
+      const blob = await attendanceService.exportReportAsPdf(reportId, {
+        creator: data?.report.createdBy || 'Sistema',
+        approver: data?.report.approvedBy || 'Pendiente',
+        mobileOptimized: true
+      });
       
-      // Aquí podrías manejar la descarga del archivo
-      // o mostrar un modal de opciones de exportación
+      const filename = `reporte-asistencia-${data?.report.date || reportId}.pdf`;
+      downloadFile(blob, filename);
+      console.log('✅ PDF exportado exitosamente');
     } catch (error) {
-      console.error('❌ Error exportando reporte:', error);
+      console.error('❌ Error exportando PDF:', error);
+      throw error;
+    }
+  };
+
+  const handleExportExcel = async () => {
+    console.log('📊 Exportando reporte como Excel:', reportId);
+    try {
+      const blob = await attendanceService.exportReportAsExcel(reportId, {
+        creator: data?.report.createdBy || 'Sistema',
+        approver: data?.report.approvedBy || 'Pendiente'
+      });
+      
+      const filename = `reporte-asistencia-${data?.report.date || reportId}.xlsx`;
+      downloadFile(blob, filename);
+      console.log('✅ Excel exportado exitosamente');
+    } catch (error) {
+      console.error('❌ Error exportando Excel:', error);
+      throw error;
+    }
+  };
+
+  const handleExportImage = async () => {
+    console.log('🖼️ Exportando reporte como imagen:', reportId);
+    try {
+      const blob = await attendanceService.exportReportAsImage(reportId, {
+        creator: data?.report.createdBy || 'Sistema',
+        approver: data?.report.approvedBy || 'Pendiente',
+        format: 'png'
+      });
+      
+      const filename = `reporte-asistencia-${data?.report.date || reportId}.png`;
+      downloadFile(blob, filename);
+      console.log('✅ Imagen exportada exitosamente');
+    } catch (error) {
+      console.error('❌ Error exportando imagen:', error);
+      throw error;
     }
   };
 
@@ -300,15 +353,15 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
             <Share className="h-4 w-4 mr-2" />
             Compartir
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleExport}
-            className="hover:bg-green-50 hover:border-green-300"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+                 <Button 
+                   variant="outline" 
+                   size="sm"
+                   onClick={() => setExportModalOpen(true)}
+                   className="hover:bg-green-50 hover:border-green-300"
+                 >
+                   <Download className="h-4 w-4 mr-2" />
+                   Exportar
+                 </Button>
           <Button 
             variant="outline" 
             size="sm"
@@ -476,7 +529,23 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
             </div>
           </CardContent>
         </Card>
-      )}
-    </div>
-  );
-};
+             )}
+
+           {/* Modal de Exportación */}
+           <ExportModal
+             isOpen={exportModalOpen}
+             onClose={() => setExportModalOpen(false)}
+             onExportPdf={handleExportPdf}
+             onExportExcel={handleExportExcel}
+             onExportImage={handleExportImage}
+             reportData={data ? {
+               date: formatDate(report.date),
+               totalEmployees: employees?.length || 0,
+               creator: report.createdBy,
+               approver: report.approvedBy,
+               status: report.status
+             } : undefined}
+           />
+           </div>
+         );
+       };
