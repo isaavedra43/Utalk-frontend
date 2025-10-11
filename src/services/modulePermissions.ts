@@ -106,23 +106,39 @@ const normalizeBackendData = (backendResponse: any): UserModulePermissions => {
 };
 
 export const modulePermissionsService = {
+  // Cache para evitar múltiples llamadas simultáneas
+  private permissionsCache: UserModulePermissions | null = null;
+  private cacheTimestamp: number = 0;
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
   // Obtener mis permisos actuales
   async getMyPermissions(): Promise<UserModulePermissions> {
     try {
+      // Verificar si tenemos permisos en cache válidos
+      if (this.permissionsCache && (Date.now() - this.cacheTimestamp) < this.CACHE_DURATION) {
+        infoLog('Usando permisos en cache');
+        return this.permissionsCache;
+      }
+
       infoLog('Obteniendo mis permisos de módulos');
-      
+
       const response = await api.get<ModulePermissionsResponse>('/api/module-permissions/my-permissions');
       
       if (!response.data.success) {
         throw new Error(response.data.message || 'Error al obtener permisos');
       }
       
-      infoLog('Permisos obtenidos exitosamente', { 
-        accessibleModules: response.data.data.permissions?.accessibleModules?.length || 0 
+      infoLog('Permisos obtenidos exitosamente', {
+        accessibleModules: response.data.data.permissions?.accessibleModules?.length || 0
       });
-      
+
       // Normalizar datos del backend según las indicaciones
       const normalizedData = normalizeBackendData(response.data);
+
+      // Guardar en cache
+      this.permissionsCache = normalizedData;
+      this.cacheTimestamp = Date.now();
+
       return normalizedData;
       
     } catch (error) {

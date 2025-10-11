@@ -52,16 +52,24 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
       // para que todos los empleados aparezcan como presentes con horarios pre-llenados
       const generateInitialReport = async () => {
         try {
+          console.log('🔄 Generando reporte inicial...');
           setQuickReportLoading(true);
           const todayDate = new Date().toISOString().split('T')[0];
           const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
+          console.log('✅ Reporte inicial generado:', quickReportData);
           setFormData({
             date: todayDate,
             employees: quickReportData.employees,
             notes: quickReportData.notes
           });
         } catch (error) {
-          console.error('Error generando reporte inicial:', error);
+          console.error('❌ Error generando reporte inicial:', error);
+          // Establecer datos por defecto si falla la generación
+          setFormData({
+            date: new Date().toISOString().split('T')[0],
+            employees: [],
+            notes: ''
+          });
         } finally {
           setQuickReportLoading(false);
         }
@@ -88,7 +96,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   const handleEmployeeStatusChange = (employeeId: string, status: string) => {
     setFormData((prev: CreateAttendanceReportRequest) => ({
       ...prev,
-      employees: prev.employees.map((emp: any) =>
+      employees: prev.employees.map((emp: { employeeId: string; status: string; clockIn: string; clockOut: string; totalHours: number; overtimeHours: number; breakHours: number; notes: string }) =>
         emp.employeeId === employeeId ? { ...emp, status } : emp
       )
     }));
@@ -97,7 +105,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   const handleEmployeeHoursChange = (employeeId: string, field: string, value: string) => {
     setFormData((prev: CreateAttendanceReportRequest) => ({
       ...prev,
-      employees: prev.employees.map((emp: any) =>
+      employees: prev.employees.map((emp: { employeeId: string; status: string; clockIn: string; clockOut: string; totalHours: number; overtimeHours: number; breakHours: number; notes: string }) =>
         emp.employeeId === employeeId ? { ...emp, [field]: value } : emp
       )
     }));

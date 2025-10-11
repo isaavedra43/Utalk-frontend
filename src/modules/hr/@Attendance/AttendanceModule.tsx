@@ -27,11 +27,15 @@ interface AttendanceErrorBoundaryState {
   error?: Error;
 }
 
+interface AttendanceErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
 class AttendanceErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+  AttendanceErrorBoundaryProps,
   AttendanceErrorBoundaryState
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: AttendanceErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -71,7 +75,7 @@ class AttendanceErrorBoundary extends React.Component<
             <p className="text-red-600 mb-4">
               Ha ocurrido un error inesperado. Por favor, recarga la página.
             </p>
-            <Button 
+            <Button
               onClick={() => window.location.reload()}
               variant="outline"
               className="border-red-300 text-red-700 hover:bg-red-50"
@@ -114,8 +118,13 @@ const AttendanceModule: React.FC = () => {
 
   const handleCreateReport = () => {
     console.log('🔄 Iniciando creación de reporte de asistencia...');
-    setSelectedReport(null);
-    setActiveView('form');
+    try {
+      setSelectedReport(null);
+      setActiveView('form');
+      console.log('✅ Vista cambiada a formulario exitosamente');
+    } catch (error) {
+      console.error('❌ Error al cambiar a vista de formulario:', error);
+    }
   };
 
   const handleViewReport = (report: AttendanceReport) => {
@@ -176,8 +185,14 @@ const AttendanceModule: React.FC = () => {
   };
 
   const handleFormCancel = () => {
-    setActiveView('list');
-    setSelectedReport(null);
+    console.log('🔄 Cancelando formulario de asistencia...');
+    try {
+      setActiveView('list');
+      setSelectedReport(null);
+      console.log('✅ Vista cambiada a lista exitosamente');
+    } catch (error) {
+      console.error('❌ Error al cambiar a vista de lista:', error);
+    }
   };
 
   const filteredReports = reports.filter((report: AttendanceReport) => {
@@ -212,20 +227,27 @@ const AttendanceModule: React.FC = () => {
 
   if (activeView === 'form') {
     return (
-      <AttendanceForm
-        report={selectedReport}
-        onSubmit={handleFormSubmit}
-        onCancel={handleFormCancel}
-      />
+      <AttendanceErrorBoundary>
+        <AttendanceForm
+          report={selectedReport}
+          onSubmit={handleFormSubmit}
+          onCancel={handleFormCancel}
+        />
+      </AttendanceErrorBoundary>
     );
   }
 
   if (activeView === 'detail' && selectedReport) {
     return (
-      <AttendanceDetail
-        reportId={selectedReport.id}
-        onBack={() => setActiveView('list')}
-      />
+      <AttendanceErrorBoundary>
+        <AttendanceDetail
+          reportId={selectedReport.id}
+          onBack={() => {
+            console.log('🔄 Regresando a vista de lista desde detalle...');
+            setActiveView('list');
+          }}
+        />
+      </AttendanceErrorBoundary>
     );
   }
 
@@ -245,17 +267,29 @@ const AttendanceModule: React.FC = () => {
           <Button
             onClick={handleCreateReport}
             className="bg-blue-600 hover:bg-blue-700"
+            disabled={loading}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nuevo Reporte
+            {loading ? 'Cargando...' : 'Nuevo Reporte'}
           </Button>
-          <Button 
+          <Button
             onClick={() => {
               console.log('🧪 Prueba del módulo de asistencia');
               console.log('📊 Reportes actuales:', reports.length);
               console.log('🔐 Permisos:', permissions);
               console.log('⏳ Loading:', loading);
               console.log('❌ Error:', error);
+              console.log('🔄 Vista actual:', activeView);
+              console.log('📋 Reporte seleccionado:', selectedReport?.id || 'ninguno');
+
+              // Probar creación de reporte
+              if (activeView === 'list') {
+                console.log('🔄 Probando cambio a formulario...');
+                handleCreateReport();
+              } else if (activeView === 'form') {
+                console.log('🔄 Probando regreso a lista...');
+                handleFormCancel();
+              }
             }}
             variant="outline"
             className="flex items-center gap-2"

@@ -80,7 +80,10 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Cargar permisos al montar el hook (OPTIMIZADO)
   useEffect(() => {
-    loadPermissions();
+    // Solo cargar si no tenemos permisos ya cargados
+    if (!permissions) {
+      loadPermissions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]); // ✅ Solo cuando user.email cambie, no cuando loadPermissions se recree
 
