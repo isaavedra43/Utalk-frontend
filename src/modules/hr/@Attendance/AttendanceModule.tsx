@@ -42,9 +42,9 @@ class AttendanceErrorBoundary extends React.Component<
 
   static getDerivedStateFromError(error: Error): AttendanceErrorBoundaryState {
     // Solo capturar errores reales, no objetos vacíos o errores sin mensaje
-    if (error && 
-        error.message && 
-        error.message.trim() !== '' && 
+    if (error &&
+        error.message &&
+        error.message.trim() !== '' &&
         error.message !== '{}' &&
         error.message !== 'undefined' &&
         !error.message.includes('Minified React error')) {
