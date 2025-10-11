@@ -41,6 +41,12 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
   onApprove,
   onReject
 }) => {
+  console.log('🔍 AttendanceList - Renderizando con:', {
+    reportsCount: reports?.length || 0,
+    hasPermissions: !!permissions,
+    reports: reports
+  });
+
   const getStatusBadge = (status: AttendanceReport['status']) => {
     switch (status) {
       case 'draft':
@@ -71,7 +77,8 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
     }
   };
 
-  if (reports.length === 0) {
+  if (!reports || reports.length === 0) {
+    console.log('📋 AttendanceList - Sin reportes para mostrar');
     return (
       <div className="text-center py-12">
         <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -82,6 +89,8 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
       </div>
     );
   }
+
+  console.log('📋 AttendanceList - Renderizando tabla con', reports.length, 'reportes');
 
   return (
     <div className="overflow-x-auto">
@@ -112,7 +121,14 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {reports.map((report) => (
+          {reports.map((report) => {
+            try {
+              if (!report || !report.id) {
+                console.warn('⚠️ AttendanceList - Reporte inválido:', report);
+                return null;
+              }
+              
+              return (
             <tr key={report.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
@@ -176,15 +192,19 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
 
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex space-x-1">
-                  {report.exceptions.length > 0 && (
+                  {report.exceptions && report.exceptions.length > 0 && (
                     <Badge variant="outline" className="text-red-600 border-red-200">
                       {report.exceptions.length} excepciones
                     </Badge>
                   )}
-                  {report.movements.length > 0 && (
+                  {report.movements && report.movements.length > 0 && (
                     <Badge variant="outline" className="text-blue-600 border-blue-200">
                       {report.movements.length} movimientos
                     </Badge>
+                  )}
+                  {(!report.exceptions || report.exceptions.length === 0) && 
+                   (!report.movements || report.movements.length === 0) && (
+                    <span className="text-sm text-gray-400">Sin movimientos</span>
                   )}
                 </div>
               </td>
@@ -256,7 +276,12 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
                 </div>
               </td>
             </tr>
-          ))}
+              );
+            } catch (rowError) {
+              console.error('❌ AttendanceList - Error al renderizar fila:', report, rowError);
+              return null;
+            }
+          })}
         </tbody>
       </table>
     </div>

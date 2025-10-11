@@ -95,20 +95,27 @@ export const getDateRange = (days: number = 30): { start: string; end: string } 
 /**
  * Formatear horas sin decimales
  */
-export const formatHours = (hours: number | undefined | null): string => {
-  if (hours === undefined || hours === null || isNaN(hours)) {
+export const formatHours = (hours: number | string | undefined | null): string => {
+  if (hours === undefined || hours === null) {
+    return '0h';
+  }
+  
+  // Convertir string a número si es necesario
+  const numericHours = typeof hours === 'string' ? parseFloat(hours) : hours;
+  
+  if (isNaN(numericHours)) {
     return '0h';
   }
   
   // Redondear hacia abajo para eliminar decimales
-  const wholeHours = Math.floor(hours);
+  const wholeHours = Math.floor(numericHours);
   return `${wholeHours}h`;
 };
 
 /**
  * Formatear horas con total acumulado sin decimales
  */
-export const formatHoursWithTotal = (hours: number | undefined | null, total: number | undefined | null): string => {
+export const formatHoursWithTotal = (hours: number | string | undefined | null, total: number | string | undefined | null): string => {
   const formattedHours = formatHours(hours);
   const formattedTotal = formatHours(total);
   return `${formattedHours} (Total: ${formattedTotal})`;

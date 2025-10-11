@@ -35,10 +35,11 @@ export interface AttendanceReport {
   personalLeaveCount: number;
   maternityLeaveCount: number;
   paternityLeaveCount: number;
-  overtimeHours: number;
+  overtimeHours: number | string;
   totalHours: number;
-  exceptions: AttendanceException[];
-  movements: AttendanceMovement[];
+  exceptions?: AttendanceException[];
+  movements?: AttendanceMovement[];
+  metadata?: Record<string, unknown>;
   // Campos de aprobación
   approvedBy?: string;
   approvedAt?: string;

@@ -163,10 +163,15 @@ const AttendanceModule: React.FC = () => {
   };
 
   const filteredReports = reports.filter((report: AttendanceReport) => {
-    const matchesSearch = report.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    try {
+      const matchesSearch = report.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           report.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    } catch (filterError) {
+      console.warn('⚠️ Error al filtrar reporte:', report, filterError);
+      return false;
+    }
   });
 
   console.log('🔍 AttendanceModule - Estado actual:', { 
@@ -296,7 +301,13 @@ const AttendanceModule: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Empleados Totales</p>
               <p className="text-2xl font-bold text-gray-900">
-                {reports.reduce((sum: number, r: AttendanceReport) => sum + (r.totalEmployees || 0), 0)}
+                {reports.reduce((sum: number, r: AttendanceReport) => {
+                  try {
+                    return sum + (r?.totalEmployees || 0);
+                  } catch {
+                    return sum;
+                  }
+                }, 0)}
               </p>
             </div>
           </div>
@@ -308,7 +319,7 @@ const AttendanceModule: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Asistencias Hoy</p>
               <p className="text-2xl font-bold text-gray-900">
-                {reports[0]?.presentCount || 0}
+                {reports && reports.length > 0 && reports[0]?.presentCount ? reports[0].presentCount : 0}
               </p>
             </div>
           </div>
@@ -320,7 +331,9 @@ const AttendanceModule: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Horas Extra Hoy</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatHours(reports[0]?.overtimeHours)}
+                {reports && reports.length > 0 && reports[0]?.overtimeHours !== undefined 
+                  ? formatHours(reports[0].overtimeHours) 
+                  : '0h'}
               </p>
             </div>
           </div>
@@ -332,7 +345,7 @@ const AttendanceModule: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Reportes Totales</p>
               <p className="text-2xl font-bold text-gray-900">
-                {reports.length}
+                {reports?.length || 0}
               </p>
             </div>
           </div>
@@ -383,15 +396,38 @@ const AttendanceModule: React.FC = () => {
           </h3>
         </div>
 
-        <AttendanceList
-          reports={filteredReports}
-          permissions={permissions}
-          onView={handleViewReport}
-          onEdit={handleEditReport}
-          onDelete={handleDeleteReport}
-          onApprove={handleApproveReport}
-          onReject={handleRejectReport}
-        />
+        {(() => {
+          try {
+            console.log('🔍 AttendanceModule - Renderizando AttendanceList con datos:', {
+              reportsCount: filteredReports.length,
+              hasPermissions: !!permissions,
+              firstReport: filteredReports[0]
+            });
+            
+            return (
+              <AttendanceList
+                reports={filteredReports}
+                permissions={permissions}
+                onView={handleViewReport}
+                onEdit={handleEditReport}
+                onDelete={handleDeleteReport}
+                onApprove={handleApproveReport}
+                onReject={handleRejectReport}
+              />
+            );
+          } catch (listError) {
+            console.error('❌ AttendanceModule - Error al renderizar AttendanceList:', listError);
+            return (
+              <div className="p-6 text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-gray-600">Error al cargar la lista de reportes</p>
+                <Button onClick={loadReports} className="mt-4" size="sm">
+                  Reintentar
+                </Button>
+              </div>
+            );
+          }
+        })()}
       </div>
     </div>
   );
