@@ -6,20 +6,49 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Calendar,
-  Users,
   CheckCircle,
-  XCircle,
-  Clock,
   AlertTriangle,
   DollarSign,
-  TrendingUp,
-  Eye,
   Download,
-  Printer,
-  Mail
+  Printer
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
 import { AttendanceDetailResponse, EmployeeAttendance } from '../types';
+
+// Tipos temporales para manejar la respuesta del backend
+interface BackendResponse {
+  success: boolean;
+  data: {
+    report: unknown;
+    records: unknown[];
+    stats: unknown;
+    movements?: unknown[];
+    exceptions?: unknown[];
+  };
+}
+
+interface EmployeeRecord {
+  employeeId: string;
+  status: string;
+  clockIn?: string;
+  clockOut?: string;
+  totalHours?: number;
+  overtimeHours?: number;
+  breakHours?: number;
+  notes?: string;
+  employeeName?: string;
+  employeeNumber?: string;
+  department?: string;
+  movements?: unknown[];
+}
+
+interface ExceptionRecord {
+  id: string;
+  description: string;
+  time?: string;
+  severity: string;
+  resolved: boolean;
+}
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,25 +63,50 @@ interface AttendanceDetailProps {
 export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
   reportId,
   onBack
-}) => {
+}: AttendanceDetailProps) => {
+  console.log('🔍 AttendanceDetail - Iniciando componente con reportId:', reportId);
+  
   const [data, setData] = useState<AttendanceDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadReportDetail();
-  }, [reportId]);
+  }, [reportId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReportDetail = async () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🔍 AttendanceDetail - Cargando detalle para reportId:', reportId);
       const response = await attendanceService.getReportDetail(reportId);
-      setData(response);
+      console.log('✅ AttendanceDetail - Respuesta recibida:', response);
+      
+      // El backend devuelve una estructura diferente a la esperada
+      // Según los logs: { success: true, data: { report: {...}, records: [...], stats: {...} } }
+      if (response && (response as unknown as BackendResponse).data) {
+        const backendData = (response as unknown as BackendResponse).data;
+        const transformedData = {
+          report: backendData.report,
+          employees: backendData.records || [], // El backend devuelve 'records'
+          stats: backendData.stats || {},
+          movements: backendData.movements || [],
+          exceptions: backendData.exceptions || []
+        };
+        console.log('🔄 AttendanceDetail - Datos transformados:', transformedData);
+        setData(transformedData);
+      } else if (response && response.report) {
+        // Si la respuesta ya tiene la estructura esperada
+        console.log('🔄 AttendanceDetail - Usando datos directos:', response);
+        setData(response);
+      } else {
+        console.warn('⚠️ AttendanceDetail - Respuesta inválida:', response);
+        setError('Respuesta inválida del servidor');
+      }
     } catch (err) {
+      console.error('❌ AttendanceDetail - Error cargando detalle:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar detalle';
       setError(errorMessage);
-      console.error('Error cargando detalle:', err);
     } finally {
       setLoading(false);
     }
@@ -84,13 +138,13 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
   const getMovementIcon = (type: string) => {
     switch (type) {
       case 'overtime':
-        return <Clock className="h-4 w-4 text-blue-500" />;
+        return <Calendar className="h-4 w-4 text-blue-500" />;
       case 'loan':
         return <DollarSign className="h-4 w-4 text-green-500" />;
       case 'bonus':
-        return <TrendingUp className="h-4 w-4 text-purple-500" />;
+        return <CheckCircle className="h-4 w-4 text-purple-500" />;
       case 'deduction':
-        return <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />;
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'vacation':
         return <Calendar className="h-4 w-4 text-blue-500" />;
       case 'incident':
@@ -123,7 +177,23 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
     );
   }
 
+  if (!data || !data.report) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Datos no disponibles</h3>
+          <p className="text-gray-600">No se pudieron cargar los datos del reporte</p>
+          <Button onClick={loadReportDetail} className="mt-4">
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const { report, employees, stats } = data;
+  console.log('🔍 AttendanceDetail - Renderizando con datos:', { report: report.id, employeesCount: employees?.length || 0 });
 
   return (
     <div className="space-y-6">
@@ -146,7 +216,7 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
 
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">
-            <Eye className="h-4 w-4 mr-2" />
+            <Calendar className="h-4 w-4 mr-2" />
             Vista previa
           </Button>
           <Button variant="outline" size="sm">
@@ -158,14 +228,16 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
             Imprimir
           </Button>
           <Button variant="outline" size="sm">
-            <Mail className="h-4 w-4 mr-2" />
+            <AlertTriangle className="h-4 w-4 mr-2" />
             Enviar
           </Button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <AttendanceStatsComponent stats={stats} title={`Estadísticas del ${formatDate(report.date)}`} />
+      {stats && Object.keys(stats).length > 0 && (
+        <AttendanceStatsComponent stats={stats} title={`Estadísticas del ${formatDate(report.date)}`} />
+      )}
 
       {/* Report Info */}
       {report.notes && (
@@ -207,21 +279,21 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {employees.map((employee) => (
+                {employees && employees.length > 0 ? employees.map((employee: EmployeeRecord) => (
                   <tr key={employee.employeeId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {employee.employeeName}
+                          {employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {employee.employeeNumber} • {employee.department}
+                          {employee.employeeNumber || employee.employeeId.slice(0, 8)} • {employee.department || 'Sin departamento'}
                         </div>
                       </div>
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(employee.status)}
+                      {getStatusBadge(employee.status as EmployeeAttendance['status'])}
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -248,22 +320,32 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
 
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
-                        {employee.movements.map((movement) => (
-                          <div
-                            key={movement.id}
-                            className="flex items-center space-x-1 text-xs bg-gray-100 rounded-full px-2 py-1"
-                          >
-                            {getMovementIcon(movement.type)}
-                            <span>{movement.type}</span>
-                          </div>
-                        ))}
-                        {employee.movements.length === 0 && (
-                          <span className="text-gray-500 text-sm">-</span>
+                        {employee.movements && employee.movements.length > 0 ? (
+                          employee.movements.map((movement: unknown) => {
+                            const movementData = movement as { id: string; type: string };
+                            return (
+                            <div
+                              key={movementData.id}
+                              className="flex items-center space-x-1 text-xs bg-gray-100 rounded-full px-2 py-1"
+                            >
+                              {getMovementIcon(movementData.type)}
+                              <span>{movementData.type}</span>
+                            </div>
+                            );
+                          })
+                        ) : (
+                          <span className="text-gray-500 text-sm">Sin movimientos</span>
                         )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                      No hay empleados registrados para este reporte
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -271,14 +353,14 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
       </Card>
 
       {/* Exceptions */}
-      {report.exceptions.length > 0 && (
+      {report.exceptions && report.exceptions.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg text-orange-600">Excepciones Reportadas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {report.exceptions.map((exception) => (
+              {report.exceptions.map((exception: ExceptionRecord) => (
                 <div key={exception.id} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500" />
