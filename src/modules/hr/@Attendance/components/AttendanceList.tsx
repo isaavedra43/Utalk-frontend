@@ -11,7 +11,6 @@ import {
   AlertCircle,
   Clock,
   Calendar,
-  CheckSquare,
   Eye,
   XCircle,
   ThumbsUp,
@@ -40,7 +39,7 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
   onDelete,
   onApprove,
   onReject
-}) => {
+}: AttendanceListProps) => {
   console.log('🔍 AttendanceList - Renderizando con:', {
     reportsCount: reports?.length || 0,
     hasPermissions: !!permissions,
@@ -69,7 +68,7 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-blue-500" />;
       case 'approved':
-        return <CheckSquare className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'rejected':
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
@@ -121,7 +120,7 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {reports.map((report) => {
+          {reports.map((report: AttendanceReport) => {
             try {
               if (!report || !report.id) {
                 console.warn('⚠️ AttendanceList - Reporte inválido:', report);

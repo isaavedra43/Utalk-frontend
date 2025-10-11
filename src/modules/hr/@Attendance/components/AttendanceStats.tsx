@@ -7,8 +7,6 @@ import {
   Users,
   CheckCircle,
   XCircle,
-  Clock,
-  TrendingUp,
   Calendar,
   AlertTriangle
 } from 'lucide-react';
@@ -23,7 +21,7 @@ interface AttendanceStatsProps {
 export const AttendanceStatsComponent: React.FC<AttendanceStatsProps> = ({
   stats,
   title = "Estadísticas de Asistencia"
-}) => {
+}: AttendanceStatsProps) => {
   const attendanceRate = stats.totalEmployees > 0 ?
     (stats.presentCount / stats.totalEmployees) * 100 : 0;
 
@@ -63,7 +61,7 @@ export const AttendanceStatsComponent: React.FC<AttendanceStatsProps> = ({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Horas Extra</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
+            <Calendar className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.totalOvertime}h</div>
@@ -74,7 +72,7 @@ export const AttendanceStatsComponent: React.FC<AttendanceStatsProps> = ({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Movimientos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-500" />
+            <AlertTriangle className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{stats.totalMovements}</div>
@@ -106,7 +104,7 @@ export const AttendanceStatsComponent: React.FC<AttendanceStatsProps> = ({
             </div>
 
             <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-orange-500" />
+              <Calendar className="h-4 w-4 text-orange-500" />
               <div>
                 <div className="text-sm font-medium">Tardes</div>
                 <div className="text-lg font-bold text-orange-600">{stats.lateCount}</div>

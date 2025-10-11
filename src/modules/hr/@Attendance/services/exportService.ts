@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { AttendanceDetailResponse, EmployeeAttendance } from '../types';
+import { saveAs } from 'file-saver';
 
 interface ExportOptions {
   creator?: string;
@@ -228,14 +229,7 @@ export class ExportService {
       // Convertir a blob y descargar
       canvas.toBlob((blob) => {
         if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Reporte_Asistencia_${data.report.date}_${this.getDateString()}.${format}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          saveAs(blob, `Reporte_Asistencia_${data.report.date}_${this.getDateString()}.${format}`);
         }
       }, 'image/png');
       
@@ -526,20 +520,7 @@ export class ExportService {
   private static downloadFile(content: string, filename: string, mimeType: string): void {
     try {
       const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.style.display = 'none';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Limpiar URL después de un tiempo
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      
+      saveAs(blob, filename);
     } catch (error) {
       console.error('Error al descargar archivo:', error);
       throw error;

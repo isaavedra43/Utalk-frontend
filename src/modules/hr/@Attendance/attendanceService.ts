@@ -3,9 +3,6 @@
 // ============================================================================
 
 import {
-  AttendanceReport,
-  AttendanceRecord,
-  EmployeeAttendance,
   AttendanceFilters,
   AttendanceStats,
   CreateAttendanceReportRequest,
@@ -61,10 +58,10 @@ class AttendanceService {
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-      ...(filters.dateTo && { dateTo: filters.dateTo }),
+      ...(filters.date && { date: filters.date }),
       ...(filters.status && { status: filters.status }),
-      ...(filters.createdBy && { createdBy: filters.createdBy })
+      ...(filters.department && { department: filters.department }),
+      ...(filters.employee && { employee: filters.employee })
     });
 
     return await this.makeRequest<AttendanceListResponse>(`/reports?${queryParams}`);
@@ -171,10 +168,9 @@ class AttendanceService {
    */
   async getAttendanceStats(filters: AttendanceFilters = {}): Promise<AttendanceStats> {
     const queryParams = new URLSearchParams({
-      ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-      ...(filters.dateTo && { dateTo: filters.dateTo }),
-      ...(filters.departmentId && { departmentId: filters.departmentId }),
-      ...(filters.employeeId && { employeeId: filters.employeeId })
+      ...(filters.date && { date: filters.date }),
+      ...(filters.department && { department: filters.department }),
+      ...(filters.employee && { employee: filters.employee })
     });
 
     return await this.makeRequest<AttendanceStats>(`/stats?${queryParams}`);
@@ -263,8 +259,7 @@ class AttendanceService {
       // Exportar usando el servicio del cliente
       await ExportService.exportToPDF(exportData, {
         ...options,
-        mobileOptimized: true,
-        maxEmployeesPerPage: 20
+        mobileOptimized: true
       });
       
       console.log('✅ AttendanceService - PDF exportado exitosamente (cliente)');
