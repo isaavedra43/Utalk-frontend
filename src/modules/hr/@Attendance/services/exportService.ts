@@ -1,25 +1,14 @@
 // ============================================================================
-// SERVICIO DE EXPORTACIÓN DEL LADO DEL CLIENTE - ASISTENCIA
+// SERVICIO DE EXPORTACIÓN SIMPLE Y CONFIABLE - ASISTENCIA
 // ============================================================================
 
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 import { AttendanceDetailResponse, EmployeeAttendance } from '../types';
-
-// Extender jsPDF para incluir autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => void;
-  }
-}
 
 interface ExportOptions {
   creator?: string;
   approver?: string;
   mobileOptimized?: boolean;
-  maxEmployeesPerPage?: number;
+  format?: 'png' | 'jpg';
 }
 
 interface ExportData {
@@ -30,391 +19,570 @@ interface ExportData {
 
 export class ExportService {
   /**
-   * Exportar reporte como PDF optimizado para móvil
+   * Exportar reporte como PDF completamente offline usando APIs nativas del navegador
    */
   static async exportToPDF(data: ExportData, options: ExportOptions = {}): Promise<void> {
     try {
-      console.log('📄 ExportService - Generando PDF...');
+      console.log('📄 ExportService - Generando PDF offline...');
       
-      const {
-        creator = 'Sistema',
-        approver = 'Pendiente',
-        mobileOptimized = true
-      } = options;
-
-      // Crear PDF con orientación portrait para móvil
-      const doc = new jsPDF('portrait', 'mm', 'a4');
+      // Generar contenido HTML optimizado para impresión
+      const printContent = this.generatePrintContent(data, options);
       
-      // Configuración de colores y estilos
-      const primaryColor = [59, 130, 246]; // azul
-      const secondaryColor = [249, 250, 251]; // gris claro
-      const successColor = [34, 197, 94]; // verde
-      const warningColor = [245, 158, 11]; // amarillo
-      const dangerColor = [239, 68, 68]; // rojo
+      // Crear ventana de impresión
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
       
-      // Header del reporte
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('REPORTE DE ASISTENCIA', 14, 20);
-      
-      // Información del reporte
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Fecha: ${data.report.date}`, 14, 30);
-      doc.text(`Creado por: ${creator}`, 14, 35);
-      doc.text(`Autorizado por: ${approver}`, 14, 40);
-      doc.text(`Estado: ${data.report.status === 'approved' ? 'Aprobado' : 'Borrador'}`, 14, 45);
-      
-      if (data.report.notes) {
-        doc.text(`Notas: ${data.report.notes}`, 14, 50);
+      if (!printWindow) {
+        throw new Error('No se pudo abrir la ventana de impresión. Verifica los permisos del navegador.');
       }
       
-      // Línea separadora
-      doc.setDrawColor(...primaryColor);
-      doc.setLineWidth(0.5);
-      doc.line(14, 55, 196, 55);
+      // Escribir contenido en la ventana
+      printWindow.document.write(printContent);
+      printWindow.document.close();
       
-      // Estadísticas resumidas
-      if (data.stats) {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RESUMEN GENERAL', 14, 65);
-        
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        
-        const statsData = [
-          ['Total Empleados', data.employees.length.toString()],
-          ['Presentes', (data.stats.presentCount || 0).toString()],
-          ['Ausentes', (data.stats.absentCount || 0).toString()],
-          ['Tardes', (data.stats.lateCount || 0).toString()],
-          ['Vacaciones', (data.stats.vacationCount || 0).toString()],
-          ['Horas Totales', `${data.stats.totalHours || 0}h`],
-          ['Horas Extra', `${data.stats.overtimeHours || 0}h`]
-        ];
-        
-        // Crear tabla de estadísticas
-        doc.autoTable({
-          startY: 70,
-          head: [['Métrica', 'Valor']],
-          body: statsData,
-          theme: 'grid',
-          headStyles: {
-            fillColor: primaryColor,
-            textColor: 255,
-            fontStyle: 'bold'
-          },
-          alternateRowStyles: {
-            fillColor: secondaryColor
-          },
-          margin: { top: 70, right: 14, bottom: 14, left: 14 },
-          styles: {
-            fontSize: 9,
-            cellPadding: 3
-          },
-          columnStyles: {
-            0: { cellWidth: 60 },
-            1: { cellWidth: 30 }
+      // Esperar a que se cargue y luego imprimir
+      printWindow.onload = () => {
+        setTimeout(() => {
+          try {
+            printWindow.focus();
+            printWindow.print();
+            
+            // Cerrar ventana después de imprimir
+            setTimeout(() => {
+              printWindow.close();
+            }, 1000);
+            
+            console.log('✅ PDF generado exitosamente');
+          } catch (printError) {
+            console.error('Error al imprimir:', printError);
+            this.showError('Error al generar PDF. Intenta descargar el archivo HTML.');
           }
-        });
-      }
+        }, 500);
+      };
       
-      // Preparar datos para la tabla principal
-      const tableHeaders = ['Empleado', 'Estado', 'Horario', 'Horas', 'Extra'];
-      const tableData = data.employees.map(employee => {
-        const employeeName = employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`;
-        const employeeNumber = employee.employeeNumber || employee.employeeId.slice(0, 8);
-        const statusText = this.getStatusText(employee.status);
-        const schedule = employee.clockIn && employee.clockOut 
-          ? `${employee.clockIn}-${employee.clockOut}`
-          : '-';
-        const hours = employee.totalHours ? `${employee.totalHours}h` : '-';
-        const overtime = employee.overtimeHours ? `${employee.overtimeHours}h` : '0h';
-        
-        return [
-          `${employeeName}\n${employeeNumber}`,
-          statusText,
-          schedule,
-          hours,
-          overtime
-        ];
-      });
+      // Fallback: Si falla la impresión, descargar como HTML
+      printWindow.onerror = () => {
+        console.log('🔄 Fallback: Descargando como archivo HTML...');
+        this.downloadFile(printContent, `Reporte_Asistencia_${data.report.date}_${this.getDateString()}.html`, 'text/html');
+      };
       
-      // Configurar tabla principal
-      const finalY = (doc as any).lastAutoTable?.finalY || 120;
-      
-      doc.autoTable({
-        startY: finalY + 10,
-        head: [tableHeaders],
-        body: tableData,
-        theme: 'grid',
-        headStyles: {
-          fillColor: primaryColor,
-          textColor: 255,
-          fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-          fillColor: secondaryColor
-        },
-        margin: { top: finalY + 10, right: 14, bottom: 14, left: 14 },
-        styles: {
-          fontSize: mobileOptimized ? 7 : 8,
-          cellPadding: 2
-        },
-        columnStyles: {
-          0: { cellWidth: 45 }, // Empleado
-          1: { cellWidth: 25 }, // Estado
-          2: { cellWidth: 30 }, // Horario
-          3: { cellWidth: 20 }, // Horas
-          4: { cellWidth: 20 }  // Extra
-        },
-        didDrawCell: (data: any) => {
-          // Colorear estados
-          if (data.column.index === 1 && data.cell.text[0]) {
-            const status = data.cell.text[0];
-            let color = primaryColor;
-            
-            if (status === 'Presente') color = successColor;
-            else if (status === 'Ausente') color = dangerColor;
-            else if (status === 'Tarde') color = warningColor;
-            else if (status === 'Vacaciones') color = primaryColor;
-            
-            doc.setFillColor(...color);
-            doc.rect(data.cell.x + 1, data.cell.y + 1, data.cell.width - 2, data.cell.height - 2, 'F');
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(mobileOptimized ? 6 : 7);
-            doc.text(status, data.cell.x + 3, data.cell.y + 6);
-            doc.setTextColor(0, 0, 0);
-          }
-        }
-      });
-
-      // Footer con información de generación
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 100, 100);
-        doc.text(
-          `Generado el ${new Date().toLocaleDateString('es-MX')} - Página ${i} de ${pageCount}`,
-          14,
-          290
-        );
-      }
-
-      // Descargar PDF
-      const filename = `reporte-asistencia-${data.report.date}.pdf`;
-      doc.save(filename);
-      
-      console.log('✅ PDF exportado exitosamente');
     } catch (error) {
-      console.error('❌ Error exportando PDF:', error);
-      throw new Error('Error al exportar reporte como PDF');
+      console.error('Error al exportar PDF:', error);
+      this.showError('Error al exportar a PDF');
     }
   }
 
   /**
-   * Exportar reporte como Excel
+   * Exportar reporte como Excel usando CSV (compatible con Excel)
    */
   static async exportToExcel(data: ExportData, options: ExportOptions = {}): Promise<void> {
     try {
       console.log('📊 ExportService - Generando Excel...');
       
-      const { creator = 'Sistema', approver = 'Pendiente' } = options;
-
-      // Crear workbook
-      const workbook = XLSX.utils.book_new();
-
-      // Hoja de resumen
-      const summaryData = [
-        ['REPORTE DE ASISTENCIA'],
-        [''],
-        ['Fecha:', data.report.date],
-        ['Creado por:', creator],
-        ['Autorizado por:', approver],
-        ['Estado:', data.report.status === 'approved' ? 'Aprobado' : 'Borrador'],
-        ['Notas:', data.report.notes || ''],
-        [''],
-        ['RESUMEN GENERAL'],
-        ['Total Empleados:', data.employees.length],
-        ['Presentes:', data.stats?.presentCount || 0],
-        ['Ausentes:', data.stats?.absentCount || 0],
-        ['Tardes:', data.stats?.lateCount || 0],
-        ['Vacaciones:', data.stats?.vacationCount || 0],
-        ['Horas Totales:', `${data.stats?.totalHours || 0}h`],
-        ['Horas Extra:', `${data.stats?.overtimeHours || 0}h`]
-      ];
-
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
-
-      // Hoja de detalle de empleados
-      const employeeData = [
-        ['Empleado', 'ID', 'Estado', 'Hora Entrada', 'Hora Salida', 'Horas Totales', 'Horas Extra', 'Notas']
-      ];
-
-      data.employees.forEach(employee => {
-        employeeData.push([
-          employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`,
-          employee.employeeNumber || employee.employeeId.slice(0, 8),
-          this.getStatusText(employee.status),
-          employee.clockIn || '-',
-          employee.clockOut || '-',
-          employee.totalHours || 0,
-          employee.overtimeHours || 0,
-          employee.notes || ''
-        ]);
-      });
-
-      const employeeSheet = XLSX.utils.aoa_to_sheet(employeeData);
-      
-      // Ajustar ancho de columnas
-      employeeSheet['!cols'] = [
-        { width: 25 }, // Empleado
-        { width: 15 }, // ID
-        { width: 12 }, // Estado
-        { width: 12 }, // Hora Entrada
-        { width: 12 }, // Hora Salida
-        { width: 12 }, // Horas Totales
-        { width: 12 }, // Horas Extra
-        { width: 30 }  // Notas
-      ];
-
-      XLSX.utils.book_append_sheet(workbook, employeeSheet, 'Empleados');
-
-      // Descargar Excel
-      const filename = `reporte-asistencia-${data.report.date}.xlsx`;
-      XLSX.writeFile(workbook, filename);
+      const csvContent = this.generateCSVContent(data, options);
+      this.downloadFile(csvContent, `Reporte_Asistencia_${data.report.date}_${this.getDateString()}.csv`, 'text/csv');
       
       console.log('✅ Excel exportado exitosamente');
     } catch (error) {
       console.error('❌ Error exportando Excel:', error);
-      throw new Error('Error al exportar reporte como Excel');
+      this.showError('Error al exportar a Excel');
     }
   }
 
   /**
-   * Exportar reporte como imagen
+   * Exportar reporte como imagen usando canvas completamente offline
    */
   static async exportToImage(data: ExportData, options: ExportOptions = {}): Promise<void> {
     try {
-      console.log('🖼️ ExportService - Generando imagen...');
+      console.log('🖼️ ExportService - Generando imagen offline...');
       
       const { format = 'png' } = options;
-      const { creator = 'Sistema', approver = 'Pendiente' } = options;
-
-      // Crear elemento temporal para renderizar
-      const tempElement = document.createElement('div');
-      tempElement.style.position = 'absolute';
-      tempElement.style.left = '-9999px';
-      tempElement.style.top = '-9999px';
-      tempElement.style.width = '800px';
-      tempElement.style.backgroundColor = 'white';
-      tempElement.style.padding = '20px';
-      tempElement.style.fontFamily = 'Arial, sans-serif';
-      tempElement.style.fontSize = '14px';
-      tempElement.style.lineHeight = '1.4';
       
-      // Generar HTML del reporte
-      const reportHTML = `
-        <div style="font-family: Arial, sans-serif; line-height: 1.4;">
-          <h1 style="color: #2563eb; margin-bottom: 10px; text-align: center;">REPORTE DE ASISTENCIA</h1>
-          
-          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p><strong>Fecha:</strong> ${data.report.date}</p>
-            <p><strong>Creado por:</strong> ${creator}</p>
-            <p><strong>Autorizado por:</strong> ${approver}</p>
-            <p><strong>Estado:</strong> ${data.report.status === 'approved' ? 'Aprobado' : 'Borrador'}</p>
-            ${data.report.notes ? `<p><strong>Notas:</strong> ${data.report.notes}</p>` : ''}
-          </div>
-
-          ${data.stats ? `
-          <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3 style="color: #059669; margin-top: 0;">RESUMEN GENERAL</h3>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-              <p><strong>Total Empleados:</strong> ${data.employees.length}</p>
-              <p><strong>Presentes:</strong> ${data.stats.presentCount || 0}</p>
-              <p><strong>Ausentes:</strong> ${data.stats.absentCount || 0}</p>
-              <p><strong>Tardes:</strong> ${data.stats.lateCount || 0}</p>
-              <p><strong>Vacaciones:</strong> ${data.stats.vacationCount || 0}</p>
-              <p><strong>Horas Totales:</strong> ${data.stats.totalHours || 0}h</p>
-              <p><strong>Horas Extra:</strong> ${data.stats.overtimeHours || 0}h</p>
-            </div>
-          </div>
-          ` : ''}
-
-          <h3 style="color: #374151;">DETALLE DE EMPLEADOS</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-              <tr style="background: #f3f4f6;">
-                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Empleado</th>
-                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Estado</th>
-                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Horario</th>
-                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Horas</th>
-                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Extra</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${data.employees.map(employee => `
-                <tr>
-                  <td style="border: 1px solid #d1d5db; padding: 8px;">
-                    <strong>${employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`}</strong><br>
-                    <small style="color: #6b7280;">${employee.employeeNumber || employee.employeeId.slice(0, 8)}</small>
-                  </td>
-                  <td style="border: 1px solid #d1d5db; padding: 8px;">
-                    <span style="background: ${this.getStatusColor(employee.status)}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
-                      ${this.getStatusText(employee.status)}
-                    </span>
-                  </td>
-                  <td style="border: 1px solid #d1d5db; padding: 8px;">
-                    ${employee.clockIn && employee.clockOut 
-                      ? `${employee.clockIn}<br>${employee.clockOut}`
-                      : '-'
-                    }
-                  </td>
-                  <td style="border: 1px solid #d1d5db; padding: 8px;">${employee.totalHours ? `${employee.totalHours}h` : '-'}</td>
-                  <td style="border: 1px solid #d1d5db; padding: 8px;">${employee.overtimeHours ? `${employee.overtimeHours}h` : '0h'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
+      // Crear canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
       
-      tempElement.innerHTML = reportHTML;
-      document.body.appendChild(tempElement);
+      if (!ctx) {
+        throw new Error('No se pudo crear contexto del canvas');
+      }
 
-      // Usar html2canvas para generar imagen
-      const { default: html2canvas } = await import('html2canvas');
+      // Configurar canvas con mejor resolución
+      canvas.width = 1000;
+      canvas.height = 800;
       
-      const canvas = await html2canvas(tempElement, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: 800,
-        height: tempElement.scrollHeight
+      // Fondo con gradiente sutil
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(1, '#f8fafc');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Header con gradiente
+      const headerGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      headerGradient.addColorStop(0, '#667eea');
+      headerGradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = headerGradient;
+      ctx.fillRect(0, 0, canvas.width, 120);
+      
+      // Título principal
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 32px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('REPORTE DE ASISTENCIA', canvas.width / 2, 45);
+      
+      // Subtítulo
+      ctx.font = '18px Arial, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillText(`Fecha: ${data.report.date}`, canvas.width / 2, 75);
+      
+      // Información del reporte
+      let y = 160;
+      ctx.font = 'bold 16px Arial, sans-serif';
+      ctx.fillStyle = '#2d3748';
+      ctx.textAlign = 'left';
+      
+      ctx.fillText(`Estado: ${data.report.status === 'approved' ? 'Aprobado' : 'Borrador'}`, 50, y);
+      y += 25;
+      ctx.fillText(`Total Empleados: ${data.employees.length}`, 50, y);
+      y += 25;
+      ctx.fillText(`Presentes: ${data.stats?.presentCount || 0}`, 50, y);
+      y += 25;
+      ctx.fillText(`Ausentes: ${data.stats?.absentCount || 0}`, 50, y);
+      y += 25;
+      ctx.fillText(`Horas Totales: ${data.stats?.totalHours || 0}h`, 50, y);
+      
+      // Tabla de empleados
+      y += 40;
+      const rowHeight = 35;
+      const cellPadding = 10;
+      
+      // Calcular posiciones de columnas
+      const colName = 50;
+      const colStatus = 300;
+      const colHours = 450;
+      const colExtra = 600;
+      
+      // Fondo de la tabla
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(40, y - 10, canvas.width - 80, (Math.min(data.employees.length, 10) + 2) * rowHeight + 20);
+      
+      // Borde de la tabla
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(40, y - 10, canvas.width - 80, (Math.min(data.employees.length, 10) + 2) * rowHeight + 20);
+      
+      // Encabezados con gradiente
+      const headerGrad = ctx.createLinearGradient(0, 0, 0, rowHeight);
+      headerGrad.addColorStop(0, '#4f46e5');
+      headerGrad.addColorStop(1, '#7c3aed');
+      ctx.fillStyle = headerGrad;
+      ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Empleado', colName + cellPadding, y + 20);
+      ctx.fillText('Estado', colStatus + cellPadding, y + 20);
+      ctx.fillText('Horas', colHours + cellPadding, y + 20);
+      ctx.fillText('Extra', colExtra + cellPadding, y + 20);
+      
+      y += rowHeight;
+      
+      // Línea separadora
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(40, y - 10);
+      ctx.lineTo(canvas.width - 40, y - 10);
+      ctx.stroke();
+      
+      // Datos de los empleados (máximo 10 para que quepa)
+      ctx.fillStyle = '#374151';
+      ctx.font = '14px Arial, sans-serif';
+      
+      data.employees.slice(0, 10).forEach((employee, index) => {
+        // Fondo alternado para filas
+        if (index % 2 === 0) {
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
+        }
+        
+        ctx.fillStyle = '#374151';
+        const employeeName = employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`;
+        ctx.fillText(employeeName.length > 25 ? employeeName.substring(0, 22) + '...' : employeeName, colName + cellPadding, y + 20);
+        ctx.fillText(this.getStatusText(employee.status), colStatus + cellPadding, y + 20);
+        ctx.fillText(`${employee.totalHours || 0}h`, colHours + cellPadding, y + 20);
+        ctx.fillText(`${employee.overtimeHours || 0}h`, colExtra + cellPadding, y + 20);
+        
+        y += rowHeight;
       });
-
-      // Limpiar elemento temporal
-      document.body.removeChild(tempElement);
-
+      
+      // Footer
+      y += 50;
+      ctx.fillStyle = '#718096';
+      ctx.font = '12px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Documento generado el ${new Date().toLocaleString('es-MX')}`, canvas.width / 2, y);
+      y += 20;
+      ctx.fillText('Sistema de Asistencia UTalk - Reporte Profesional', canvas.width / 2, y);
+      
       // Convertir a blob y descargar
       canvas.toBlob((blob) => {
         if (blob) {
-          const filename = `reporte-asistencia-${data.report.date}.${format}`;
-          saveAs(blob, filename);
-          console.log('✅ Imagen exportada exitosamente');
-        } else {
-          throw new Error('Error generando imagen');
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `Reporte_Asistencia_${data.report.date}_${this.getDateString()}.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
         }
-      }, `image/${format}`);
-
+      }, 'image/png');
+      
     } catch (error) {
       console.error('❌ Error exportando imagen:', error);
-      throw new Error('Error al exportar reporte como imagen');
+      this.showError('Error al exportar como imagen');
     }
+  }
+
+  /**
+   * Genera contenido CSV
+   */
+  private static generateCSVContent(data: ExportData, options: ExportOptions): string {
+    const { creator = 'Sistema', approver = 'Pendiente' } = options;
+    const rows: string[] = [];
+    
+    // Encabezados
+    rows.push('REPORTE DE ASISTENCIA');
+    rows.push('');
+    rows.push('INFORMACIÓN DEL REPORTE');
+    rows.push(`Fecha,${data.report.date}`);
+    rows.push(`Estado,${data.report.status === 'approved' ? 'Aprobado' : 'Borrador'}`);
+    rows.push(`Creado por,${creator}`);
+    rows.push(`Autorizado por,${approver}`);
+    if (data.report.notes) {
+      rows.push(`Notas,"${data.report.notes}"`);
+    }
+    rows.push('');
+    
+    // Resumen general
+    rows.push('RESUMEN GENERAL');
+    rows.push(`Total Empleados,${data.employees.length}`);
+    rows.push(`Presentes,${data.stats?.presentCount || 0}`);
+    rows.push(`Ausentes,${data.stats?.absentCount || 0}`);
+    rows.push(`Tardes,${data.stats?.lateCount || 0}`);
+    rows.push(`Vacaciones,${data.stats?.vacationCount || 0}`);
+    rows.push(`Horas Totales,${data.stats?.totalHours || 0}h`);
+    rows.push(`Horas Extra,${data.stats?.overtimeHours || 0}h`);
+    rows.push('');
+    
+    // Detalle de empleados
+    rows.push('DETALLE DE EMPLEADOS');
+    rows.push('Empleado,ID,Estado,Hora Entrada,Hora Salida,Horas Totales,Horas Extra,Notas');
+    
+    data.employees.forEach(employee => {
+      rows.push([
+        `"${employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`}"`,
+        `"${employee.employeeNumber || employee.employeeId.slice(0, 8)}"`,
+        this.getStatusText(employee.status),
+        employee.clockIn || '-',
+        employee.clockOut || '-',
+        employee.totalHours || 0,
+        employee.overtimeHours || 0,
+        `"${employee.notes || ''}"`
+      ].join(','));
+    });
+    
+    return rows.join('\n');
+  }
+
+  /**
+   * Genera contenido para impresión/PDF
+   */
+  private static generatePrintContent(data: ExportData, options: ExportOptions): string {
+    const { creator = 'Sistema', approver = 'Pendiente' } = options;
+    
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Asistencia ${data.report.date}</title>
+    <style>
+        :root { --primary:#4f46e5; --primary2:#7c3aed; --success:#059669; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 15px; 
+            background: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.3;
+            font-size: 12px;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 20px; 
+            padding: 15px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .title { 
+            font-size: 20px; 
+            font-weight: 700; 
+            margin-bottom: 8px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .subtitle { font-size: 14px; opacity: 0.9; font-weight: 300; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .info-item { display: flex; flex-direction: column; gap: 2px; }
+        .info-label { font-weight: 600; color: #4a5568; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-value { font-size: 12px; color: #2d3748; font-weight: 500; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 15px 0; 
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        th { 
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white; 
+            padding: 8px 6px; 
+            text-align: left; 
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td { 
+            padding: 6px 6px; 
+            border-bottom: 1px solid #e2e8f0; 
+            font-size: 11px;
+        }
+        tr:nth-child(even) { background: #f8fafc; }
+        .summary { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .summary h3 { 
+            color: #2d3748; 
+            margin-bottom: 10px; 
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+        .summary-item { 
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #4f46e5;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .summary-label { font-weight: 600; color: #4a5568; font-size: 10px; margin-bottom: 2px; }
+        .summary-value { font-size: 12px; color: #2d3748; font-weight: 700; }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            padding: 10px;
+            color: #718096;
+            font-size: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+        @media print {
+            body { margin: 0; padding: 10px; }
+            .header { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
+            th { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">REPORTE DE ASISTENCIA</div>
+        <div class="subtitle">${data.report.date}</div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">Estado</div>
+            <div class="info-value">${data.report.status === 'approved' ? 'Aprobado' : 'Borrador'}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Creado por</div>
+            <div class="info-value">${creator}</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Autorizado por</div>
+            <div class="info-value">${approver}</div>
+        </div>
+        ${data.report.notes ? `
+        <div class="info-item">
+            <div class="info-label">Notas</div>
+            <div class="info-value">${data.report.notes}</div>
+        </div>
+        ` : ''}
+    </div>
+
+    ${data.stats ? `
+    <div class="summary">
+        <h3>RESUMEN GENERAL</h3>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">Total Empleados</div>
+                <div class="summary-value">${data.employees.length}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Presentes</div>
+                <div class="summary-value">${data.stats.presentCount || 0}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Ausentes</div>
+                <div class="summary-value">${data.stats.absentCount || 0}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Tardes</div>
+                <div class="summary-value">${data.stats.lateCount || 0}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Horas Totales</div>
+                <div class="summary-value">${data.stats.totalHours || 0}h</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Horas Extra</div>
+                <div class="summary-value">${data.stats.overtimeHours || 0}h</div>
+            </div>
+        </div>
+    </div>
+    ` : ''}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Empleado</th>
+                <th>Estado</th>
+                <th>Horario</th>
+                <th>Horas</th>
+                <th>Extra</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${data.employees.map(employee => `
+                <tr>
+                    <td>
+                        <strong>${employee.employeeName || `Empleado ${employee.employeeId.slice(0, 8)}`}</strong><br>
+                        <small style="color: #6b7280;">${employee.employeeNumber || employee.employeeId.slice(0, 8)}</small>
+                    </td>
+                    <td>
+                        <span style="background: ${this.getStatusColor(employee.status)}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+                            ${this.getStatusText(employee.status)}
+                        </span>
+                    </td>
+                    <td>
+                        ${employee.clockIn && employee.clockOut 
+                            ? `${employee.clockIn}<br>${employee.clockOut}`
+                            : '-'
+                        }
+                    </td>
+                    <td>${employee.totalHours ? `${employee.totalHours}h` : '-'}</td>
+                    <td>${employee.overtimeHours ? `${employee.overtimeHours}h` : '0h'}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Documento generado el ${new Date().toLocaleString('es-MX')}</p>
+        <p>Sistema de Asistencia UTalk - Reporte Profesional</p>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Descarga un archivo
+   */
+  private static downloadFile(content: string, filename: string, mimeType: string): void {
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Limpiar URL después de un tiempo
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      
+    } catch (error) {
+      console.error('Error al descargar archivo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene string de fecha para nombres de archivo
+   */
+  private static getDateString(): string {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }
+
+  /**
+   * Muestra error al usuario
+   */
+  private static showError(message: string): void {
+    // Crear notificación temporal
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #ef4444;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remover después de 5 segundos
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 5000);
   }
 
   /**
