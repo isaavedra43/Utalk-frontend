@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Users,
   Star,
-  DollarSign,
   MessageSquare,
   Calendar,
   Settings,
@@ -16,7 +15,6 @@ import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
 import { EmployeeDetailView } from './components/EmployeeDetailView';
 import { HRDashboard } from './components/HRDashboard';
-import { PayrollModule } from './components/PayrollModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
 import { HRDocumentsModule } from './components/HRDocumentsModule';
@@ -46,7 +44,6 @@ const HRModule: React.FC = () => {
   const tabs = [
     { id: 'dashboard', name: 'Panorama', icon: Star },
     { id: 'employees', name: 'Empleados', icon: Users },
-    { id: 'payroll', name: 'Nómina', icon: DollarSign },
     { id: 'vacations', name: 'Vacaciones', icon: Calendar },
     { id: 'documents', name: 'Documentos', icon: FileText },
     { id: 'copilot', name: 'Copiloto', icon: MessageSquare },
@@ -86,15 +83,6 @@ const HRModule: React.FC = () => {
           />
         ) : (
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />
-        );
-      case 'payroll':
-        return selectedEmployee ? (
-          <PayrollModule 
-            employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
-          />
-        ) : (
-          <PayrollModule />
         );
       case 'vacations':
         return selectedEmployee ? (

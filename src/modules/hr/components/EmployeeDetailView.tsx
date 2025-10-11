@@ -9,7 +9,6 @@ import {
   Building, 
   MapPin, 
   Calendar, 
-  DollarSign, 
   FileText, 
   AlertTriangle, 
   Star, 
@@ -20,7 +19,6 @@ import {
 import { employeesApi } from '../../../services/employeesApi';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import EditEmployeeModal from './EditEmployeeModal';
-import { EmployeePayrollView } from './EmployeePayrollView';
 import { EmployeeVacationsView } from './EmployeeVacationsView';
 import { DocumentModule } from './DocumentModule';
 import { EmployeeIncidentsView } from './EmployeeIncidentsView';
@@ -100,7 +98,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
 
   const tabs = [
     { id: 'summary', label: 'Resumen', icon: User },
-    { id: 'payroll', label: 'Nómina', icon: DollarSign },
     { id: 'extras', label: 'Extras', icon: Plus },
     { id: 'vacations', label: 'Vacaciones', icon: Calendar },
     { id: 'documents', label: 'Documentos', icon: FileText },
@@ -190,25 +187,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     
     try {
       switch (activeTab) {
-        case 'payroll':
-          try {
-            console.log('🎯 Renderizando EmployeePayrollView para empleado:', employee.id);
-            if (!employee?.id) {
-              throw new Error('ID de empleado no disponible');
-            }
-            return <EmployeePayrollView employeeId={employee.id} employee={employee} onBack={onBack} />;
-          } catch (error) {
-            console.error('❌ Error específico en EmployeePayrollView:', error);
-            return (
-              <div className="p-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <DollarSign className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="text-lg font-medium text-blue-800 mb-1">Nómina</h3>
-                  <p className="text-blue-600 text-sm">No hay información de nómina disponible para este empleado.</p>
-                </div>
-              </div>
-            );
-          }
         
         case 'extras':
           try {

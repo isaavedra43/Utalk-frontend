@@ -10,8 +10,6 @@ import {
   CreateEmployeeData,
   UpdateEmployeeData,
   EmployeeFilters,
-  PayrollResponse,
-  PayrollData,
   VacationResponse,
   VacationBalanceResponse,
   VacationRequestData,
@@ -144,24 +142,6 @@ class EmployeeService {
    */
   async getOrgChart(): Promise<OrgChartResponse> {
     throw new Error('Organigrama deshabilitado');
-  }
-
-  // ===== MÉTODOS DE NÓMINA =====
-
-  /**
-   * Obtener nómina del empleado
-   */
-  async getPayroll(employeeId: string): Promise<PayrollResponse> {
-    const response = await api.get(`${this.baseEndpoint}/${employeeId}/payroll`);
-    return response.data;
-  }
-
-  /**
-   * Crear período de nómina
-   */
-  async createPayrollPeriod(employeeId: string, payrollData: PayrollData): Promise<APIResponse> {
-    const response = await api.post(`${this.baseEndpoint}/${employeeId}/payroll`, payrollData);
-    return response.data;
   }
 
 
@@ -300,7 +280,7 @@ class EmployeeService {
   /**
    * Validar permisos HR para una acción específica
    */
-  validateHRPermission(action: 'create' | 'read' | 'update' | 'delete' | 'viewPayroll' | 'viewDocuments' | 'approveVacations'): boolean {
+  validateHRPermission(action: 'create' | 'read' | 'update' | 'delete' | 'viewDocuments' | 'approveVacations'): boolean {
     // Implementar lógica de validación de permisos según el rol
     const userTokenData = this.getUserTokenData();
     

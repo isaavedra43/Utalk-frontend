@@ -5,11 +5,11 @@ import { logger } from '../utils/logger';
 // Tipos para los movimientos
 export interface LoanPayment {
   id: string;
-  payrollPeriod: string;
+  period: string;
   paymentDate: string;
   amount: number;
   status: 'paid' | 'pending' | 'overdue';
-  payrollId?: string;
+  periodId?: string;
 }
 
 export interface MovementRecord {
@@ -35,8 +35,8 @@ export interface MovementRecord {
   
   // Estado de pago
   paymentStatus: 'unpaid' | 'paid';
-  payrollId?: string; // ID de la nómina donde se pagó
-  payrollPeriod?: string; // Período de la nómina (ej: "2025-09-14 - 2025-09-20")
+  periodId?: string; // ID del período donde se pagó
+  period?: string; // Período (ej: "2025-09-14 - 2025-09-20")
   paidAt?: string; // Fecha cuando se pagó
   paidBy?: string; // Quién procesó el pago
   
@@ -104,7 +104,7 @@ export interface MovementsSummary {
   movements: MovementRecord[];
 }
 
-export interface PayrollImpact {
+export interface ExtrasImpact {
   totalToAdd: number;
   totalToSubtract: number;
   netImpact: number;
@@ -551,23 +551,23 @@ class ExtrasService {
     }
   }
 
-  async getPayrollImpact(employeeId: string, periodStart: string, periodEnd: string): Promise<PayrollImpact> {
+  async getExtrasImpact(employeeId: string, periodStart: string, periodEnd: string): Promise<ExtrasImpact> {
     try {
-      const response = await api.get(`/api/employees/${employeeId}/payroll-impact?periodStart=${periodStart}&periodEnd=${periodEnd}`);
+      const response = await api.get(`/api/employees/${employeeId}/extras-impact?periodStart=${periodStart}&periodEnd=${periodEnd}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching payroll impact:', error);
+      console.error('Error fetching extras impact:', error);
       throw error;
     }
   }
 
   // GESTIÓN DE PRÉSTAMOS
   async addLoanPayment(loanId: string, paymentData: {
-    payrollPeriod: string;
+    period: string;
     paymentDate: string;
     amount: number;
     status: 'paid' | 'pending' | 'overdue';
-    payrollId?: string;
+    periodId?: string;
   }): Promise<{ payment: LoanPayment; loan: MovementRecord }> {
     try {
       const response = await api.post(`/api/loans/${loanId}/payments`, paymentData);

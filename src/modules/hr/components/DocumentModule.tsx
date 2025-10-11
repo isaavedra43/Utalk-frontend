@@ -232,8 +232,6 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
         return <FileText className="w-5 h-5 text-blue-600" />;
       case 'identification':
         return <User className="w-5 h-5 text-green-600" />;
-      case 'payroll':
-        return <Calendar className="w-5 h-5 text-purple-600" />;
       case 'medical':
         return <User className="w-5 h-5 text-red-600" />;
       case 'training':
@@ -253,8 +251,6 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
         return 'Contrato';
       case 'identification':
         return 'Identificación';
-      case 'payroll':
-        return 'Nómina';
       case 'medical':
         return 'Médico';
       case 'training':
@@ -274,8 +270,6 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
         return 'bg-blue-100 text-blue-800';
       case 'identification':
         return 'bg-green-100 text-green-800';
-      case 'payroll':
-        return 'bg-purple-100 text-purple-800';
       case 'medical':
         return 'bg-red-100 text-red-800';
       case 'training':
@@ -450,7 +444,6 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
             <option value="all">Todas las categorías</option>
             <option value="contract">Contrato</option>
             <option value="identification">Identificación</option>
-            <option value="payroll">Nómina</option>
             <option value="medical">Médico</option>
             <option value="training">Capacitación</option>
             <option value="performance">Rendimiento</option>
@@ -960,7 +953,6 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ document, e
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 document.category === 'contract' ? 'bg-blue-100 text-blue-800' :
                 document.category === 'identification' ? 'bg-green-100 text-green-800' :
-                document.category === 'payroll' ? 'bg-purple-100 text-purple-800' :
                 document.category === 'medical' ? 'bg-red-100 text-red-800' :
                 document.category === 'training' ? 'bg-orange-100 text-orange-800' :
                 document.category === 'performance' ? 'bg-yellow-100 text-yellow-800' :
@@ -968,7 +960,6 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ document, e
               }`}>
                 {document.category === 'contract' ? 'Contrato' :
                  document.category === 'identification' ? 'Identificación' :
-                 document.category === 'payroll' ? 'Nómina' :
                  document.category === 'medical' ? 'Médico' :
                  document.category === 'training' ? 'Capacitación' :
                  document.category === 'performance' ? 'Rendimiento' :

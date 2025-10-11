@@ -75,26 +75,6 @@ export interface Contract {
   notes?: string;
 }
 
-// ===== TIPOS PARA NÓMINA =====
-
-export interface PayrollRecord {
-  id: string;
-  periodStart: string;
-  periodEnd: string;
-  grossSalary: number;
-  netSalary: number;
-  taxes: number;
-  deductions: any[];
-  bonuses: any[];
-  status: 'pending' | 'paid' | 'cancelled';
-  createdAt: string;
-}
-
-export interface PayrollSummary {
-  totalPeriods: number;
-  averageSalary: number;
-  lastPayment: string;
-}
 
 
 // ===== TIPOS PARA VACACIONES =====
@@ -134,7 +114,7 @@ export interface Document {
   originalName: string;
   fileSize: number;
   mimeType: string;
-  category: 'contract' | 'identification' | 'payroll' | 'medical' | 'training' | 'performance' | 'other';
+  category: 'contract' | 'identification' | 'medical' | 'training' | 'performance' | 'other';
   subcategory?: string;
   isConfidential: boolean;
   tags: string[];
@@ -205,7 +185,6 @@ export interface EmployeeDetailResponse {
   data: {
     employee: Employee;
     relatedData: {
-      payroll: PayrollSummary;
       vacations: VacationSummary;
       documents: Document[];
       incidents: any[];
@@ -240,12 +219,6 @@ export interface EmployeeStatsResponse {
   };
 }
 
-export interface PayrollResponse {
-  success: boolean;
-  data: {
-    payroll: PayrollRecord[];
-  };
-}
 
 
 export interface VacationResponse {
@@ -323,13 +296,6 @@ export interface UpdateEmployeeData {
   status?: Employee['status'];
 }
 
-export interface PayrollData {
-  periodStart: string;
-  periodEnd: string;
-  grossSalary: number;
-  bonuses?: number[];
-  deductions?: number[];
-}
 
 export interface VacationRequestData {
   startDate: string;
@@ -358,7 +324,6 @@ export interface HRPermissions {
   canRead: boolean;
   canUpdate: boolean;
   canDelete: boolean;
-  canViewPayroll: boolean;
   canViewDocuments: boolean;
   canApproveVacations: boolean;
   scope: 'all' | 'department' | 'self';

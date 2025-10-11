@@ -4,7 +4,6 @@ export { EmployeeDetail } from './components/EmployeeDetail';
 export { AddEmployeeModal } from './components/AddEmployeeModal';
 export { ImportEmployeesModal } from './components/ImportEmployeesModal';
 export { EmployeeDetailView } from './components/EmployeeDetailView';
-export { EmployeePayrollView } from './components/EmployeePayrollView';
 export { EmployeeExtrasView } from './components/EmployeeExtrasView';
 export { EmployeeVacationsView } from './components/EmployeeVacationsView';
 export { EmployeeDocumentsView } from './components/EmployeeDocumentsView';
@@ -14,10 +13,8 @@ export { EmployeeSkillsView } from './components/EmployeeSkillsView';
 export { EmployeeHistoryView } from './components/EmployeeHistoryView';
 export { default as EditEmployeeModal } from './components/EditEmployeeModal';
 export { UploadFilesModal } from './components/UploadFilesModal';
-export { PayrollChart } from './components/PayrollChart';
 export { VacationsChart } from './components/VacationsChart';
 export { HRDashboard } from './components/HRDashboard';
-export { PayrollModule } from './components/PayrollModule';
 export { HRCopilot } from './components/HRCopilot';
 
 // Módulo de Extras
