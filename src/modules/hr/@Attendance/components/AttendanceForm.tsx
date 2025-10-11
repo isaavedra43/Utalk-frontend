@@ -57,19 +57,29 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
         employees: [], // Se cargarán desde el servicio
         notes: report.notes || ''
       });
-    } else {
-      // Si es un nuevo reporte, generar automáticamente con plantilla normal
-      // para que todos los empleados aparezcan como presentes con horarios pre-llenados
-      const generateInitialReport = async () => {
-        try {
-          console.log('🔄 Generando reporte inicial...');
-          setQuickReportLoading(true);
-          const todayDate = new Date().toISOString().split('T')[0];
-          const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
-          console.log('✅ Reporte inicial generado:', quickReportData);
+        } else {
+          // Si es un nuevo reporte, generar automáticamente con plantilla normal
+          // para que todos los empleados aparezcan como presentes con horarios pre-llenados
+          const generateInitialReport = async () => {
+            try {
+              console.log('🔄 Generando reporte inicial...');
+              setQuickReportLoading(true);
+              const todayDate = new Date().toISOString().split('T')[0];
+              console.log('🔍 Fecha para reporte:', todayDate);
+              
+              const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
+              console.log('✅ Reporte inicial generado:', quickReportData);
+              console.log('🔍 Datos del reporte:', {
+                hasData: !!quickReportData.data,
+                employeesCount: quickReportData.data?.employees?.length || 0,
+                employees: quickReportData.data?.employees
+              });
 
           // Validar y limpiar los datos antes de establecerlos
-          const cleanedEmployees = quickReportData.employees.map(emp => ({
+          const employeesData = quickReportData.data?.employees || quickReportData.employees || [];
+          console.log('🔍 Empleados extraídos:', employeesData);
+          
+          const cleanedEmployees = employeesData.map(emp => ({
             employeeId: emp.employeeId,
             status: emp.status,
             clockIn: emp.clockIn || '',
@@ -90,11 +100,17 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
           const newFormData = {
             date: todayDate,
             employees: cleanedEmployees,
-            notes: quickReportData.notes || ''
+            notes: quickReportData.data?.notes || quickReportData.notes || ''
           };
 
           console.log('🔍 Estableciendo formData:', newFormData);
-          setFormData(newFormData);
+          
+          try {
+            setFormData(newFormData);
+            console.log('✅ setFormData ejecutado exitosamente');
+          } catch (setError) {
+            console.error('❌ Error al ejecutar setFormData:', setError);
+          }
           
           // Verificar que se estableció correctamente
           setTimeout(() => {
@@ -128,7 +144,8 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
       const quickReportData = await attendanceService.generateQuickReport(formData.date, template);
 
       // Validar y limpiar los datos antes de establecerlos
-      const cleanedEmployees = quickReportData.employees.map(emp => ({
+      const employeesData = quickReportData.data?.employees || quickReportData.employees || [];
+      const cleanedEmployees = employeesData.map(emp => ({
         employeeId: emp.employeeId,
         status: emp.status,
         clockIn: emp.clockIn || '',
@@ -140,9 +157,9 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
       }));
 
       setFormData({
-        date: quickReportData.date,
+        date: quickReportData.data?.date || quickReportData.date,
         employees: cleanedEmployees,
-        notes: quickReportData.notes || ''
+        notes: quickReportData.data?.notes || quickReportData.notes || ''
       });
     } catch (error) {
       // Solo loggear errores reales, no objetos vacíos
