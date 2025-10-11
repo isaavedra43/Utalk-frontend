@@ -90,6 +90,7 @@ const HRModule: React.FC = () => {
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />
         );
       case 'attendance':
+        console.log('🔍 HRModule - Renderizando AttendanceModule');
         return <AttendanceModule />;
       case 'payroll':
         return (
