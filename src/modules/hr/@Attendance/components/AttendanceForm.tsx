@@ -8,12 +8,7 @@ import {
   Calendar,
   Users,
   CheckCircle,
-  Clock,
-  Zap,
-  Save,
-  X,
-  Plus,
-  Trash2
+  Zap
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
 import { AttendanceReport, CreateAttendanceReportRequest } from '../types';
@@ -58,12 +53,13 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
       const generateInitialReport = async () => {
         try {
           setQuickReportLoading(true);
-          const quickReportData = await attendanceService.generateQuickReport(formData.date, 'normal');
-          setFormData(prev => ({
-            ...prev,
+          const todayDate = new Date().toISOString().split('T')[0];
+          const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
+          setFormData({
+            date: todayDate,
             employees: quickReportData.employees,
             notes: quickReportData.notes
-          }));
+          });
         } catch (error) {
           console.error('Error generando reporte inicial:', error);
         } finally {
@@ -73,7 +69,8 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
 
       generateInitialReport();
     }
-  }, [report, formData.date]);
+    // Ejecutar solo al montar o cuando cambie el report
+  }, [report]);
 
   const handleQuickReport = async (template: 'normal' | 'weekend' | 'holiday') => {
     try {
@@ -164,16 +161,40 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="date">Fecha del Reporte</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  required
-                />
+            <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="date">Fecha del Reporte</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleQuickReport('normal')}
+                    disabled={quickReportLoading}
+                    className="w-full"
+                  >
+                    {quickReportLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                        Generando...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Regenerar para esta fecha
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -280,7 +301,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   </div>
                 </div>
               <div className="space-y-4">
-                {formData.employees.map((employee, index) => (
+                {formData.employees.map((employee) => (
                   <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -392,7 +413,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <CheckCircle className="h-4 w-4 mr-2" />
                 {report ? 'Actualizar Reporte' : 'Crear Reporte'}
               </>
             )}

@@ -9,17 +9,13 @@ import {
   Download,
   CheckCircle,
   AlertCircle,
-  Users,
-  TrendingUp,
-  Clock,
-  Filter
+  Users
 } from 'lucide-react';
 import { AttendanceList } from './components/AttendanceList';
 import { AttendanceDetail } from './components/AttendanceDetail';
 import { AttendanceForm } from './components/AttendanceForm';
-import { attendanceService } from './attendanceService';
 import { useAttendance } from './hooks/useAttendance';
-import { AttendanceReport, ApprovalRequest } from './types';
+import { AttendanceReport, ApprovalRequest, CreateAttendanceReportRequest } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -84,7 +80,6 @@ class AttendanceErrorBoundary extends React.Component<
 const AttendanceModule: React.FC = () => {
   const [activeView, setActiveView] = useState<'list' | 'detail' | 'form'>('list');
   const [selectedReport, setSelectedReport] = useState<AttendanceReport | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -104,10 +99,11 @@ const AttendanceModule: React.FC = () => {
   useEffect(() => {
     loadReports();
     loadPermissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreateReport = () => {
-    setShowForm(true);
+    setSelectedReport(null);
     setActiveView('form');
   };
 
@@ -118,7 +114,6 @@ const AttendanceModule: React.FC = () => {
 
   const handleEditReport = (report: AttendanceReport) => {
     setSelectedReport(report);
-    setShowForm(true);
     setActiveView('form');
   };
 
@@ -150,25 +145,23 @@ const AttendanceModule: React.FC = () => {
     loadReports();
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: CreateAttendanceReportRequest) => {
     if (selectedReport) {
       await updateReport(selectedReport.id, data);
     } else {
       await createReport(data);
     }
     setActiveView('list');
-    setShowForm(false);
     setSelectedReport(null);
     loadReports();
   };
 
   const handleFormCancel = () => {
     setActiveView('list');
-    setShowForm(false);
     setSelectedReport(null);
   };
 
-  const filteredReports = reports.filter(report => {
+  const filteredReports = reports.filter((report: AttendanceReport) => {
     const matchesSearch = report.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          report.notes?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
@@ -231,19 +224,11 @@ const AttendanceModule: React.FC = () => {
 
         <div className="flex items-center space-x-3 mt-4 sm:mt-0">
           <Button
-            onClick={() => setActiveView('form')}
+            onClick={handleCreateReport}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Reporte
-          </Button>
-          <Button
-            onClick={handleCreateReport}
-            variant="outline"
-            className="border-green-300 text-green-700 hover:bg-green-50"
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Reporte Rápido
           </Button>
         </div>
       </div>
@@ -256,7 +241,7 @@ const AttendanceModule: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Empleados Totales</p>
               <p className="text-2xl font-bold text-gray-900">
-                {reports.reduce((sum, r) => sum + r.totalEmployees, 0)}
+                {reports.reduce((sum: number, r: AttendanceReport) => sum + (r.totalEmployees || 0), 0)}
               </p>
             </div>
           </div>
@@ -276,7 +261,7 @@ const AttendanceModule: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
-            <Clock className="h-8 w-8 text-orange-500" />
+            <CheckCircle className="h-8 w-8 text-orange-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Horas Extra Hoy</p>
               <p className="text-2xl font-bold text-gray-900">
@@ -288,7 +273,7 @@ const AttendanceModule: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
-            <TrendingUp className="h-8 w-8 text-purple-500" />
+            <Users className="h-8 w-8 text-purple-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Reportes Totales</p>
               <p className="text-2xl font-bold text-gray-900">
@@ -308,7 +293,7 @@ const AttendanceModule: React.FC = () => {
               <Input
                 placeholder="Buscar por fecha o notas..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -326,11 +311,6 @@ const AttendanceModule: React.FC = () => {
                 <SelectItem value="approved">Aprobado</SelectItem>
               </SelectContent>
             </Select>
-
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Más filtros
-            </Button>
 
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
