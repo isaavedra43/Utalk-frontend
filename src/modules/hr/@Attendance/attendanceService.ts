@@ -604,6 +604,8 @@ class AttendanceService {
    * Fallback a permisos mock
    */
   private getMockUserPermissions(): AttendancePermissions {
+    // Simular obtención de permisos del usuario actual
+    // En una implementación real, esto vendría del backend basado en el rol del usuario
     const currentUser = this.getCurrentUser();
     
     return {
@@ -616,6 +618,20 @@ class AttendanceService {
       isAdmin: currentUser.role === 'admin'
     };
   }
+
+  /**
+   * Simular usuario actual (en implementación real vendría del contexto de autenticación)
+   */
+  private getCurrentUser() {
+    return {
+      id: 'current_user',
+      email: 'admin@company.com',
+      role: 'admin', // Cambiar a 'hr_user' para probar permisos limitados
+      name: 'Usuario Actual'
+    };
+  }
+
+  // ===== MÉTODOS ADICIONALES PARA BACKEND =====
 
   /**
    * Obtener dashboard de asistencia
@@ -804,18 +820,6 @@ class AttendanceService {
     }
 
     return data;
-  }
-
-  /**
-   * Simular usuario actual (en implementación real vendría del contexto de autenticación)
-   */
-  private getCurrentUser() {
-    return {
-      id: 'current_user',
-      email: 'admin@company.com',
-      role: 'admin', // Cambiar a 'hr_user' para probar permisos limitados
-      name: 'Usuario Actual'
-    };
   }
 }
 
