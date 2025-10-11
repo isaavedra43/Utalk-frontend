@@ -18,7 +18,7 @@ import {
 interface HistoryEvent {
   id: string;
   type: 'profile_update' | 'position_change' | 'salary_change' | 'evaluation' | 'skill_update' | 
-        'certification' | 'incident' | 'vacation' | 'attendance' | 'document' | 'note' | 'system';
+        'certification' | 'incident' | 'vacation' | 'document' | 'note' | 'system';
   category: 'personal' | 'work' | 'performance' | 'development' | 'administrative' | 'system';
   title: string;
   description: string;
@@ -187,7 +187,6 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
       case 'certification': return <Award className="h-4 w-4" />;
       case 'incident': return <AlertTriangle className="h-4 w-4" />;
       case 'vacation': return <Calendar className="h-4 w-4" />;
-      case 'attendance': return <Calendar className="h-4 w-4" />;
       case 'document': return <FileText className="h-4 w-4" />;
       case 'note': return <Edit className="h-4 w-4" />;
       case 'system': return <Settings className="h-4 w-4" />;
@@ -205,7 +204,6 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
       case 'certification': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'incident': return 'bg-red-100 text-red-800 border-red-200';
       case 'vacation': return 'bg-teal-100 text-teal-800 border-teal-200';
-      case 'attendance': return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'document': return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'note': return 'bg-pink-100 text-pink-800 border-pink-200';
       case 'system': return 'bg-slate-100 text-slate-800 border-slate-200';

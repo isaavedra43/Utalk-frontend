@@ -64,7 +64,7 @@ export interface MovementRequest {
   
   // Para montos fijos (bonos, deducciones, daños)
   amount?: number; // Monto (opcional si se calcula automáticamente)
-  bonusType?: 'performance' | 'attendance' | 'special' | 'holiday';
+  bonusType?: 'performance' | 'special' | 'holiday';
   deductionType?: 'voluntary' | 'disciplinary' | 'equipment' | 'other';
   damageType?: 'equipment' | 'property' | 'vehicle' | 'other';
   
@@ -78,16 +78,6 @@ export interface MovementRequest {
   attachments?: string[]; // URLs de archivos subidos
 }
 
-export interface AttendanceMetrics {
-  totalDays: number;
-  presentDays: number;
-  absentDays: number;
-  lateDays: number;
-  totalHours: number;
-  overtimeHours: number;
-  attendanceScore: number;
-  punctualityScore: number;
-}
 
 export interface ChartData {
   date: string;
@@ -538,15 +528,6 @@ class ExtrasService {
     }
   }
 
-  async getAttendanceMetrics(employeeId: string, days: number = 30): Promise<AttendanceMetrics> {
-    try {
-      const response = await api.get(`/api/employees/${employeeId}/attendance-metrics?days=${days}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching attendance metrics:', error);
-      throw error;
-    }
-  }
 
   async getChartData(employeeId: string, days: number = 30): Promise<ChartData[]> {
     try {
@@ -737,17 +718,6 @@ class ExtrasService {
     }
   }
 
-  async exportAttendance(employeeId: string, startDate: string, endDate: string, format: 'json' | 'excel' = 'excel'): Promise<Blob> {
-    try {
-      const response = await api.get(`/api/reports/employee/${employeeId}/attendance?startDate=${startDate}&endDate=${endDate}&format=${format}`, {
-        responseType: 'blob',
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error exporting attendance:', error);
-      throw error;
-    }
-  }
 
   // CÁLCULOS AUTOMÁTICOS
   async calculateAmount(employeeId: string, movementData: Partial<MovementRequest>): Promise<{ amount: number; breakdown: Record<string, number> }> {

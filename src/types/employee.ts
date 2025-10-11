@@ -96,24 +96,6 @@ export interface PayrollSummary {
   lastPayment: string;
 }
 
-// ===== TIPOS PARA ASISTENCIA =====
-
-export interface AttendanceRecord {
-  id: string;
-  date: string;
-  clockIn?: string;
-  clockOut?: string;
-  totalHours: number;
-  status: 'present' | 'absent' | 'late' | 'early_leave';
-  notes?: string;
-}
-
-export interface AttendanceSummary {
-  totalDays: number;
-  presentDays: number;
-  absentDays: number;
-  punctualityScore: number;
-}
 
 // ===== TIPOS PARA VACACIONES =====
 
@@ -224,7 +206,6 @@ export interface EmployeeDetailResponse {
     employee: Employee;
     relatedData: {
       payroll: PayrollSummary;
-      attendance: AttendanceSummary;
       vacations: VacationSummary;
       documents: Document[];
       incidents: any[];
@@ -266,12 +247,6 @@ export interface PayrollResponse {
   };
 }
 
-export interface AttendanceResponse {
-  success: boolean;
-  data: {
-    attendance: AttendanceRecord[];
-  };
-}
 
 export interface VacationResponse {
   success: boolean;
@@ -313,13 +288,6 @@ export interface DeleteResponse {
   deletedAt: string;
 }
 
-export interface ClockResponse {
-  success: boolean;
-  data: {
-    attendance: AttendanceRecord;
-  };
-  message: string;
-}
 
 // ===== TIPOS PARA FILTROS Y BÚSQUEDA =====
 
@@ -391,7 +359,6 @@ export interface HRPermissions {
   canUpdate: boolean;
   canDelete: boolean;
   canViewPayroll: boolean;
-  canViewAttendance: boolean;
   canViewDocuments: boolean;
   canApproveVacations: boolean;
   scope: 'all' | 'department' | 'self';

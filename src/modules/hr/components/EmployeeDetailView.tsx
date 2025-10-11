@@ -21,13 +21,13 @@ import { employeesApi } from '../../../services/employeesApi';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import EditEmployeeModal from './EditEmployeeModal';
 import { EmployeePayrollView } from './EmployeePayrollView';
-import { EmployeeAttendanceView } from './EmployeeAttendanceView';
 import { EmployeeVacationsView } from './EmployeeVacationsView';
 import { DocumentModule } from './DocumentModule';
 import { EmployeeIncidentsView } from './EmployeeIncidentsView';
 import { EmployeeEquipmentView } from './EmployeeEquipmentView';
 import { EmployeeSkillsView } from './EmployeeSkillsView';
 import { EmployeeHistoryView } from './EmployeeHistoryView';
+import { EmployeeExtrasView } from './EmployeeExtrasView';
 import type { Employee } from '../../../services/employeesApi';
 
 interface EmployeeDetailViewProps {
@@ -101,7 +101,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   const tabs = [
     { id: 'summary', label: 'Resumen', icon: User },
     { id: 'payroll', label: 'Nómina', icon: DollarSign },
-    { id: 'attendance', label: 'Extras', icon: Plus },
+    { id: 'extras', label: 'Extras', icon: Plus },
     { id: 'vacations', label: 'Vacaciones', icon: Calendar },
     { id: 'documents', label: 'Documentos', icon: FileText },
     { id: 'incidents', label: 'Incidentes', icon: AlertTriangle },
@@ -210,17 +210,17 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
             );
           }
         
-        case 'attendance':
+        case 'extras':
           try {
-            return <EmployeeAttendanceView employeeId={employee.id} employee={employee} onBack={onBack} />;
+            return <EmployeeExtrasView employeeId={employee.id} employee={employee} onBack={onBack} />;
           } catch (error) {
-            console.error('Error en EmployeeAttendanceView:', error);
+            console.error('Error en EmployeeExtrasView:', error);
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                   <Plus className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Extras</h3>
-                  <p className="text-blue-600 text-sm">No hay información de asistencia disponible para este empleado.</p>
+                  <p className="text-blue-600 text-sm">No hay información de extras disponible para este empleado.</p>
                 </div>
               </div>
             );
@@ -228,7 +228,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'vacations':
           try {
-            return <EmployeeVacationsView employeeId={employee.id} employeeName={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`} onBack={onBack} />;
+            return <EmployeeVacationsView employeeId={employee.id} employeeName={`${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`} onBack={onBack} />;
           } catch (error) {
             console.error('Error en EmployeeVacationsView:', error);
             return (
@@ -247,7 +247,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
             console.log('🎯 Renderizando DocumentModule para empleado:', employee.id);
             return <DocumentModule 
               employeeId={employee.id} 
-              employeeName={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`}
+              employeeName={`${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`}
             />;
           } catch (error) {
             console.error('Error en DocumentModule:', error);
@@ -264,7 +264,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'incidents':
           try {
-            return <EmployeeIncidentsView employeeId={employee.id} employeeName={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`} onBack={onBack} />;
+            return <EmployeeIncidentsView employeeId={employee.id} employeeName={`${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`} onBack={onBack} />;
           } catch (error) {
             console.error('Error en EmployeeIncidentsView:', error);
             return (
@@ -280,7 +280,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'equipment':
           try {
-            return <EmployeeEquipmentView employeeId={employee.id} employeeName={`${employee.firstName} ${employee.lastName}`} onBack={onBack} />;
+            return <EmployeeEquipmentView employeeId={employee.id} employeeName={`${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`} onBack={onBack} />;
           } catch (error) {
             console.error('Error en EmployeeEquipmentView:', error);
             return (
@@ -637,8 +637,8 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Métricas y Rendimiento</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">Asistencia</label>
-                          <p className="text-gray-900">{metrics?.attendanceRate || 0}%</p>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Rendimiento</label>
+                          <p className="text-gray-900">{metrics?.performanceScore || 0}%</p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-600 mb-1">Retardos</label>

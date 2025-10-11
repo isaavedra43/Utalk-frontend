@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
-  BarChart3,
+  Star,
   DollarSign,
-  Bot,
+  MessageSquare,
   Calendar,
   Settings,
   Bell,
@@ -17,7 +17,6 @@ import { EmployeeDetail } from './components/EmployeeDetail';
 import { EmployeeDetailView } from './components/EmployeeDetailView';
 import { HRDashboard } from './components/HRDashboard';
 import { PayrollModule } from './components/PayrollModule';
-import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
 import { HRDocumentsModule } from './components/HRDocumentsModule';
@@ -45,13 +44,12 @@ const HRModule: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'dashboard', name: 'Panorama', icon: BarChart3 },
+    { id: 'dashboard', name: 'Panorama', icon: Star },
     { id: 'employees', name: 'Empleados', icon: Users },
     { id: 'payroll', name: 'Nómina', icon: DollarSign },
-    { id: 'attendance', name: 'Asistencia', icon: Calendar },
     { id: 'vacations', name: 'Vacaciones', icon: Calendar },
     { id: 'documents', name: 'Documentos', icon: FileText },
-    { id: 'copilot', name: 'Copiloto', icon: Bot },
+    { id: 'copilot', name: 'Copiloto', icon: MessageSquare },
   ];
 
   // Manejar resize de ventana
@@ -97,18 +95,6 @@ const HRModule: React.FC = () => {
           />
         ) : (
           <PayrollModule />
-        );
-      case 'attendance':
-        return selectedEmployee ? (
-          <AttendanceModule 
-            employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
-          />
-        ) : (
-          <div className="text-center py-12">
-            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Selecciona un empleado para ver su asistencia</p>
-          </div>
         );
       case 'vacations':
         return selectedEmployee ? (
@@ -237,7 +223,7 @@ const HRModule: React.FC = () => {
                 onClick={() => setLeftPanelOpen(true)}
                 className="flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
               >
-                <Bot className="h-4 w-4" />
+                <MessageSquare className="h-4 w-4" />
                 <span>Copiloto</span>
               </button>
             </div>
@@ -292,7 +278,7 @@ const HRModule: React.FC = () => {
                   onClick={() => setLeftPanelOpen(true)}
                   className="flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
                 >
-                  <Bot className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" />
                   <span>Copiloto IA</span>
                 </button>
               </div>
