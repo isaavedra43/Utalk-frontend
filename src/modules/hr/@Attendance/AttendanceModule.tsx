@@ -21,106 +21,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatHours } from '@/utils/dateUtils';
 
-// Error Boundary para el módulo de asistencia
-interface AttendanceErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-}
-
-interface AttendanceErrorBoundaryProps {
-  children: React.ReactNode;
-}
-
-class AttendanceErrorBoundary extends React.Component<AttendanceErrorBoundaryProps, AttendanceErrorBoundaryState> {
-  state: AttendanceErrorBoundaryState = {
-    hasError: false
-  };
-
-  constructor(props: AttendanceErrorBoundaryProps) {
-    super(props);
-  }
-
-  static getDerivedStateFromError(error: Error): AttendanceErrorBoundaryState {
-    // Solo capturar errores reales, no objetos vacíos o errores sin mensaje
-    if (!error) {
-      return { hasError: false };
-    }
-    
-    // Verificar si es un objeto vacío o error sin información
-    if (typeof error === 'object' && Object.keys(error).length === 0) {
-      console.warn('⚠️ Error vacío detectado y filtrado en Error Boundary');
-      return { hasError: false };
-    }
-    
-    // Verificar si tiene mensaje válido
-    if (error.message &&
-        error.message.trim() !== '' &&
-        error.message !== '{}' &&
-        error.message !== 'undefined' &&
-        error.message !== 'null' &&
-        !error.message.includes('Minified React error')) {
-      return { hasError: true, error };
-    }
-    
-    console.warn('⚠️ Error sin mensaje válido detectado y filtrado:', error);
-    return { hasError: false };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Filtrar errores vacíos o sin información útil
-    if (!error) {
-      return;
-    }
-    
-    // Verificar si es un objeto vacío
-    if (typeof error === 'object' && Object.keys(error).length === 0) {
-      console.warn('⚠️ Error vacío detectado en componentDidCatch, ignorando');
-      return;
-    }
-    
-    // Solo loggear errores reales
-    if (error && error.message && error.message.trim() !== '' && 
-        error.message !== '{}' && error.message !== 'undefined' && error.message !== 'null') {
-      console.error('Error en módulo de asistencia:', error, errorInfo);
-    } else {
-      console.warn('⚠️ Error sin mensaje válido en componentDidCatch:', {
-        error,
-        type: typeof error,
-        keys: error ? Object.keys(error) : [],
-        errorInfo
-      });
-    }
-  }
-
-  render(): React.ReactNode {
-    if (this.state.hasError) {
-      return (
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-800 mb-2">
-              Error en el módulo de asistencia
-            </h2>
-            <p className="text-red-600 mb-4">
-              Ha ocurrido un error inesperado. Por favor, recarga la página.
-            </p>
-            <Button
-              onClick={() => window.location.reload()}
-              variant="outline"
-              className="border-red-300 text-red-700 hover:bg-red-50"
-            >
-              Recargar página
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    return <>{(this as any).props.children}</>;
-  }
-}
-
 const AttendanceModule: React.FC = () => {
+  console.log('🔍 AttendanceModule - Iniciando renderizado');
+  
   const [activeView, setActiveView] = useState<'list' | 'detail' | 'form'>('list');
   const [selectedReport, setSelectedReport] = useState<AttendanceReport | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,8 +43,14 @@ const AttendanceModule: React.FC = () => {
   } = useAttendance();
 
   useEffect(() => {
-    loadReports();
-    loadPermissions();
+    console.log('🔍 AttendanceModule - Ejecutando useEffect inicial');
+    try {
+      loadReports();
+      loadPermissions();
+      console.log('✅ AttendanceModule - Carga de datos iniciada');
+    } catch (effectError) {
+      console.error('❌ AttendanceModule - Error en useEffect:', effectError);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -260,15 +169,28 @@ const AttendanceModule: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  console.log('🔍 AttendanceModule - Estado actual:', { 
+    loading, 
+    error, 
+    reportsCount: reports?.length || 0,
+    activeView,
+    hasPermissions: !!permissions
+  });
+
   if (loading) {
+    console.log('🔄 AttendanceModule - Mostrando loading');
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando módulo de asistencia...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
+    console.log('❌ AttendanceModule - Mostrando error:', error);
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -283,43 +205,44 @@ const AttendanceModule: React.FC = () => {
     );
   }
 
+  console.log('🔍 AttendanceModule - Renderizando vista:', activeView);
+
   if (activeView === 'form') {
+    console.log('📝 AttendanceModule - Renderizando formulario');
     return (
-      <AttendanceErrorBoundary>
-        <div className="space-y-6">
-          <div className="min-h-[400px]">
-            <AttendanceForm
-              report={selectedReport}
-              onSubmit={handleFormSubmit}
-              onCancel={handleFormCancel}
-            />
-          </div>
+      <div className="space-y-6">
+        <div className="min-h-[400px]">
+          <AttendanceForm
+            report={selectedReport}
+            onSubmit={handleFormSubmit}
+            onCancel={handleFormCancel}
+          />
         </div>
-      </AttendanceErrorBoundary>
+      </div>
     );
   }
 
   if (activeView === 'detail' && selectedReport) {
+    console.log('👁️ AttendanceModule - Renderizando detalle');
     return (
-      <AttendanceErrorBoundary>
-        <div className="space-y-6">
-          <div className="min-h-[400px]">
-            <AttendanceDetail
-              reportId={selectedReport.id}
-              onBack={() => {
-                console.log('🔄 Regresando a vista de lista desde detalle...');
-                setActiveView('list');
-              }}
-            />
-          </div>
+      <div className="space-y-6">
+        <div className="min-h-[400px]">
+          <AttendanceDetail
+            reportId={selectedReport.id}
+            onBack={() => {
+              console.log('🔄 Regresando a vista de lista desde detalle...');
+              setActiveView('list');
+            }}
+          />
         </div>
-      </AttendanceErrorBoundary>
+      </div>
     );
   }
 
+  console.log('📋 AttendanceModule - Renderizando lista con', filteredReports.length, 'reportes');
+  
   return (
-    <AttendanceErrorBoundary>
-      <div className="space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -470,8 +393,7 @@ const AttendanceModule: React.FC = () => {
           onReject={handleRejectReport}
         />
       </div>
-      </div>
-    </AttendanceErrorBoundary>
+    </div>
   );
 };
 

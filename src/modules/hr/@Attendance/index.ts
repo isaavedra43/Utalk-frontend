@@ -3,7 +3,7 @@
 // ============================================================================
 
 export { default as AttendanceModule } from './AttendanceModule';
-export { default as attendanceService } from './attendanceService';
+export { attendanceService } from './attendanceService';
 export { useAttendance } from './hooks/useAttendance';
 export * from './types';
 export * from './components/AttendanceList';
