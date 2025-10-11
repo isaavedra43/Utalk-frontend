@@ -70,13 +70,22 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
             notes: emp.notes || ''
           }));
 
+          console.log('🔍 Datos limpios para establecer:', {
+            date: todayDate,
+            employees: cleanedEmployees,
+            notes: quickReportData.notes || ''
+          });
+
           setFormData({
             date: todayDate,
             employees: cleanedEmployees,
             notes: quickReportData.notes || ''
           });
         } catch (error) {
-          console.error('❌ Error generando reporte inicial:', error);
+          // Solo loggear errores reales, no objetos vacíos
+          if (error && typeof error === 'object' && Object.keys(error).length > 0) {
+            console.error('❌ Error generando reporte inicial:', error);
+          }
           // Establecer datos por defecto si falla la generación
           setFormData({
             date: new Date().toISOString().split('T')[0],
@@ -117,7 +126,10 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
         notes: quickReportData.notes || ''
       });
     } catch (error) {
-      console.error('Error generando reporte rápido:', error);
+      // Solo loggear errores reales, no objetos vacíos
+      if (error && typeof error === 'object' && Object.keys(error).length > 0) {
+        console.error('Error generando reporte rápido:', error);
+      }
     } finally {
       setQuickReportLoading(false);
     }
@@ -144,7 +156,13 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.employees.length === 0) {
+    console.log('🔍 Enviando formulario:', {
+      formData,
+      employeesLength: formData.employees?.length || 0,
+      hasEmployees: formData.employees && formData.employees.length > 0
+    });
+
+    if (!formData.employees || formData.employees.length === 0) {
       alert('Por favor genera o configura la asistencia de los empleados');
       return;
     }
@@ -152,6 +170,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
     try {
       setLoading(true);
       await onSubmit(formData);
+      console.log('✅ Reporte enviado exitosamente');
     } catch (error) {
       console.error('Error guardando reporte:', error);
     } finally {
@@ -340,8 +359,14 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   </div>
                 </div>
               <div className="space-y-4">
-                {formData.employees && formData.employees.length > 0 ? (
-                  formData.employees.map((employee) => (
+                {(() => {
+                  console.log('🔍 Renderizando empleados:', {
+                    employees: formData.employees,
+                    length: formData.employees?.length,
+                    hasEmployees: formData.employees && formData.employees.length > 0
+                  });
+                  return formData.employees && formData.employees.length > 0 ? (
+                    formData.employees.map((employee) => (
                     <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div>
@@ -422,13 +447,17 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                         />
                       </div>
                     )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No hay empleados para mostrar en el reporte.</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Empleados en formData: {formData.employees?.length || 0}
+                      </p>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No hay empleados para mostrar en el reporte.</p>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
               </>
             )}
