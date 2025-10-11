@@ -10,7 +10,8 @@ import {
   CheckCircle,
   AlertCircle,
   Users,
-  TrendingUp
+  TrendingUp,
+  Clock
 } from 'lucide-react';
 import { AttendanceList } from './components/AttendanceList';
 import { AttendanceDetail } from './components/AttendanceDetail';
