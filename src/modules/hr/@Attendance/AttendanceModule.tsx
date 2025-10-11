@@ -25,6 +25,52 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatHours } from '@/utils/dateUtils';
 
+// Error Boundary para el módulo de asistencia
+class AttendanceErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error en módulo de asistencia:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-800 mb-2">
+              Error en el módulo de asistencia
+            </h2>
+            <p className="text-red-600 mb-4">
+              Ha ocurrido un error inesperado. Por favor, recarga la página.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()}
+              variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-50"
+            >
+              Recargar página
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const AttendanceModule: React.FC = () => {
   const [activeView, setActiveView] = useState<'list' | 'detail' | 'form'>('list');
   const [selectedReport, setSelectedReport] = useState<AttendanceReport | null>(null);
@@ -162,7 +208,8 @@ const AttendanceModule: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <AttendanceErrorBoundary>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -301,7 +348,8 @@ const AttendanceModule: React.FC = () => {
           onReject={handleRejectReport}
         />
       </div>
-    </div>
+      </div>
+    </AttendanceErrorBoundary>
   );
 };
 

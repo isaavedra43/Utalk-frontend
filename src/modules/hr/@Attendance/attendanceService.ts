@@ -27,10 +27,31 @@ class AttendanceService {
         url: `${this.baseEndpoint}${endpoint}`,
         ...options
       });
+      
+      // Verificar si la respuesta tiene la estructura esperada
+      if (response.data && typeof response.data === 'object') {
+        return response.data;
+      }
+      
+      // Si no tiene la estructura esperada, devolver la respuesta completa
       return response.data;
     } catch (error: any) {
       console.error(`Error en ${endpoint}:`, error);
-      throw new Error(error.response?.data?.message || error.message || 'Error en la solicitud');
+      
+      // Manejar diferentes tipos de errores
+      if (error.response) {
+        // Error de respuesta del servidor
+        const errorMessage = error.response.data?.message || 
+                           error.response.data?.error || 
+                           `Error ${error.response.status}: ${error.response.statusText}`;
+        throw new Error(errorMessage);
+      } else if (error.request) {
+        // Error de red
+        throw new Error('Error de conexión con el servidor');
+      } else {
+        // Error de configuración
+        throw new Error(error.message || 'Error en la solicitud');
+      }
     }
   }
 
