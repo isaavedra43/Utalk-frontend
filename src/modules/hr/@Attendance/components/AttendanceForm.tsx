@@ -8,7 +8,8 @@ import {
   Calendar,
   Users,
   CheckCircle,
-  Zap
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
 import { AttendanceReport, CreateAttendanceReportRequest, QuickReportResponse } from '../types';
@@ -565,87 +566,107 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   });
                   return formData.employees && formData.employees.length > 0 ? (
                     formData.employees.map((employee: EmployeeFormData) => (
-                    <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            {getEmployeeFullName(employee.employeeId)}
-                          </h4>
+                    <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {getEmployeeFullName(employee.employeeId)}
+                            </h4>
+                            <Badge className={getStatusColor(employee.status)}>
+                              {employee.status}
+                            </Badge>
+                          </div>
                           <p className="text-sm text-gray-500">
                             ID: {employee.employeeId.slice(0, 8)}
                           </p>
-                        <p className="text-sm text-gray-600">
-                          Estado: <Badge className={getStatusColor(employee.status)}>
-                            {employee.status}
-                          </Badge>
-                        </p>
+                        </div>
+
+                        <div className="ml-4">
+                          <Select
+                            value={employee.status}
+                            onValueChange={(value) => handleEmployeeStatusChange(employee.employeeId, value)}
+                          >
+                            <SelectTrigger className="w-48">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="present">Presente</SelectItem>
+                              <SelectItem value="absent">Ausente</SelectItem>
+                              <SelectItem value="late">Tarde</SelectItem>
+                              <SelectItem value="vacation">Vacaciones</SelectItem>
+                              <SelectItem value="sick_leave">Enfermedad</SelectItem>
+                              <SelectItem value="personal_leave">Permiso</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
 
-                      <Select
-                        value={employee.status}
-                        onValueChange={(value) => handleEmployeeStatusChange(employee.employeeId, value)}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="present">Presente</SelectItem>
-                          <SelectItem value="absent">Ausente</SelectItem>
-                          <SelectItem value="late">Tarde</SelectItem>
-                          <SelectItem value="vacation">Vacaciones</SelectItem>
-                          <SelectItem value="sick_leave">Enfermedad</SelectItem>
-                          <SelectItem value="personal_leave">Permiso</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     {employee.status === 'present' && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div>
-                          <Label htmlFor={`clockIn-${employee.employeeId}`}>Hora de Entrada</Label>
-                          <Input
-                            id={`clockIn-${employee.employeeId}`}
-                            type="time"
-                            value={employee.clockIn || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'clockIn', e.target.value)}
-                          />
-                        </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h5 className="text-sm font-medium text-gray-700 mb-3">Horarios de Trabajo</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor={`clockIn-${employee.employeeId}`} className="text-sm font-medium text-gray-600">
+                              Hora de Entrada
+                            </Label>
+                            <Input
+                              id={`clockIn-${employee.employeeId}`}
+                              type="time"
+                              value={employee.clockIn || ''}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'clockIn', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
 
-                        <div>
-                          <Label htmlFor={`clockOut-${employee.employeeId}`}>Hora de Salida</Label>
-                          <Input
-                            id={`clockOut-${employee.employeeId}`}
-                            type="time"
-                            value={employee.clockOut || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'clockOut', e.target.value)}
-                          />
-                        </div>
+                          <div>
+                            <Label htmlFor={`clockOut-${employee.employeeId}`} className="text-sm font-medium text-gray-600">
+                              Hora de Salida
+                            </Label>
+                            <Input
+                              id={`clockOut-${employee.employeeId}`}
+                              type="time"
+                              value={employee.clockOut || ''}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'clockOut', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
 
-                        <div>
-                          <Label htmlFor={`overtime-${employee.employeeId}`}>Horas Extra</Label>
-                          <Input
-                            id={`overtime-${employee.employeeId}`}
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={employee.overtimeHours || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'overtimeHours', e.target.value)}
-                            placeholder="0"
-                          />
+                          <div>
+                            <Label htmlFor={`overtime-${employee.employeeId}`} className="text-sm font-medium text-gray-600">
+                              Horas Extra
+                            </Label>
+                            <Input
+                              id={`overtime-${employee.employeeId}`}
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={employee.overtimeHours || ''}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEmployeeHoursChange(employee.employeeId, 'overtimeHours', e.target.value)}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {employee.status === 'absent' && (
-                      <div>
-                        <Label htmlFor={`notes-${employee.employeeId}`}>Motivo de Ausencia</Label>
-                        <Textarea
-                          id={`notes-${employee.employeeId}`}
-                          value={employee.notes || ''}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleEmployeeHoursChange(employee.employeeId, 'notes', e.target.value)}
-                          placeholder="Especifica el motivo de la ausencia..."
-                          rows={2}
-                        />
+                      <div className="bg-red-50 rounded-lg p-4">
+                        <h5 className="text-sm font-medium text-red-700 mb-3">Motivo de Ausencia</h5>
+                        <div>
+                          <Label htmlFor={`notes-${employee.employeeId}`} className="text-sm font-medium text-gray-600">
+                            Especifica el motivo
+                          </Label>
+                          <Textarea
+                            id={`notes-${employee.employeeId}`}
+                            value={employee.notes || ''}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleEmployeeHoursChange(employee.employeeId, 'notes', e.target.value)}
+                            placeholder="Especifica el motivo de la ausencia..."
+                            rows={3}
+                            className="mt-1"
+                          />
+                        </div>
                       </div>
                     )}
                       </div>
@@ -668,34 +689,55 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="text-sm text-gray-600">
+                {formData.employees.length > 0 ? (
+                  <span className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    {formData.employees.length} empleados configurados
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />
+                    Agrega empleados antes de crear el reporte
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  disabled={loading}
+                  className="px-6"
+                >
+                  Cancelar
+                </Button>
 
-          <Button
-            type="submit"
-            disabled={loading || formData.employees.length === 0}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Guardando...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {report ? 'Actualizar Reporte' : 'Crear Reporte'}
-              </>
-            )}
-          </Button>
-        </div>
+                <Button
+                  type="submit"
+                  disabled={loading || formData.employees.length === 0}
+                  className="bg-blue-600 hover:bg-blue-700 px-6"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {report ? 'Actualizar Reporte' : 'Crear Reporte'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </div>
   );
