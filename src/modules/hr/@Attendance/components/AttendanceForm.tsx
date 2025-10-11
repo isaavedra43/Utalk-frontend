@@ -57,10 +57,23 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
           const todayDate = new Date().toISOString().split('T')[0];
           const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
           console.log('✅ Reporte inicial generado:', quickReportData);
+
+          // Validar y limpiar los datos antes de establecerlos
+          const cleanedEmployees = quickReportData.employees.map(emp => ({
+            employeeId: emp.employeeId,
+            status: emp.status,
+            clockIn: emp.clockIn || '',
+            clockOut: emp.clockOut || '',
+            totalHours: emp.totalHours || 0,
+            overtimeHours: emp.overtimeHours || 0,
+            breakHours: emp.breakHours || 60,
+            notes: emp.notes || ''
+          }));
+
           setFormData({
             date: todayDate,
-            employees: quickReportData.employees,
-            notes: quickReportData.notes
+            employees: cleanedEmployees,
+            notes: quickReportData.notes || ''
           });
         } catch (error) {
           console.error('❌ Error generando reporte inicial:', error);
@@ -85,7 +98,24 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
     try {
       setQuickReportLoading(true);
       const quickReportData = await attendanceService.generateQuickReport(formData.date, template);
-      setFormData(quickReportData);
+
+      // Validar y limpiar los datos antes de establecerlos
+      const cleanedEmployees = quickReportData.employees.map(emp => ({
+        employeeId: emp.employeeId,
+        status: emp.status,
+        clockIn: emp.clockIn || '',
+        clockOut: emp.clockOut || '',
+        totalHours: emp.totalHours || 0,
+        overtimeHours: emp.overtimeHours || 0,
+        breakHours: emp.breakHours || 60,
+        notes: emp.notes || ''
+      }));
+
+      setFormData({
+        date: quickReportData.date,
+        employees: cleanedEmployees,
+        notes: quickReportData.notes || ''
+      });
     } catch (error) {
       console.error('Error generando reporte rápido:', error);
     } finally {
@@ -310,12 +340,13 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   </div>
                 </div>
               <div className="space-y-4">
-                {formData.employees.map((employee) => (
-                  <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Empleado #{employee.employeeId}
+                {formData.employees && formData.employees.length > 0 ? (
+                  formData.employees.map((employee) => (
+                    <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium text-gray-900">
+                            Empleado #{employee.employeeId}
                         </h4>
                         <p className="text-sm text-gray-600">
                           Estado: <Badge className={getStatusColor(employee.status)}>
@@ -391,8 +422,13 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                         />
                       </div>
                     )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No hay empleados para mostrar en el reporte.</p>
                   </div>
-                ))}
+                )}
               </div>
               </>
             )}

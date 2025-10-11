@@ -119,11 +119,20 @@ const AttendanceModule: React.FC = () => {
   const handleCreateReport = () => {
     console.log('🔄 Iniciando creación de reporte de asistencia...');
     try {
+      // Protección adicional contra errores de estado
+      if (activeView === 'form') {
+        console.log('⚠️ Ya estamos en la vista de formulario, ignorando...');
+        return;
+      }
+
       setSelectedReport(null);
       setActiveView('form');
       console.log('✅ Vista cambiada a formulario exitosamente');
     } catch (error) {
       console.error('❌ Error al cambiar a vista de formulario:', error);
+      // No recargar la página, solo resetear el estado
+      setActiveView('list');
+      setSelectedReport(null);
     }
   };
 
@@ -187,11 +196,20 @@ const AttendanceModule: React.FC = () => {
   const handleFormCancel = () => {
     console.log('🔄 Cancelando formulario de asistencia...');
     try {
+      // Protección adicional contra errores de estado
+      if (activeView === 'list') {
+        console.log('⚠️ Ya estamos en la vista de lista, ignorando...');
+        return;
+      }
+
       setActiveView('list');
       setSelectedReport(null);
       console.log('✅ Vista cambiada a lista exitosamente');
     } catch (error) {
       console.error('❌ Error al cambiar a vista de lista:', error);
+      // No recargar la página, solo resetear el estado
+      setActiveView('list');
+      setSelectedReport(null);
     }
   };
 
@@ -228,11 +246,15 @@ const AttendanceModule: React.FC = () => {
   if (activeView === 'form') {
     return (
       <AttendanceErrorBoundary>
-        <AttendanceForm
-          report={selectedReport}
-          onSubmit={handleFormSubmit}
-          onCancel={handleFormCancel}
-        />
+        <div className="space-y-6">
+          <div className="min-h-[400px]">
+            <AttendanceForm
+              report={selectedReport}
+              onSubmit={handleFormSubmit}
+              onCancel={handleFormCancel}
+            />
+          </div>
+        </div>
       </AttendanceErrorBoundary>
     );
   }
@@ -240,13 +262,17 @@ const AttendanceModule: React.FC = () => {
   if (activeView === 'detail' && selectedReport) {
     return (
       <AttendanceErrorBoundary>
-        <AttendanceDetail
-          reportId={selectedReport.id}
-          onBack={() => {
-            console.log('🔄 Regresando a vista de lista desde detalle...');
-            setActiveView('list');
-          }}
-        />
+        <div className="space-y-6">
+          <div className="min-h-[400px]">
+            <AttendanceDetail
+              reportId={selectedReport.id}
+              onBack={() => {
+                console.log('🔄 Regresando a vista de lista desde detalle...');
+                setActiveView('list');
+              }}
+            />
+          </div>
+        </div>
       </AttendanceErrorBoundary>
     );
   }
