@@ -36,8 +36,8 @@ class AttendanceErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(error: Error) {
-    // Solo capturar errores reales, no objetos vacíos
-    if (error && error.message && error.message.trim() !== '') {
+    // Solo capturar errores reales, no objetos vacíos o errores sin mensaje
+    if (error && error.message && error.message.trim() !== '' && error.message !== '{}') {
       return { hasError: true, error };
     }
     return { hasError: false };
@@ -45,10 +45,11 @@ class AttendanceErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Solo loggear errores reales
-    if (error && error.message && error.message.trim() !== '') {
+    if (error && error.message && error.message.trim() !== '' && error.message !== '{}') {
       console.error('Error en módulo de asistencia:', error, errorInfo);
     } else {
-      console.warn('Error vacío capturado en módulo de asistencia, ignorando:', error);
+      // No loggear errores vacíos para evitar spam en la consola
+      return;
     }
   }
 

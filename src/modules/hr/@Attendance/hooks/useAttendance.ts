@@ -31,8 +31,14 @@ export const useAttendance = () => {
       // El servicio ya devuelve response.data, así que response contiene la estructura esperada
       if (response && Array.isArray(response.reports)) {
         setReports(response.reports);
+      } else if (response && response.data && Array.isArray(response.data.reports)) {
+        // Fallback para estructura anidada
+        setReports(response.data.reports);
       } else {
-        console.warn('Respuesta inesperada del servicio:', response);
+        // Solo mostrar warning si realmente hay un problema
+        if (response && !response.reports && !response.data?.reports) {
+          console.warn('Respuesta inesperada del servicio:', response);
+        }
         setReports([]);
       }
 
@@ -40,7 +46,12 @@ export const useAttendance = () => {
       if (Object.keys(filters).length === 0) {
         try {
           const statsResponse = await attendanceService.getAttendanceStats();
-          setStats(statsResponse);
+          // Manejar tanto estructura directa como anidada
+          if (statsResponse && typeof statsResponse === 'object') {
+            setStats(statsResponse);
+          } else if (statsResponse && statsResponse.data && typeof statsResponse.data === 'object') {
+            setStats(statsResponse.data);
+          }
         } catch (statsError) {
           console.warn('Error cargando estadísticas:', statsError);
           // No fallar por estadísticas, solo mostrar warning
@@ -161,7 +172,10 @@ export const useAttendance = () => {
         setPermissions(userPermissions);
         return userPermissions;
       } else {
-        console.warn('Respuesta inesperada de permisos:', userPermissions);
+        // Solo mostrar warning si realmente hay un problema
+        if (userPermissions && !userPermissions.permissions && typeof userPermissions !== 'object') {
+          console.warn('Respuesta inesperada de permisos:', userPermissions);
+        }
         // Usar permisos por defecto
         const defaultPermissions = {
           canCreate: true,
