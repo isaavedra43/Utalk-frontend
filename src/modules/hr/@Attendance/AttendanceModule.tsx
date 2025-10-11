@@ -31,39 +31,68 @@ interface AttendanceErrorBoundaryProps {
   children: React.ReactNode;
 }
 
-class AttendanceErrorBoundary extends React.Component<
-  AttendanceErrorBoundaryProps,
-  AttendanceErrorBoundaryState
-> {
+class AttendanceErrorBoundary extends React.Component<AttendanceErrorBoundaryProps, AttendanceErrorBoundaryState> {
+  state: AttendanceErrorBoundaryState = {
+    hasError: false
+  };
+
   constructor(props: AttendanceErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): AttendanceErrorBoundaryState {
     // Solo capturar errores reales, no objetos vacíos o errores sin mensaje
-    if (error &&
-        error.message &&
+    if (!error) {
+      return { hasError: false };
+    }
+    
+    // Verificar si es un objeto vacío o error sin información
+    if (typeof error === 'object' && Object.keys(error).length === 0) {
+      console.warn('⚠️ Error vacío detectado y filtrado en Error Boundary');
+      return { hasError: false };
+    }
+    
+    // Verificar si tiene mensaje válido
+    if (error.message &&
         error.message.trim() !== '' &&
         error.message !== '{}' &&
         error.message !== 'undefined' &&
+        error.message !== 'null' &&
         !error.message.includes('Minified React error')) {
       return { hasError: true, error };
     }
+    
+    console.warn('⚠️ Error sin mensaje válido detectado y filtrado:', error);
     return { hasError: false };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Filtrar errores vacíos o sin información útil
+    if (!error) {
+      return;
+    }
+    
+    // Verificar si es un objeto vacío
+    if (typeof error === 'object' && Object.keys(error).length === 0) {
+      console.warn('⚠️ Error vacío detectado en componentDidCatch, ignorando');
+      return;
+    }
+    
     // Solo loggear errores reales
-    if (error && error.message && error.message.trim() !== '' && error.message !== '{}') {
+    if (error && error.message && error.message.trim() !== '' && 
+        error.message !== '{}' && error.message !== 'undefined' && error.message !== 'null') {
       console.error('Error en módulo de asistencia:', error, errorInfo);
     } else {
-      // No loggear errores vacíos para evitar spam en la consola
-      return;
+      console.warn('⚠️ Error sin mensaje válido en componentDidCatch:', {
+        error,
+        type: typeof error,
+        keys: error ? Object.keys(error) : [],
+        errorInfo
+      });
     }
   }
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.hasError) {
       return (
         <div className="p-6">
@@ -87,7 +116,7 @@ class AttendanceErrorBoundary extends React.Component<
       );
     }
 
-    return this.props.children;
+    return <>{(this as any).props.children}</>;
   }
 }
 
@@ -184,11 +213,22 @@ const AttendanceModule: React.FC = () => {
         await createReport(data);
         console.log('✅ Reporte creado exitosamente');
       }
+      
+      // Esperar un poco antes de cambiar de vista para evitar errores de estado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       setActiveView('list');
       setSelectedReport(null);
-      loadReports();
+      
+      // Recargar reportes después de cambiar de vista
+      await loadReports();
     } catch (error) {
-      console.error('❌ Error en reporte de asistencia:', error);
+      // Solo loggear errores reales, no objetos vacíos
+      if (error && typeof error === 'object' && Object.keys(error).length > 0 && error instanceof Error) {
+        console.error('❌ Error en reporte de asistencia:', error);
+      } else if (error && typeof error === 'string') {
+        console.error('❌ Error en reporte de asistencia:', error);
+      }
       // No recargar la página, solo mostrar error
     }
   };

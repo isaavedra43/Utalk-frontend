@@ -130,6 +130,7 @@ export interface CreateAttendanceReportRequest {
     clockOut?: string;
     totalHours?: number;
     overtimeHours?: number;
+    breakHours?: number;
     notes?: string;
     exceptions?: Omit<AttendanceException, 'id' | 'resolved' | 'resolvedBy' | 'resolvedAt'>[];
     movements?: Omit<AttendanceMovement, 'id' | 'approvedBy' | 'approvedAt'>[];
@@ -183,4 +184,24 @@ export interface AttendanceDetailResponse {
   report: AttendanceReport;
   employees: EmployeeAttendance[];
   stats: AttendanceStats;
+}
+
+export interface QuickReportResponse {
+  success: boolean;
+  message: string;
+  data: {
+    date: string;
+    employees: Array<{
+      employeeId: string;
+      status: AttendanceRecord['status'];
+      clockIn?: string;
+      clockOut?: string;
+      totalHours?: number;
+      overtimeHours?: number | string;
+      breakHours?: number;
+      notes?: string;
+    }>;
+    notes: string;
+    template?: string;
+  };
 }

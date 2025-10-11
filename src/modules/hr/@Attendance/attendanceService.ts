@@ -14,7 +14,8 @@ import {
   AttendanceDetailResponse,
   ApprovalRequest,
   ApprovalResponse,
-  AttendancePermissions
+  AttendancePermissions,
+  QuickReportResponse
 } from './types';
 import { api } from '@/config/api';
 
@@ -158,8 +159,8 @@ class AttendanceService {
   /**
    * Generar reporte rápido con plantilla
    */
-  async generateQuickReport(date: string, template: 'normal' | 'weekend' | 'holiday' = 'normal'): Promise<CreateAttendanceReportRequest> {
-    return await this.makeRequest<CreateAttendanceReportRequest>('/reports/generate-quick', {
+  async generateQuickReport(date: string, template: 'normal' | 'weekend' | 'holiday' = 'normal'): Promise<QuickReportResponse> {
+    return await this.makeRequest<QuickReportResponse>('/reports/generate-quick', {
       method: 'POST',
       data: { date, template }
     });

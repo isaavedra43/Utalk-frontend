@@ -11,7 +11,7 @@ import {
   Zap
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
-import { AttendanceReport, CreateAttendanceReportRequest } from '../types';
+import { AttendanceReport, CreateAttendanceReportRequest, QuickReportResponse } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+// Tipo para los empleados en el formulario
+type EmployeeFormData = CreateAttendanceReportRequest['employees'][0];
 
 interface AttendanceFormProps {
   report?: AttendanceReport | null;
@@ -51,123 +54,150 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
   }, [formData]);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (report) {
-      setFormData({
-        date: report.date,
-        employees: [], // Se cargarán desde el servicio
-        notes: report.notes || ''
-      });
-        } else {
-          // Si es un nuevo reporte, generar automáticamente con plantilla normal
-          // para que todos los empleados aparezcan como presentes con horarios pre-llenados
-          const generateInitialReport = async () => {
-            try {
-              console.log('🔄 Generando reporte inicial...');
-              setQuickReportLoading(true);
-              const todayDate = new Date().toISOString().split('T')[0];
-              console.log('🔍 Fecha para reporte:', todayDate);
-              
-              const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
-              console.log('✅ Reporte inicial generado:', quickReportData);
-              console.log('🔍 Datos del reporte:', {
-                hasData: !!quickReportData.data,
-                employeesCount: quickReportData.data?.employees?.length || 0,
-                employees: quickReportData.data?.employees
-              });
+      if (isMounted) {
+        setFormData({
+          date: report.date,
+          employees: [], // Se cargarán desde el servicio
+          notes: report.notes || ''
+        });
+      }
+    } else {
+      // Si es un nuevo reporte, generar automáticamente con plantilla normal
+      // para que todos los empleados aparezcan como presentes con horarios pre-llenados
+      const generateInitialReport = async () => {
+        try {
+          console.log('🔄 Generando reporte inicial...');
+          if (isMounted) {
+            setQuickReportLoading(true);
+          }
+          
+          const todayDate = new Date().toISOString().split('T')[0];
+          console.log('🔍 Fecha para reporte:', todayDate);
+          
+          const quickReportData = await attendanceService.generateQuickReport(todayDate, 'normal');
+          
+          if (!isMounted) {
+            console.log('⚠️ Componente desmontado, cancelando actualización');
+            return;
+          }
+
+          console.log('✅ Reporte inicial generado:', quickReportData);
 
           // Validar y limpiar los datos antes de establecerlos
-          const employeesData = quickReportData.data?.employees || quickReportData.employees || [];
+          const employeesData = quickReportData.data.employees || [];
           console.log('🔍 Empleados extraídos:', employeesData);
           
-          const cleanedEmployees = employeesData.map(emp => ({
+          const cleanedEmployees = employeesData.map((emp: QuickReportResponse['data']['employees'][0]): EmployeeFormData => ({
             employeeId: emp.employeeId,
             status: emp.status,
             clockIn: emp.clockIn || '',
             clockOut: emp.clockOut || '',
             totalHours: emp.totalHours || 0,
-            overtimeHours: emp.overtimeHours || 0,
+            overtimeHours: typeof emp.overtimeHours === 'string' ? parseFloat(emp.overtimeHours) : (emp.overtimeHours || 0),
             breakHours: emp.breakHours || 60,
             notes: emp.notes || ''
           }));
 
-          console.log('🔍 Datos limpios para establecer:', {
-            date: todayDate,
-            employees: cleanedEmployees,
-            employeesLength: cleanedEmployees.length,
-            notes: quickReportData.notes || ''
-          });
-
           const newFormData = {
             date: todayDate,
             employees: cleanedEmployees,
-            notes: quickReportData.data?.notes || quickReportData.notes || ''
+            notes: quickReportData.data.notes || ''
           };
 
           console.log('🔍 Estableciendo formData:', newFormData);
           
-          try {
+          if (isMounted) {
             setFormData(newFormData);
             console.log('✅ setFormData ejecutado exitosamente');
-          } catch (setError) {
-            console.error('❌ Error al ejecutar setFormData:', setError);
+          }
+        } catch (error) {
+          if (!isMounted) {
+            return;
           }
           
-          // Verificar que se estableció correctamente
-          setTimeout(() => {
-            console.log('🔍 FormData después de establecer:', formData);
-          }, 100);
-        } catch (error) {
           // Solo loggear errores reales, no objetos vacíos
           if (error && typeof error === 'object' && Object.keys(error).length > 0) {
             console.error('❌ Error generando reporte inicial:', error);
           }
+          
           // Establecer datos por defecto si falla la generación
-          setFormData({
-            date: new Date().toISOString().split('T')[0],
-            employees: [],
-            notes: ''
-          });
+          if (isMounted) {
+            setFormData({
+              date: new Date().toISOString().split('T')[0],
+              employees: [],
+              notes: ''
+            });
+          }
         } finally {
-          setQuickReportLoading(false);
+          if (isMounted) {
+            setQuickReportLoading(false);
+          }
         }
       };
 
       generateInitialReport();
     }
-    // ✅ CORREGIDO: Solo ejecutar cuando cambie el report, no cuando cambie formData
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Cleanup function para evitar actualizaciones de estado en componente desmontado
+    return () => {
+      isMounted = false;
+    };
   }, [report]);
 
   const handleQuickReport = async (template: 'normal' | 'weekend' | 'holiday') => {
+    let isMounted = true;
+    
     try {
-      setQuickReportLoading(true);
+      if (isMounted) {
+        setQuickReportLoading(true);
+      }
+      
       const quickReportData = await attendanceService.generateQuickReport(formData.date, template);
 
+      if (!isMounted) {
+        console.log('⚠️ Componente desmontado, cancelando actualización de reporte rápido');
+        return;
+      }
+
       // Validar y limpiar los datos antes de establecerlos
-      const employeesData = quickReportData.data?.employees || quickReportData.employees || [];
-      const cleanedEmployees = employeesData.map(emp => ({
+      const employeesData = quickReportData.data.employees || [];
+      const cleanedEmployees = employeesData.map((emp: QuickReportResponse['data']['employees'][0]): EmployeeFormData => ({
         employeeId: emp.employeeId,
         status: emp.status,
         clockIn: emp.clockIn || '',
         clockOut: emp.clockOut || '',
         totalHours: emp.totalHours || 0,
-        overtimeHours: emp.overtimeHours || 0,
+        overtimeHours: typeof emp.overtimeHours === 'string' ? parseFloat(emp.overtimeHours) : (emp.overtimeHours || 0),
         breakHours: emp.breakHours || 60,
         notes: emp.notes || ''
       }));
 
-      setFormData({
-        date: quickReportData.data?.date || quickReportData.date,
-        employees: cleanedEmployees,
-        notes: quickReportData.data?.notes || quickReportData.notes || ''
-      });
+      if (isMounted) {
+        setFormData({
+          date: quickReportData.data.date,
+          employees: cleanedEmployees,
+          notes: quickReportData.data.notes || ''
+        });
+      }
     } catch (error) {
+      if (!isMounted) {
+        return;
+      }
+      
       // Solo loggear errores reales, no objetos vacíos
-      if (error && typeof error === 'object' && Object.keys(error).length > 0) {
+      if (error && typeof error === 'object' && Object.keys(error).length > 0 && error instanceof Error) {
+        console.error('Error generando reporte rápido:', error);
+      } else if (error && typeof error === 'string') {
         console.error('Error generando reporte rápido:', error);
       }
     } finally {
-      setQuickReportLoading(false);
+      if (isMounted) {
+        setQuickReportLoading(false);
+      }
+      isMounted = false;
     }
   };
 
@@ -191,6 +221,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let isMounted = true;
 
     console.log('🔍 Enviando formulario:', {
       formData,
@@ -204,13 +235,33 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
     }
 
     try {
-      setLoading(true);
+      if (isMounted) {
+        setLoading(true);
+      }
+      
       await onSubmit(formData);
-      console.log('✅ Reporte enviado exitosamente');
+      
+      if (isMounted) {
+        console.log('✅ Reporte enviado exitosamente');
+      }
     } catch (error) {
-      console.error('Error guardando reporte:', error);
+      if (!isMounted) {
+        return;
+      }
+      
+      // Solo loggear errores reales, no objetos vacíos
+      if (error && typeof error === 'object' && Object.keys(error).length > 0 && error instanceof Error) {
+        console.error('Error guardando reporte:', error);
+        alert(`Error al guardar el reporte: ${error.message}`);
+      } else if (error && typeof error === 'string') {
+        console.error('Error guardando reporte:', error);
+        alert(`Error al guardar el reporte: ${error}`);
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
+      isMounted = false;
     }
   };
 
@@ -402,7 +453,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                     hasEmployees: formData.employees && formData.employees.length > 0
                   });
                   return formData.employees && formData.employees.length > 0 ? (
-                    formData.employees.map((employee) => (
+                    formData.employees.map((employee: EmployeeFormData) => (
                     <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div>
