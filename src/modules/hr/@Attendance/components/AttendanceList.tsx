@@ -12,27 +12,34 @@ import {
   Clock,
   Calendar,
   CheckSquare,
-  Eye
+  Eye,
+  XCircle,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
-import { AttendanceReport } from '../types';
+import { AttendanceReport, AttendancePermissions } from '../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/utils/dateUtils';
+import { formatDate, formatHours } from '@/utils/dateUtils';
 
 interface AttendanceListProps {
   reports: AttendanceReport[];
+  permissions?: AttendancePermissions | null;
   onView: (report: AttendanceReport) => void;
   onEdit: (report: AttendanceReport) => void;
   onDelete: (reportId: string) => void;
   onApprove: (reportId: string) => void;
+  onReject: (reportId: string, reason?: string) => void;
 }
 
 export const AttendanceList: React.FC<AttendanceListProps> = ({
   reports,
+  permissions,
   onView,
   onEdit,
   onDelete,
-  onApprove
+  onApprove,
+  onReject
 }) => {
   const getStatusBadge = (status: AttendanceReport['status']) => {
     switch (status) {
@@ -42,6 +49,8 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
         return <Badge variant="outline" className="text-blue-600 border-blue-200">Completado</Badge>;
       case 'approved':
         return <Badge variant="default" className="bg-green-100 text-green-800">Aprobado</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rechazado</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -55,6 +64,8 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
         return <CheckCircle className="h-4 w-4 text-blue-500" />;
       case 'approved':
         return <CheckSquare className="h-4 w-4 text-green-500" />;
+      case 'rejected':
+        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-400" />;
     }
@@ -154,11 +165,11 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
 
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-900">
-                  {report.overtimeHours > 0 ? `${report.overtimeHours}h` : '0h'}
+                  {formatHours(report.overtimeHours)}
                 </div>
                 {report.totalHours > 0 && (
                   <div className="text-xs text-gray-500">
-                    Total: {report.totalHours}h
+                    Total: {formatHours(report.totalHours)}
                   </div>
                 )}
               </td>
@@ -180,45 +191,68 @@ export const AttendanceList: React.FC<AttendanceListProps> = ({
 
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex items-center space-x-2">
+                  {/* Botón Ver - Siempre visible */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onView(report)}
                     className="text-blue-600 hover:text-blue-900"
+                    title="Ver detalles"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
 
-                  {report.status === 'completed' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onApprove(report.id)}
-                      className="text-green-600 hover:text-green-900"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                    </Button>
-                  )}
-
-                  {report.status === 'draft' && (
+                  {/* Botón Editar - Siempre visible si tiene permisos */}
+                  {permissions?.canEdit && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => onEdit(report)}
                       className="text-gray-600 hover:text-gray-900"
+                      title="Editar reporte"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                   )}
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(report.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {/* Botones de Aprobación - Solo para reportes completados */}
+                  {report.status === 'completed' && permissions?.canApprove && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onApprove(report.id)}
+                      className="text-green-600 hover:text-green-900"
+                      title="Aprobar reporte"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                    </Button>
+                  )}
+
+                  {/* Botón Rechazar - Solo para reportes completados */}
+                  {report.status === 'completed' && permissions?.canReject && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onReject(report.id)}
+                      className="text-orange-600 hover:text-orange-900"
+                      title="Rechazar reporte"
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                    </Button>
+                  )}
+
+                  {/* Botón Eliminar - Solo para administradores */}
+                  {permissions?.canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(report.id)}
+                      className="text-red-600 hover:text-red-900"
+                      title="Eliminar reporte"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </td>
             </tr>

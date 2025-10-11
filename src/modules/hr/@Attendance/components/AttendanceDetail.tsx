@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AttendanceStatsComponent } from './AttendanceStats';
-import { formatDate, formatTime } from '@/utils/dateUtils';
+import { formatDate, formatTime, formatHours } from '@/utils/dateUtils';
 
 interface AttendanceDetailProps {
   reportId: string;
@@ -237,10 +237,10 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div>
-                        {employee.totalHours ? `${employee.totalHours}h` : '-'}
+                        {employee.totalHours ? formatHours(employee.totalHours) : '-'}
                         {employee.overtimeHours ? (
                           <div className="text-blue-600 text-xs">
-                            +{employee.overtimeHours}h extra
+                            +{formatHours(employee.overtimeHours)} extra
                           </div>
                         ) : null}
                       </div>

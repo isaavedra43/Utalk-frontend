@@ -19,10 +19,11 @@ import { AttendanceDetail } from './components/AttendanceDetail';
 import { AttendanceForm } from './components/AttendanceForm';
 import { attendanceService } from './attendanceService';
 import { useAttendance } from './hooks/useAttendance';
-import { AttendanceReport } from './types';
+import { AttendanceReport, ApprovalRequest } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatHours } from '@/utils/dateUtils';
 
 const AttendanceModule: React.FC = () => {
   const [activeView, setActiveView] = useState<'list' | 'detail' | 'form'>('list');
@@ -35,15 +36,18 @@ const AttendanceModule: React.FC = () => {
     reports,
     loading,
     error,
+    permissions,
     loadReports,
     createReport,
     updateReport,
     deleteReport,
-    approveReport
+    approveReport,
+    loadPermissions
   } = useAttendance();
 
   useEffect(() => {
     loadReports();
+    loadPermissions();
   }, []);
 
   const handleCreateReport = () => {
@@ -70,7 +74,23 @@ const AttendanceModule: React.FC = () => {
   };
 
   const handleApproveReport = async (reportId: string) => {
-    await approveReport(reportId);
+    const request: ApprovalRequest = {
+      reportId,
+      action: 'approve',
+      approvedBy: 'current_user' // En implementación real vendría del contexto de autenticación
+    };
+    await approveReport(request);
+    loadReports();
+  };
+
+  const handleRejectReport = async (reportId: string, reason?: string) => {
+    const request: ApprovalRequest = {
+      reportId,
+      action: 'reject',
+      reason: reason || 'Reporte rechazado por el supervisor',
+      approvedBy: 'current_user' // En implementación real vendría del contexto de autenticación
+    };
+    await approveReport(request);
     loadReports();
   };
 
@@ -203,7 +223,7 @@ const AttendanceModule: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Horas Extra Hoy</p>
               <p className="text-2xl font-bold text-gray-900">
-                {reports[0]?.overtimeHours || 0}h
+                {formatHours(reports[0]?.overtimeHours)}
               </p>
             </div>
           </div>
@@ -273,10 +293,12 @@ const AttendanceModule: React.FC = () => {
 
         <AttendanceList
           reports={filteredReports}
+          permissions={permissions}
           onView={handleViewReport}
           onEdit={handleEditReport}
           onDelete={handleDeleteReport}
           onApprove={handleApproveReport}
+          onReject={handleRejectReport}
         />
       </div>
     </div>

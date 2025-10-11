@@ -91,3 +91,25 @@ export const getDateRange = (days: number = 30): { start: string; end: string } 
     end: end.toISOString().split('T')[0]
   };
 };
+
+/**
+ * Formatear horas sin decimales
+ */
+export const formatHours = (hours: number | undefined | null): string => {
+  if (hours === undefined || hours === null || isNaN(hours)) {
+    return '0h';
+  }
+  
+  // Redondear hacia abajo para eliminar decimales
+  const wholeHours = Math.floor(hours);
+  return `${wholeHours}h`;
+};
+
+/**
+ * Formatear horas con total acumulado sin decimales
+ */
+export const formatHoursWithTotal = (hours: number | undefined | null, total: number | undefined | null): string => {
+  const formattedHours = formatHours(hours);
+  const formattedTotal = formatHours(total);
+  return `${formattedHours} (Total: ${formattedTotal})`;
+};

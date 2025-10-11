@@ -24,7 +24,7 @@ export interface AttendanceReport {
   date: string; // YYYY-MM-DD
   createdBy: string;
   createdAt: string;
-  status: 'draft' | 'completed' | 'approved';
+  status: 'draft' | 'completed' | 'approved' | 'rejected';
   notes?: string;
   totalEmployees: number;
   presentCount: number;
@@ -39,6 +39,13 @@ export interface AttendanceReport {
   totalHours: number;
   exceptions: AttendanceException[];
   movements: AttendanceMovement[];
+  // Campos de aprobación
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  updatedAt: string;
 }
 
 export interface AttendanceException {
@@ -145,6 +152,31 @@ export interface AttendanceListResponse {
     totalPages: number;
   };
   filters: AttendanceFilters;
+}
+
+// Interfaces para acciones de aprobación
+export interface ApprovalRequest {
+  reportId: string;
+  action: 'approve' | 'reject';
+  reason?: string;
+  approvedBy: string;
+}
+
+export interface ApprovalResponse {
+  success: boolean;
+  message: string;
+  data: AttendanceReport;
+}
+
+// Interface para permisos de usuario
+export interface AttendancePermissions {
+  canCreate: boolean;
+  canEdit: boolean;
+  canApprove: boolean;
+  canReject: boolean;
+  canDelete: boolean;
+  canView: boolean;
+  isAdmin: boolean;
 }
 
 export interface AttendanceDetailResponse {

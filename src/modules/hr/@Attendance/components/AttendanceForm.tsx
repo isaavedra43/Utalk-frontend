@@ -52,8 +52,28 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
         employees: [], // Se cargarán desde el servicio
         notes: report.notes || ''
       });
+    } else {
+      // Si es un nuevo reporte, generar automáticamente con plantilla normal
+      // para que todos los empleados aparezcan como presentes con horarios pre-llenados
+      const generateInitialReport = async () => {
+        try {
+          setQuickReportLoading(true);
+          const quickReportData = await attendanceService.generateQuickReport(formData.date, 'normal');
+          setFormData(prev => ({
+            ...prev,
+            employees: quickReportData.employees,
+            notes: quickReportData.notes
+          }));
+        } catch (error) {
+          console.error('Error generando reporte inicial:', error);
+        } finally {
+          setQuickReportLoading(false);
+        }
+      };
+
+      generateInitialReport();
     }
-  }, [report]);
+  }, [report, formData.date]);
 
   const handleQuickReport = async (template: 'normal' | 'weekend' | 'holiday') => {
     try {
@@ -245,6 +265,20 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                 </p>
               </div>
             ) : (
+              <>
+                {/* Mensaje informativo */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start space-x-3">
+                    <CheckCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800">Reporte Pre-configurado</h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Todos los empleados están marcados como <strong>presentes</strong> con horarios estándar (9:00 AM - 6:00 PM). 
+                        Solo edita los casos excepcionales y guarda el reporte.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               <div className="space-y-4">
                 {formData.employees.map((employee, index) => (
                   <div key={employee.employeeId} className="border border-gray-200 rounded-lg p-4">
@@ -330,6 +364,7 @@ export const AttendanceForm: React.FC<AttendanceFormProps> = ({
                   </div>
                 ))}
               </div>
+              </>
             )}
           </CardContent>
         </Card>

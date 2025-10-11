@@ -4,13 +4,21 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { attendanceService } from '../attendanceService';
-import { AttendanceReport, AttendanceFilters, AttendanceStats } from '../types';
+import { 
+  AttendanceReport, 
+  AttendanceFilters, 
+  AttendanceStats, 
+  ApprovalRequest, 
+  AttendancePermissions 
+} from '../types';
+import { formatHours } from '@/utils/dateUtils';
 
 export const useAttendance = () => {
   const [reports, setReports] = useState<AttendanceReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
+  const [permissions, setPermissions] = useState<AttendancePermissions | null>(null);
 
   // Cargar reportes de asistencia
   const loadReports = useCallback(async (filters: AttendanceFilters = {}, page = 1, limit = 20) => {
@@ -103,13 +111,13 @@ export const useAttendance = () => {
     }
   }, [loadReports]);
 
-  // Aprobar reporte
-  const approveReport = useCallback(async (reportId: string) => {
+  // Aprobar o rechazar reporte
+  const approveReport = useCallback(async (request: ApprovalRequest) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await attendanceService.approveReport(reportId);
+      const response = await attendanceService.approveReport(request);
 
       if (response.success) {
         await loadReports(); // Recargar lista
@@ -118,13 +126,26 @@ export const useAttendance = () => {
         throw new Error(response.message);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al aprobar reporte';
+      const errorMessage = err instanceof Error ? err.message : 'Error al procesar reporte';
       setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
     }
   }, [loadReports]);
+
+  // Cargar permisos del usuario
+  const loadPermissions = useCallback(async () => {
+    try {
+      const userPermissions = await attendanceService.getUserPermissions();
+      setPermissions(userPermissions);
+      return userPermissions;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar permisos';
+      setError(errorMessage);
+      throw err;
+    }
+  }, []);
 
   // Generar reporte rápido
   const generateQuickReport = useCallback(async (date: string, template: 'normal' | 'weekend' | 'holiday' = 'normal') => {
@@ -172,12 +193,14 @@ export const useAttendance = () => {
     loading,
     error,
     stats,
+    permissions,
     calculatedStats,
     loadReports,
     createReport,
     updateReport,
     deleteReport,
     approveReport,
+    loadPermissions,
     generateQuickReport,
     setError
   };
