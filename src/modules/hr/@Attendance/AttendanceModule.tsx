@@ -17,6 +17,7 @@ import {
 import { AttendanceList } from './components/AttendanceList';
 import { AttendanceDetail } from './components/AttendanceDetail';
 import { AttendanceForm } from './components/AttendanceForm';
+import AttendanceDashboard from './components/AttendanceDashboard';
 import { attendanceService } from './attendanceService';
 import { useAttendance } from './hooks/useAttendance';
 import { AttendanceReport, ApprovalRequest } from './types';
@@ -26,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatHours } from '@/utils/dateUtils';
 
 const AttendanceModule: React.FC = () => {
-  const [activeView, setActiveView] = useState<'list' | 'detail' | 'form'>('list');
+  const [activeView, setActiveView] = useState<'dashboard' | 'list' | 'detail' | 'form'>('dashboard');
   const [selectedReport, setSelectedReport] = useState<AttendanceReport | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -142,6 +143,10 @@ const AttendanceModule: React.FC = () => {
     );
   }
 
+  if (activeView === 'dashboard') {
+    return <AttendanceDashboard />;
+  }
+
   if (activeView === 'form') {
     return (
       <AttendanceForm
@@ -189,6 +194,32 @@ const AttendanceModule: React.FC = () => {
             Reporte Rápido
           </Button>
         </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveView('dashboard')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeView === 'dashboard'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveView('list')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeView === 'list'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Reportes
+          </button>
+        </nav>
       </div>
 
       {/* Stats Cards */}

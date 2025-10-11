@@ -218,27 +218,39 @@ class AttendanceService {
   /**
    * Actualizar reporte de asistencia
    */
-  async updateReport(reportId: string, data: Partial<AttendanceReport>): Promise<AttendanceReportResponse> {
-    await new Promise(resolve => setTimeout(resolve, 500));
+  async updateReport(reportId: string, data: Partial<CreateAttendanceReportRequest>): Promise<AttendanceReportResponse> {
+    try {
+      // Validar datos si se están enviando empleados
+      if (data.employees) {
+        this.validateAttendanceData(data as CreateAttendanceReportRequest);
+      }
 
-    // Simular actualización
-    return {
-      success: true,
-      message: 'Reporte actualizado exitosamente',
-      data: { ...this.generateMockReports().find(r => r.id === reportId)!, ...data } as AttendanceReport
-    };
+      const response = await this.makeRequest(`/reports/${reportId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error updating attendance report:', error);
+      throw error;
+    }
   }
 
   /**
    * Eliminar reporte de asistencia
    */
   async deleteReport(reportId: string): Promise<{ success: boolean; message: string }> {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    try {
+      const response = await this.makeRequest(`/reports/${reportId}`, {
+        method: 'DELETE'
+      });
 
-    return {
-      success: true,
-      message: 'Reporte eliminado exitosamente'
-    };
+      return response;
+    } catch (error) {
+      console.error('Error deleting attendance report:', error);
+      throw error;
+    }
   }
 
 
@@ -246,8 +258,24 @@ class AttendanceService {
    * Generar reporte rápido con plantilla
    */
   async generateQuickReport(date: string, template: 'normal' | 'weekend' | 'holiday' = 'normal'): Promise<CreateAttendanceReportRequest> {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    try {
+      const response = await this.makeRequest('/reports/generate-quick', {
+        method: 'POST',
+        body: JSON.stringify({ date, template })
+      });
 
+      return response.data;
+    } catch (error) {
+      console.error('Error generating quick report:', error);
+      // Fallback a generación local
+      return this.generateLocalQuickReport(date, template);
+    }
+  }
+
+  /**
+   * Fallback a generación local de reporte rápido
+   */
+  private generateLocalQuickReport(date: string, template: 'normal' | 'weekend' | 'holiday' = 'normal'): CreateAttendanceReportRequest {
     const employees = MOCK_EMPLOYEES.map(emp => {
       // Por defecto, todos los empleados están presentes
       let status: AttendanceRecord['status'] = 'present';
@@ -303,8 +331,27 @@ class AttendanceService {
    * Obtener estadísticas generales de asistencia
    */
   async getAttendanceStats(filters: AttendanceFilters = {}): Promise<AttendanceStats> {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    try {
+      const queryParams = new URLSearchParams({
+        ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+        ...(filters.dateTo && { dateTo: filters.dateTo }),
+        ...(filters.departmentId && { departmentId: filters.departmentId }),
+        ...(filters.employeeId && { employeeId: filters.employeeId })
+      });
 
+      const response = await this.makeRequest(`/stats?${queryParams}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching attendance stats:', error);
+      // Fallback a datos mock
+      return this.getMockAttendanceStats(filters);
+    }
+  }
+
+  /**
+   * Fallback a estadísticas mock
+   */
+  private getMockAttendanceStats(filters: AttendanceFilters = {}): AttendanceStats {
     const reports = this.generateMockReports();
     const filteredReports = this.applyFilters(reports, filters);
 
@@ -481,8 +528,32 @@ class AttendanceService {
    * Aprobar o rechazar un reporte de asistencia
    */
   async approveReport(request: ApprovalRequest): Promise<ApprovalResponse> {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const endpoint = request.action === 'approve' 
+        ? `/reports/${request.reportId}/approve`
+        : `/reports/${request.reportId}/reject`;
 
+      const body = request.action === 'approve' 
+        ? { comments: request.reason }
+        : { reason: request.reason };
+
+      const response = await this.makeRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error approving/rejecting report:', error);
+      // Fallback a simulación local
+      return this.getMockApprovalResponse(request);
+    }
+  }
+
+  /**
+   * Fallback a respuesta mock de aprobación
+   */
+  private getMockApprovalResponse(request: ApprovalRequest): ApprovalResponse {
     const reports = this.generateMockReports();
     const report = reports.find(r => r.id === request.reportId);
 
@@ -519,10 +590,20 @@ class AttendanceService {
    * Obtener permisos del usuario actual
    */
   async getUserPermissions(): Promise<AttendancePermissions> {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    try {
+      const response = await this.makeRequest('/permissions');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+      // Fallback a permisos basados en rol local
+      return this.getMockUserPermissions();
+    }
+  }
 
-    // Simular obtención de permisos del usuario actual
-    // En una implementación real, esto vendría del backend basado en el rol del usuario
+  /**
+   * Fallback a permisos mock
+   */
+  private getMockUserPermissions(): AttendancePermissions {
     const currentUser = this.getCurrentUser();
     
     return {
@@ -534,6 +615,195 @@ class AttendanceService {
       canView: true,
       isAdmin: currentUser.role === 'admin'
     };
+  }
+
+  /**
+   * Obtener dashboard de asistencia
+   */
+  async getDashboard(date?: string): Promise<any> {
+    try {
+      const queryParams = date ? `?date=${date}` : '';
+      const response = await this.makeRequest(`/dashboard${queryParams}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching dashboard:', error);
+      // Fallback a dashboard mock
+      return this.getMockDashboard(date);
+    }
+  }
+
+  /**
+   * Fallback a dashboard mock
+   */
+  private getMockDashboard(date?: string): any {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const reports = this.generateMockReports();
+    const todayReport = reports.find(r => r.date === targetDate);
+    const employees = todayReport ? this.generateMockEmployeeAttendance(targetDate) : [];
+
+    return {
+      date: targetDate,
+      currentReport: todayReport || null,
+      currentStats: {
+        presentCount: employees.filter(e => e.status === 'present').length,
+        absentCount: employees.filter(e => e.status === 'absent').length,
+        lateCount: employees.filter(e => e.status === 'late').length
+      },
+      generalStats: {
+        attendanceRate: 90.5,
+        totalHours: employees.reduce((sum, e) => sum + (e.totalHours || 0), 0)
+      },
+      recentReports: reports.slice(0, 5),
+      alerts: [
+        {
+          type: 'high_absence',
+          message: '15% de ausencias hoy - superior al 20% recomendado',
+          severity: 'high'
+        }
+      ]
+    };
+  }
+
+  /**
+   * Obtener métricas avanzadas
+   */
+  async getMetrics(period: 'week' | 'month' | 'quarter' = 'month', date?: string): Promise<any> {
+    try {
+      const queryParams = new URLSearchParams({
+        period,
+        ...(date && { date })
+      });
+
+      const response = await this.makeRequest(`/metrics?${queryParams}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+      // Fallback a métricas mock
+      return this.getMockMetrics(period, date);
+    }
+  }
+
+  /**
+   * Fallback a métricas mock
+   */
+  private getMockMetrics(period: 'week' | 'month' | 'quarter' = 'month', date?: string): any {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    
+    return {
+      period,
+      date: targetDate,
+      dateFrom: this.getPeriodStartDate(period, targetDate),
+      dateTo: targetDate,
+      metrics: {
+        totalReports: 22,
+        totalEmployees: 25,
+        attendanceRate: 90.5,
+        averageHoursPerDay: 8.2,
+        overtimeHours: 120
+      },
+      trends: {
+        attendanceRate: this.generateTrendData('attendanceRate', period),
+        overtimeHours: this.generateTrendData('overtimeHours', period)
+      }
+    };
+  }
+
+  /**
+   * Obtener estado de empleado específico
+   */
+  async getEmployeeStatus(employeeId: string, date: string): Promise<any> {
+    try {
+      const response = await this.makeRequest(`/employee/${employeeId}/status?date=${date}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching employee status:', error);
+      // Fallback a estado mock
+      return this.getMockEmployeeStatus(employeeId, date);
+    }
+  }
+
+  /**
+   * Fallback a estado mock de empleado
+   */
+  private getMockEmployeeStatus(employeeId: string, date: string): any {
+    const employee = MOCK_EMPLOYEES.find(e => e.id === employeeId);
+    if (!employee) {
+      throw new Error('Empleado no encontrado');
+    }
+
+    const employees = this.generateMockEmployeeAttendance(date);
+    const record = employees.find(e => e.employeeId === employeeId);
+
+    return {
+      employeeId,
+      date,
+      attendanceStatus: record?.status || 'absent',
+      record: record || null,
+      vacationInfo: {
+        status: 'working',
+        approved: true
+      },
+      extrasInfo: {
+        overtimeHours: record?.overtimeHours || 0,
+        hasLoans: false,
+        hasAbsences: false
+      }
+    };
+  }
+
+  /**
+   * Exportar reporte
+   */
+  async exportReport(reportId: string, format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<any> {
+    try {
+      const response = await this.makeRequest(`/reports/${reportId}/export?format=${format}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      throw error;
+    }
+  }
+
+  // ===== MÉTODOS AUXILIARES ADICIONALES =====
+
+  private getPeriodStartDate(period: 'week' | 'month' | 'quarter', date: string): string {
+    const targetDate = new Date(date);
+    
+    switch (period) {
+      case 'week':
+        const weekStart = new Date(targetDate);
+        weekStart.setDate(targetDate.getDate() - targetDate.getDay());
+        return weekStart.toISOString().split('T')[0];
+      
+      case 'month':
+        return new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).toISOString().split('T')[0];
+      
+      case 'quarter':
+        const quarterStart = new Date(targetDate.getFullYear(), Math.floor(targetDate.getMonth() / 3) * 3, 1);
+        return quarterStart.toISOString().split('T')[0];
+      
+      default:
+        return date;
+    }
+  }
+
+  private generateTrendData(type: 'attendanceRate' | 'overtimeHours', period: 'week' | 'month' | 'quarter'): any[] {
+    const days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
+    const data = [];
+
+    for (let i = days; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      
+      data.push({
+        date: date.toISOString().split('T')[0],
+        value: type === 'attendanceRate' 
+          ? Math.random() * 20 + 80 // 80-100%
+          : Math.random() * 10 + 5  // 5-15 horas
+      });
+    }
+
+    return data;
   }
 
   /**

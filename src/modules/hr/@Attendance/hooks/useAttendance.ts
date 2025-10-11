@@ -202,6 +202,12 @@ export const useAttendance = () => {
     approveReport,
     loadPermissions,
     generateQuickReport,
-    setError
+    setError,
+    
+    // Nuevos métodos
+    getDashboard: attendanceService.getDashboard.bind(attendanceService),
+    getMetrics: attendanceService.getMetrics.bind(attendanceService),
+    getEmployeeStatus: attendanceService.getEmployeeStatus.bind(attendanceService),
+    exportReport: attendanceService.exportReport.bind(attendanceService)
   };
 };
