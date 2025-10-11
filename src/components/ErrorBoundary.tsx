@@ -43,9 +43,20 @@ export class ErrorBoundary extends Component<Props, State> {
     isRecovering: false
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: unknown): State {
+    // ✅ FILTRAR errores vacíos ANTES de actualizar el estado
+    if (!error || 
+        (typeof error === 'object' && Object.keys(error).length === 0) ||
+        (typeof error === 'object' && error.toString() === '{}') ||
+        (typeof error === 'string' && error.trim() === '') ||
+        (typeof error === 'object' && JSON.stringify(error) === '{}')) {
+      console.warn('⚠️ getDerivedStateFromError - Error vacío detectado y filtrado');
+      // NO actualizar el estado para errores vacíos
+      return { hasError: false, retryCount: 0, isRecovering: false };
+    }
+    
     // Actualizar el estado para que el siguiente renderizado muestre la UI de fallback
-    return { hasError: true, error, retryCount: 0, isRecovering: false };
+    return { hasError: true, error: error as Error, retryCount: 0, isRecovering: false };
   }
 
   public componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
