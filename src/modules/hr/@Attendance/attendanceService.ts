@@ -242,6 +242,22 @@ class AttendanceService {
   async exportReport(reportId: string, format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<any> {
     return await this.makeRequest(`/reports/${reportId}/export?format=${format}`);
   }
+
+  /**
+   * Obtener lista de empleados para enriquecer datos de asistencia
+   */
+  async getEmployees(): Promise<any> {
+    try {
+      const response = await api({
+        url: '/api/employees?page=1&limit=100&sortBy=createdAt&sortOrder=desc'
+      });
+      console.log('✅ AttendanceService - Empleados obtenidos:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ AttendanceService - Error obteniendo empleados:', error);
+      throw new Error('Error al obtener lista de empleados');
+    }
+  }
 }
 
 export const attendanceService = new AttendanceService();

@@ -5,12 +5,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
-  Calendar,
   CheckCircle,
   AlertTriangle,
   DollarSign,
   Download,
-  Printer
+  Printer,
+  Share,
+  Calendar
 } from 'lucide-react';
 import { attendanceService } from '../attendanceService';
 import { AttendanceDetailResponse, EmployeeAttendance } from '../types';
@@ -79,21 +80,78 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
       setLoading(true);
       setError(null);
       console.log('🔍 AttendanceDetail - Cargando detalle para reportId:', reportId);
+      
+      // 1. Obtener el detalle del reporte
       const response = await attendanceService.getReportDetail(reportId);
       console.log('✅ AttendanceDetail - Respuesta recibida:', response);
+      
+      // 2. Obtener la lista completa de empleados para enriquecer los datos
+      console.log('🔍 AttendanceDetail - Obteniendo lista de empleados...');
+      const employeesResponse = await attendanceService.getEmployees();
+      console.log('✅ AttendanceDetail - Empleados obtenidos:', employeesResponse);
       
       // El backend devuelve una estructura diferente a la esperada
       // Según los logs: { success: true, data: { report: {...}, records: [...], stats: {...} } }
       if (response && (response as unknown as BackendResponse).data) {
         const backendData = (response as unknown as BackendResponse).data;
+        
+        // 3. Enriquecer los registros con datos completos de empleados
+        const enrichedEmployees = (backendData.records || []).map((record: unknown) => {
+          const recordData = record as EmployeeRecord;
+          const employeeId = recordData.employeeId;
+          
+          // Buscar el empleado completo en la lista de empleados
+          const fullEmployee = employeesResponse?.employees?.find((emp: unknown) => {
+            const empData = emp as { id: string };
+            return empData.id === employeeId;
+          });
+          
+          if (fullEmployee) {
+            const empData = fullEmployee as {
+              id: string;
+              employeeNumber?: string;
+              personalInfo?: {
+                firstName?: string;
+                lastName?: string;
+              };
+              position?: {
+                department?: string;
+              };
+            };
+            console.log('🔍 AttendanceDetail - Enriqueciendo empleado:', {
+              employeeId,
+              firstName: empData.personalInfo?.firstName,
+              lastName: empData.personalInfo?.lastName,
+              employeeNumber: empData.employeeNumber,
+              department: empData.position?.department
+            });
+            
+            return {
+              ...recordData,
+              employeeName: `${empData.personalInfo?.firstName || ''} ${empData.personalInfo?.lastName || ''}`.trim(),
+              employeeNumber: empData.employeeNumber || '',
+              department: empData.position?.department || 'Sin departamento'
+            };
+          }
+          
+          // Si no se encuentra el empleado, usar datos por defecto
+          console.warn('⚠️ AttendanceDetail - Empleado no encontrado:', employeeId);
+          return {
+            ...recordData,
+            employeeName: `Empleado ${employeeId.slice(0, 8)}`,
+            employeeNumber: '',
+            department: 'Sin departamento'
+          };
+        });
+        
         const transformedData = {
           report: backendData.report,
-          employees: backendData.records || [], // El backend devuelve 'records'
+          employees: enrichedEmployees, // Empleados enriquecidos
           stats: backendData.stats || {},
           movements: backendData.movements || [],
           exceptions: backendData.exceptions || []
         };
-        console.log('🔄 AttendanceDetail - Datos transformados:', transformedData);
+        console.log('🔄 AttendanceDetail - Datos transformados y enriquecidos:', transformedData);
         setData(transformedData);
       } else if (response && response.report) {
         // Si la respuesta ya tiene la estructura esperada
@@ -109,6 +167,76 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ===== FUNCIONES DE MANEJO DE BOTONES =====
+
+  const handleShare = () => {
+    console.log('🔗 Compartir reporte:', reportId);
+    try {
+      // Crear URL para compartir
+      const shareUrl = `${window.location.origin}/hr/attendance/reports/${reportId}`;
+      
+      // Copiar URL al portapapeles
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        console.log('✅ URL copiada al portapapeles:', shareUrl);
+        // Aquí podrías mostrar un toast de confirmación
+      }).catch((err) => {
+        console.error('❌ Error copiando URL:', err);
+      });
+    } catch (error) {
+      console.error('❌ Error en handleShare:', error);
+    }
+  };
+
+  const handleExport = async () => {
+    console.log('📊 Exportar reporte:', reportId);
+    try {
+      // Llamar al servicio de exportación
+      const exportData = await attendanceService.exportReport(reportId, 'pdf');
+      console.log('✅ Reporte exportado:', exportData);
+      
+      // Aquí podrías manejar la descarga del archivo
+      // o mostrar un modal de opciones de exportación
+    } catch (error) {
+      console.error('❌ Error exportando reporte:', error);
+    }
+  };
+
+  const handlePrint = () => {
+    console.log('🖨️ Imprimir reporte:', reportId);
+    try {
+      // Usar la API nativa de impresión del navegador
+      window.print();
+    } catch (error) {
+      console.error('❌ Error imprimiendo reporte:', error);
+    }
+  };
+
+  const handleApprove = async () => {
+    console.log('✅ Aprobar reporte:', reportId);
+    try {
+      if (report.status === 'approved') {
+        console.log('⚠️ El reporte ya está aprobado');
+        return;
+      }
+
+      // Llamar al servicio de aprobación
+      const approvalData = await attendanceService.approveReport({
+        reportId: reportId,
+        action: 'approve',
+        reason: 'Aprobado desde la vista de detalle',
+        approvedBy: 'admin@company.com' // TODO: Obtener del contexto de usuario
+      });
+      console.log('✅ Reporte aprobado:', approvalData);
+      
+      // Recargar los datos del reporte para actualizar el estado
+      await loadReportDetail();
+      
+      // Aquí podrías mostrar un toast de confirmación
+    } catch (error) {
+      console.error('❌ Error aprobando reporte:', error);
     }
   };
 
@@ -215,21 +343,42 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Vista previa
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleShare}
+            className="hover:bg-blue-50 hover:border-blue-300"
+          >
+            <Share className="h-4 w-4 mr-2" />
+            Compartir
           </Button>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExport}
+            className="hover:bg-green-50 hover:border-green-300"
+          >
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handlePrint}
+            className="hover:bg-gray-50 hover:border-gray-300"
+          >
             <Printer className="h-4 w-4 mr-2" />
             Imprimir
           </Button>
-          <Button variant="outline" size="sm">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Enviar
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleApprove}
+            className="hover:bg-purple-50 hover:border-purple-300"
+            disabled={report.status === 'approved'}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Aprobar
           </Button>
         </div>
       </div>
