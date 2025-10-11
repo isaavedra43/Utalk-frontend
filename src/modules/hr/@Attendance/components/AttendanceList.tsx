@@ -8,7 +8,11 @@ import {
   Trash2,
   CheckCircle,
   Users,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Calendar,
+  CheckSquare,
+  Eye
 } from 'lucide-react';
 import { AttendanceReport } from '../types';
 import { Button } from '@/components/ui/button';
