@@ -28,12 +28,8 @@ class AttendanceService {
         ...options
       });
       
-      // Verificar si la respuesta tiene la estructura esperada
-      if (response.data && typeof response.data === 'object') {
-        return response.data;
-      }
-      
-      // Si no tiene la estructura esperada, devolver la respuesta completa
+      // El backend devuelve la estructura: { success: true, data: {...} }
+      // Devolvemos directamente response.data que contiene la estructura esperada
       return response.data;
     } catch (error: any) {
       console.error(`Error en ${endpoint}:`, error);

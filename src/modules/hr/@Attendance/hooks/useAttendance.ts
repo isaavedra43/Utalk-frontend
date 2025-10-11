@@ -28,7 +28,7 @@ export const useAttendance = () => {
 
       const response = await attendanceService.listReports(filters, page, limit);
       
-      // Verificar que la respuesta tenga la estructura esperada
+      // El servicio ya devuelve response.data, así que response contiene la estructura esperada
       if (response && Array.isArray(response.reports)) {
         setReports(response.reports);
       } else {
@@ -153,7 +153,11 @@ export const useAttendance = () => {
       const userPermissions = await attendanceService.getUserPermissions();
       
       // Verificar que la respuesta tenga la estructura esperada
-      if (userPermissions && typeof userPermissions === 'object') {
+      if (userPermissions && userPermissions.permissions && typeof userPermissions.permissions === 'object') {
+        setPermissions(userPermissions.permissions);
+        return userPermissions.permissions;
+      } else if (userPermissions && typeof userPermissions === 'object') {
+        // Fallback para estructura directa
         setPermissions(userPermissions);
         return userPermissions;
       } else {
