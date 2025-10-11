@@ -135,8 +135,8 @@ export const AgentAssignment: React.FC<AgentAssignmentProps> = ({
   };
 
   // Filtrar agentes que no están asignados
-  const availableAgentsForAssignment = agents.filter(agent => 
-    !assignedAgents.some(assigned => assigned.email === agent.email)
+  const availableAgentsForAssignment = (agents || []).filter(agent => 
+    !(assignedAgents || []).some(assigned => assigned.email === agent.email)
   );
 
   return (
