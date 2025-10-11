@@ -150,7 +150,8 @@ export const CopilotPanel: React.FC = React.memo(() => {
 
   // Memoizar getCurrentConversationMemory para evitar recreaciones
   const getCurrentConversationMemory = useCallback((): ConversationMemory => {
-    const recent = (storeMessagesArray || []).slice(-10).map((m: { direction?: string; content: string; createdAt?: string }) => ({
+    const messagesArray = storeMessagesArray || [];
+    const recent = messagesArray.slice(-10).map((m: { direction?: string; content: string; createdAt?: string }) => ({
       role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
       content: m.content,
       timestamp: m.createdAt || new Date().toISOString()
@@ -161,7 +162,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
       context: {
         conversationId: activeConversationIdRef.current,
         agentId: currentAgentIdRef.current,
-        messageCount: recent.length
+        messageCount: recent ? recent.length : 0
       }
     };
   }, [storeMessagesArray]);
@@ -831,7 +832,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
     getAgentIdString
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const showIntro = storeMessagesArray.length === 0; // Usar storeMessagesArray para determinar si es intro
+  const showIntro = (storeMessagesArray || []).length === 0; // Usar storeMessagesArray para determinar si es intro
 
   const suggestedPrompts = useMemo(() => [
     {
@@ -1029,7 +1030,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
       )}
 
       {/* Chat Messages - ocupa el espacio disponible */}
-      {storeMessagesArray.length > 0 && (
+      {(storeMessagesArray || []).length > 0 && (
         <>
           {/* ✅ SOLUCIÓN: Header con botón de limpiar cuando hay mensajes */}
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
@@ -1098,7 +1099,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
       {renderExperienceResult()}
 
       {/* Historial de comandos */}
-      {commandHistory.length > 0 && (
+      {(commandHistory || []).length > 0 && (
         <div className="px-3 pb-2">
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comandos recientes:</h4>
