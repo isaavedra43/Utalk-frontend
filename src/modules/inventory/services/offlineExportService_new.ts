@@ -2,19 +2,10 @@ import type { Platform } from '../types';
 import { hasMaterialsSpecified } from '../utils/calculations';
 
 /**
- * Servicio de exportación completamente offline - VERSIÓN 2.0
+ * Servicio de exportación completamente offline - VERSIÓN ACTUALIZADA
  * No requiere conexión a internet ni dependencias externas
- * Última actualización: ${new Date().toISOString()}
  */
 export class OfflineExportService {
-  
-  // Versión del servicio para control de caché
-  private static readonly VERSION = '2.0.0';
-  
-  // Log de inicialización para verificar que se carga la versión correcta
-  static {
-    console.log(`🚀 OfflineExportService v${this.VERSION} inicializado - ${new Date().toLocaleString()}`);
-  }
   
   /**
    * Genera una columna de tabla para el diseño de 3 columnas
@@ -69,8 +60,7 @@ export class OfflineExportService {
    */
   static exportToPDF(platform: Platform): void {
     try {
-      console.log(`📄 OfflineExportService v${this.VERSION} - Generando PDF con nuevo diseño...`);
-      console.log(`📄 Timestamp: ${new Date().toISOString()}`);
+      console.log('📄 Generando PDF con nuevo diseño...');
       
       const htmlContent = this.generatePDFHTML(platform);
       
@@ -158,17 +148,13 @@ export class OfflineExportService {
     
     console.log(`📋 Distribución: Total=${totalPieces}, Por columna=${piecesPerColumn}, Col1=${column1.length}, Col2=${column2.length}, Col3=${column3.length}`);
 
-    const timestamp = Date.now();
-    const version = this.VERSION;
-    
     return `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Carga ${platform.platformNumber}</title>
-    <!-- Versión: ${version} | Timestamp: ${timestamp} -->
-    <!-- Cache buster: ${timestamp} -->
+    <!-- Cache buster: ${Date.now()} -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -367,13 +353,9 @@ export class OfflineExportService {
     </style>
 </head>
 <body>
-    <!-- VERSIÓN ${version} - DISEÑO 3 COLUMNAS - ${new Date().toLocaleString()} -->
     <div class="header">
         <div class="title">REPORTE DE CARGA</div>
         <div class="subtitle">CUANTIFICACIÓN DE MATERIALES</div>
-        <div style="font-size: 10px; opacity: 0.7; margin-top: 5px;">
-            Versión ${version} - Diseño 3 Columnas - ${new Date().toLocaleString()}
-        </div>
     </div>
 
     <div class="info-grid">

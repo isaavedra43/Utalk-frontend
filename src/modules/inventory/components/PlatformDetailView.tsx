@@ -117,14 +117,20 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     showNotification('success', 'Carga marcada como completada');
   };
 
-  // Exportar a PDF - COMPLETAMENTE OFFLINE
-  const handleExportPDF = () => {
+  // Exportar a PDF - SERVICIO ALTERNATIVO
+  const handleExportPDF = async () => {
     try {
       setExporting(true);
-      // ✅ USAR SERVICIO COMPLETAMENTE OFFLINE
-      OfflineExportService.exportToPDF(platform);
+      
+      console.log('📄 Usando PdfExportService alternativo...');
+      
+      // Usar el servicio alternativo
+      const { PdfExportService } = await import('../services/pdfExportService');
+      
+      PdfExportService.exportToPDF(platform);
+      
       updatePlatform(platform.id, { status: 'exported' });
-      showNotification('success', 'Exportado a PDF exitosamente (Offline)');
+      showNotification('success', 'Exportado a PDF exitosamente (Servicio Alternativo)');
     } catch (error) {
       console.error('Error al exportar PDF:', error);
       showNotification('error', 'Error al exportar a PDF');

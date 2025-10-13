@@ -2,90 +2,35 @@ import type { Platform } from '../types';
 import { hasMaterialsSpecified } from '../utils/calculations';
 
 /**
- * Servicio de exportación completamente offline - VERSIÓN 2.0
- * No requiere conexión a internet ni dependencias externas
- * Última actualización: ${new Date().toISOString()}
+ * Servicio de exportación PDF - VERSIÓN ALTERNATIVA
+ * Diseño de 3 columnas + ocultar columna de materiales
  */
-export class OfflineExportService {
+export class PdfExportService {
   
-  // Versión del servicio para control de caché
-  private static readonly VERSION = '2.0.0';
+  private static readonly VERSION = '2.0.0-ALT';
   
-  // Log de inicialización para verificar que se carga la versión correcta
   static {
-    console.log(`🚀 OfflineExportService v${this.VERSION} inicializado - ${new Date().toLocaleString()}`);
+    console.log(`🚀 PdfExportService v${this.VERSION} inicializado - ${new Date().toLocaleString()}`);
   }
   
   /**
-   * Genera una columna de tabla para el diseño de 3 columnas
-   */
-  private static generateTableColumn(pieces: Platform['pieces'], hasMaterials: boolean, columnTitle: string): string {
-    if (pieces.length === 0) {
-      return `
-        <div class="table-column">
-          <div class="column-header">
-            ${columnTitle}
-          </div>
-          <div class="empty-column">
-            Sin registros
-          </div>
-        </div>
-      `;
-    }
-    
-    return `
-      <div class="table-column">
-        <div class="column-header">
-          ${columnTitle}
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>No.</th>
-              ${hasMaterials ? '<th>Material</th>' : ''}
-              <th>Long. (m)</th>
-              <th>Ancho (m)</th>
-              <th>Metros</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${pieces.map(piece => `
-              <tr>
-                <td class="number-cell">${piece.number}</td>
-                ${hasMaterials ? `<td class="material-cell">${piece.material || 'Sin especificar'}</td>` : ''}
-                <td class="number-cell">${piece.length.toFixed(2)}</td>
-                <td class="number-cell">${piece.standardWidth.toFixed(2)}</td>
-                <td class="meters-cell">${piece.linearMeters.toFixed(3)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-  
-  /**
-   * Exporta a PDF usando solo APIs nativas del navegador
+   * Exporta a PDF con diseño de 3 columnas
    */
   static exportToPDF(platform: Platform): void {
     try {
-      console.log(`📄 OfflineExportService v${this.VERSION} - Generando PDF con nuevo diseño...`);
-      console.log(`📄 Timestamp: ${new Date().toISOString()}`);
+      console.log(`📄 PdfExportService v${this.VERSION} - Generando PDF...`);
       
-      const htmlContent = this.generatePDFHTML(platform);
+      const htmlContent = this.generateHTML(platform);
       
-      // Crear ventana de impresión
       const printWindow = window.open('', '_blank', 'width=1200,height=800');
       
       if (!printWindow) {
         throw new Error('No se pudo abrir la ventana de impresión');
       }
       
-      // Escribir contenido
       printWindow.document.write(htmlContent);
       printWindow.document.close();
       
-      // Imprimir automáticamente
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.focus();
@@ -96,59 +41,17 @@ export class OfflineExportService {
       
     } catch (error) {
       console.error('Error generando PDF:', error);
-      // Fallback: descargar como HTML
-      this.downloadAsHTML(platform);
     }
   }
-
+  
   /**
-   * Exporta a CSV completamente offline
+   * Genera HTML con diseño de 3 columnas
    */
-  static exportToCSV(platform: Platform): void {
-    try {
-      console.log('📊 Generando CSV offline...');
-      
-      const csvContent = this.generateCSVContent(platform);
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      
-      this.downloadBlob(blob, `Plataforma_${platform.platformNumber}_${this.getDateString()}.csv`);
-      
-    } catch (error) {
-      console.error('Error generando CSV:', error);
-    }
-  }
-
-  /**
-   * Exporta como imagen usando Canvas API nativo
-   */
-  static exportToImage(platform: Platform): void {
-    try {
-      console.log('🖼️ Generando imagen offline...');
-      
-      const canvas = this.createImageCanvas(platform);
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          this.downloadBlob(blob, `Plataforma_${platform.platformNumber}_${this.getDateString()}.png`);
-        }
-      }, 'image/png');
-      
-    } catch (error) {
-      console.error('Error generando imagen:', error);
-    }
-  }
-
-  /**
-   * Genera contenido HTML optimizado para PDF - VERSIÓN COMPLETAMENTE NUEVA
-   */
-  private static generatePDFHTML(platform: Platform): string {
-    // Debug: Log para verificar los materiales
-    console.log('🔍 Verificando materiales en platform.pieces:', platform.pieces.map(p => ({ number: p.number, material: p.material })));
-    
+  private static generateHTML(platform: Platform): string {
     const hasMaterials = hasMaterialsSpecified(platform.pieces);
     console.log('📊 Has materials specified:', hasMaterials);
     
-    // Dividir las piezas en 3 columnas para optimizar espacio
+    // Dividir en 3 columnas
     const totalPieces = platform.pieces.length;
     const piecesPerColumn = Math.ceil(totalPieces / 3);
     
@@ -156,10 +59,9 @@ export class OfflineExportService {
     const column2 = platform.pieces.slice(piecesPerColumn, piecesPerColumn * 2);
     const column3 = platform.pieces.slice(piecesPerColumn * 2);
     
-    console.log(`📋 Distribución: Total=${totalPieces}, Por columna=${piecesPerColumn}, Col1=${column1.length}, Col2=${column2.length}, Col3=${column3.length}`);
-
+    console.log(`📋 Distribución: Total=${totalPieces}, Col1=${column1.length}, Col2=${column2.length}, Col3=${column3.length}`);
+    
     const timestamp = Date.now();
-    const version = this.VERSION;
     
     return `
 <!DOCTYPE html>
@@ -167,8 +69,7 @@ export class OfflineExportService {
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Carga ${platform.platformNumber}</title>
-    <!-- Versión: ${version} | Timestamp: ${timestamp} -->
-    <!-- Cache buster: ${timestamp} -->
+    <!-- PdfExportService v${this.VERSION} - ${timestamp} -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -188,6 +89,8 @@ export class OfflineExportService {
         }
         .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
         .subtitle { font-size: 14px; opacity: 0.9; }
+        .version-info { font-size: 10px; opacity: 0.7; margin-top: 5px; }
+        
         .info-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
@@ -201,7 +104,7 @@ export class OfflineExportService {
         .info-label { font-weight: bold; color: #4a5568; font-size: 9px; }
         .info-value { font-size: 10px; color: #2d3748; }
         
-        /* NUEVO DISEÑO DE 3 COLUMNAS */
+        /* DISEÑO DE 3 COLUMNAS */
         .table-container { 
             display: flex; 
             gap: 6px; 
@@ -367,12 +270,12 @@ export class OfflineExportService {
     </style>
 </head>
 <body>
-    <!-- VERSIÓN ${version} - DISEÑO 3 COLUMNAS - ${new Date().toLocaleString()} -->
+    <!-- PdfExportService v${this.VERSION} - DISEÑO 3 COLUMNAS -->
     <div class="header">
         <div class="title">REPORTE DE CARGA</div>
         <div class="subtitle">CUANTIFICACIÓN DE MATERIALES</div>
-        <div style="font-size: 10px; opacity: 0.7; margin-top: 5px;">
-            Versión ${version} - Diseño 3 Columnas - ${new Date().toLocaleString()}
+        <div class="version-info">
+            PdfExportService v${this.VERSION} - Diseño 3 Columnas - ${new Date().toLocaleString()}
         </div>
     </div>
 
@@ -419,11 +322,11 @@ export class OfflineExportService {
         </div>
     </div>
 
-    <!-- NUEVO DISEÑO DE 3 COLUMNAS -->
+    <!-- DISEÑO DE 3 COLUMNAS -->
     <div class="table-container">
-        ${this.generateTableColumn(column1, hasMaterials, `Parte 1 (${column1.length} registros)`)}
-        ${this.generateTableColumn(column2, hasMaterials, `Parte 2 (${column2.length} registros)`)}
-        ${this.generateTableColumn(column3, hasMaterials, `Parte 3 (${column3.length} registros)`)}
+        ${this.generateColumn(column1, hasMaterials, `Parte 1 (${column1.length} registros)`)}
+        ${this.generateColumn(column2, hasMaterials, `Parte 2 (${column2.length} registros)`)}
+        ${this.generateColumn(column3, hasMaterials, `Parte 3 (${column3.length} registros)`)}
     </div>
     
     <!-- Fila de totales -->
@@ -475,173 +378,46 @@ export class OfflineExportService {
 </body>
 </html>`;
   }
-
+  
   /**
-   * Genera contenido CSV
+   * Genera una columna de la tabla
    */
-  private static generateCSVContent(platform: Platform): string {
-    const hasMaterials = hasMaterialsSpecified(platform.pieces);
-
-    const rows: string[] = [];
+  private static generateColumn(pieces: Platform['pieces'], hasMaterials: boolean, title: string): string {
+    if (pieces.length === 0) {
+      return `
+        <div class="table-column">
+          <div class="column-header">${title}</div>
+          <div class="empty-column">Sin registros</div>
+        </div>
+      `;
+    }
     
-    // Encabezados
-    const headers = hasMaterials 
-      ? 'No.,Material,Longitud (m),Ancho (m),Metros Lineales'
-      : 'No.,Longitud (m),Ancho (m),Metros Lineales';
-    rows.push(headers);
-    
-    // Datos
-    platform.pieces.forEach(piece => {
-      const rowData = hasMaterials 
-        ? [
-            piece.number,
-            `"${piece.material}"`,
-            piece.length.toFixed(2),
-            piece.standardWidth.toFixed(2),
-            piece.linearMeters.toFixed(3)
-          ]
-        : [
-            piece.number,
-            piece.length.toFixed(2),
-            piece.standardWidth.toFixed(2),
-            piece.linearMeters.toFixed(3)
-          ];
-      rows.push(rowData.join(','));
-    });
-    
-    // Totales
-    rows.push('');
-    const totalData = hasMaterials 
-      ? [
-          'TOTAL',
-          '—',
-          platform.totalLength.toFixed(2),
-          platform.standardWidth.toFixed(2),
-          platform.totalLinearMeters.toFixed(3)
-        ]
-      : [
-          'TOTAL',
-          platform.totalLength.toFixed(2),
-          platform.standardWidth.toFixed(2),
-          platform.totalLinearMeters.toFixed(3)
-        ];
-    rows.push(totalData.join(','));
-    
-    return rows.join('\n');
-  }
-
-  /**
-   * Crea canvas para imagen
-   */
-  private static createImageCanvas(platform: Platform): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-    
-    canvas.width = 1000;
-    canvas.height = 800;
-    
-    // Fondo
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Título
-    ctx.fillStyle = '#4f46e5';
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`PLATAFORMA ${platform.platformNumber}`, canvas.width / 2, 40);
-    
-    // Información
-    ctx.fillStyle = '#333';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'left';
-    let y = 80;
-    
-    ctx.fillText(`Fecha: ${new Date(platform.receptionDate).toLocaleDateString('es-MX')}`, 50, y);
-    y += 25;
-    ctx.fillText(`Total Piezas: ${platform.pieces.length}`, 50, y);
-    y += 25;
-    ctx.fillText(`Metros Totales: ${platform.totalLinearMeters.toFixed(2)} m²`, 50, y);
-    
-    // Tabla
-    y += 40;
-    const rowHeight = 25;
-    const colWidth = 120;
-    
-    // Encabezados
-    ctx.fillStyle = '#4f46e5';
-    ctx.fillRect(50, y, colWidth * 4, rowHeight);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('No.', 50 + colWidth/2, y + 17);
-    ctx.fillText('Longitud', 50 + colWidth + colWidth/2, y + 17);
-    ctx.fillText('Ancho', 50 + colWidth*2 + colWidth/2, y + 17);
-    ctx.fillText('Metros Lineales', 50 + colWidth*3 + colWidth/2, y + 17);
-    
-    y += rowHeight;
-    
-    // Datos
-    ctx.fillStyle = '#333';
-    ctx.font = '11px Arial';
-    
-    platform.pieces.slice(0, 20).forEach((piece, index) => {
-      if (index % 2 === 0) {
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(50, y, colWidth * 4, rowHeight);
-      }
-      
-      ctx.fillStyle = '#333';
-      ctx.fillText(piece.number.toString(), 50 + colWidth/2, y + 17);
-      ctx.fillText(piece.length.toFixed(2), 50 + colWidth + colWidth/2, y + 17);
-      ctx.fillText(piece.standardWidth.toFixed(2), 50 + colWidth*2 + colWidth/2, y + 17);
-      ctx.fillText(piece.linearMeters.toFixed(3), 50 + colWidth*3 + colWidth/2, y + 17);
-      
-      y += rowHeight;
-    });
-    
-    // Totales
-    ctx.fillStyle = '#059669';
-    ctx.fillRect(50, y, colWidth * 4, rowHeight);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Arial';
-    ctx.fillText('TOTAL', 50 + colWidth/2, y + 17);
-    ctx.fillText(platform.totalLength.toFixed(2), 50 + colWidth + colWidth/2, y + 17);
-    ctx.fillText(platform.standardWidth.toFixed(2), 50 + colWidth*2 + colWidth/2, y + 17);
-    ctx.fillText(platform.totalLinearMeters.toFixed(3), 50 + colWidth*3 + colWidth/2, y + 17);
-    
-    return canvas;
-  }
-
-  /**
-   * Descarga un blob como archivo
-   */
-  private static downloadBlob(blob: Blob, filename: string): void {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.style.display = 'none';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  /**
-   * Descarga como HTML
-   */
-  private static downloadAsHTML(platform: Platform): void {
-    const htmlContent = this.generatePDFHTML(platform);
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    this.downloadBlob(blob, `Reporte_${platform.platformNumber}_${this.getDateString()}.html`);
-  }
-
-  /**
-   * Obtiene string de fecha
-   */
-  private static getDateString(): string {
-    return new Date().toISOString().split('T')[0];
+    return `
+      <div class="table-column">
+        <div class="column-header">${title}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              ${hasMaterials ? '<th>Material</th>' : ''}
+              <th>Long. (m)</th>
+              <th>Ancho (m)</th>
+              <th>Metros</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pieces.map(piece => `
+              <tr>
+                <td class="number-cell">${piece.number}</td>
+                ${hasMaterials ? `<td class="material-cell">${piece.material || 'Sin especificar'}</td>` : ''}
+                <td class="number-cell">${piece.length.toFixed(2)}</td>
+                <td class="number-cell">${piece.standardWidth.toFixed(2)}</td>
+                <td class="meters-cell">${piece.linearMeters.toFixed(3)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 }
