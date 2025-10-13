@@ -23,21 +23,15 @@ export class OfflineExportService {
     if (pieces.length === 0) {
       return `
         <div class="table-column">
-          <div class="column-header">
-            ${columnTitle}
-          </div>
-          <div class="empty-column">
-            Sin registros
-          </div>
+          <div class="column-header">${columnTitle}</div>
+          <div class="empty-column">Sin registros</div>
         </div>
       `;
     }
-    
+
     return `
       <div class="table-column">
-        <div class="column-header">
-          ${columnTitle}
-        </div>
+        <div class="column-header">${columnTitle}</div>
         <table>
           <thead>
             <tr>
@@ -69,9 +63,9 @@ export class OfflineExportService {
    */
   static exportToPDF(platform: Platform): void {
     try {
-      console.log(`📄 OfflineExportService v${this.VERSION} - Generando PDF con nuevo diseño...`);
+      console.log(`📄 OfflineExportService v${this.VERSION} - Generando PDF con NUEVO diseño 3 columnas...`);
       console.log(`📄 Timestamp: ${new Date().toISOString()}`);
-      
+
       const htmlContent = this.generatePDFHTML(platform);
       
       // Crear ventana de impresión
@@ -95,7 +89,8 @@ export class OfflineExportService {
       };
       
     } catch (error) {
-      console.error('Error generando PDF:', error);
+      console.error('❌ Error generando PDF:', error);
+      console.error('🔄 Intentando fallback con HTML...');
       // Fallback: descargar como HTML
       this.downloadAsHTML(platform);
     }
@@ -139,23 +134,28 @@ export class OfflineExportService {
   }
 
   /**
-   * Genera contenido HTML optimizado para PDF - VERSIÓN COMPLETAMENTE NUEVA
+   * Genera contenido HTML optimizado para PDF - VERSIÓN 3 COLUMNAS
    */
   private static generatePDFHTML(platform: Platform): string {
     // Debug: Log para verificar los materiales
     console.log('🔍 Verificando materiales en platform.pieces:', platform.pieces.map(p => ({ number: p.number, material: p.material })));
-    
-    const hasMaterials = hasMaterialsSpecified(platform.pieces);
+
+    // Verificar si hay materiales especificados (excluyendo "Sin especificar" y variaciones)
+    const hasMaterials = platform.pieces.some(piece => {
+      if (!piece.material) return false;
+      const trimmed = piece.material.trim().toLowerCase();
+      return trimmed !== '' && trimmed !== 'sin especificar' && trimmed !== 'no especificado' && trimmed !== 'n/a' && trimmed !== 'na';
+    });
     console.log('📊 Has materials specified:', hasMaterials);
-    
+
     // Dividir las piezas en 3 columnas para optimizar espacio
     const totalPieces = platform.pieces.length;
     const piecesPerColumn = Math.ceil(totalPieces / 3);
-    
+
     const column1 = platform.pieces.slice(0, piecesPerColumn);
     const column2 = platform.pieces.slice(piecesPerColumn, piecesPerColumn * 2);
     const column3 = platform.pieces.slice(piecesPerColumn * 2);
-    
+
     console.log(`📋 Distribución: Total=${totalPieces}, Por columna=${piecesPerColumn}, Col1=${column1.length}, Col2=${column2.length}, Col3=${column3.length}`);
 
     const timestamp = Date.now();
@@ -167,7 +167,7 @@ export class OfflineExportService {
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Carga ${platform.platformNumber}</title>
-    <!-- Versión: ${version} | Timestamp: ${timestamp} -->
+    <!-- VERSIÓN 3 COLUMNAS - ${new Date().toLocaleString()} -->
     <!-- Cache buster: ${timestamp} -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -202,60 +202,60 @@ export class OfflineExportService {
         .info-value { font-size: 10px; color: #2d3748; }
         
         /* NUEVO DISEÑO DE 3 COLUMNAS */
-        .table-container { 
-            display: flex; 
-            gap: 6px; 
-            margin: 10px 0; 
-            width: 100%; 
-            align-items: flex-start; 
+        .table-container {
+            display: flex;
+            gap: 6px;
+            margin: 10px 0;
+            width: 100%;
+            align-items: flex-start;
         }
-        .table-column { 
-            flex: 1; 
-            min-width: 0; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 4px; 
-            overflow: hidden; 
+        .table-column {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
             background: white;
         }
         .column-header {
-            text-align: center; 
-            margin-bottom: 4px; 
-            font-weight: bold; 
-            font-size: 9px; 
-            color: #4f46e5; 
-            background: #f0f4ff; 
+            text-align: center;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 9px;
+            color: #4f46e5;
+            background: #f0f4ff;
             padding: 4px;
             border-bottom: 1px solid #e2e8f0;
         }
         .empty-column {
-            text-align: center; 
-            padding: 20px; 
-            color: #9ca3af; 
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
             font-size: 8px;
         }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            background: white; 
-            font-size: 8px; 
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 8px;
         }
-        th { 
-            background: #4f46e5; 
-            color: white; 
-            padding: 4px 3px; 
-            text-align: center; 
-            font-weight: bold; 
-            font-size: 8px; 
-            border-right: 1px solid #3b82f6; 
+        th {
+            background: #4f46e5;
+            color: white;
+            padding: 4px 3px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 8px;
+            border-right: 1px solid #3b82f6;
         }
         th:last-child { border-right: none; }
-        td { 
-            padding: 3px 2px; 
-            border-bottom: 1px solid #e2e8f0; 
-            border-right: 1px solid #e2e8f0; 
-            font-size: 7px; 
-            line-height: 1.3; 
-            text-align: center; 
+        td {
+            padding: 3px 2px;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            font-size: 7px;
+            line-height: 1.3;
+            text-align: center;
         }
         td:last-child { border-right: none; }
         .number-cell { font-family: monospace; font-weight: bold; }
