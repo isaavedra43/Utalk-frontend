@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trash2, Edit3, Check, X } from 'lucide-react';
 import type { Piece } from '../types';
-import { formatNumber } from '../utils/calculations';
+import { formatNumber, hasMaterialsSpecified } from '../utils/calculations';
 
 interface PiecesTableProps {
   pieces: Piece[];
@@ -58,11 +58,7 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
   };
 
   // Verificar si hay materiales registrados (excluyendo "Sin especificar")
-  const hasMaterials = pieces.some((piece: Piece) => 
-    piece.material && 
-    piece.material.trim() !== '' && 
-    piece.material.trim() !== 'Sin especificar'
-  );
+  const hasMaterials = hasMaterialsSpecified(pieces);
 
   if (pieces.length === 0) {
     return (

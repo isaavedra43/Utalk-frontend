@@ -82,3 +82,17 @@ export const getNextPieceNumber = (pieces: Piece[]): number => {
   return Math.max(...pieces.map(p => p.number)) + 1;
 };
 
+/**
+ * Verifica si hay materiales especificados en las piezas
+ * Ocultará la columna de materiales si todas las piezas tienen material "Sin especificar" o vacío
+ */
+export const hasMaterialsSpecified = (pieces: Piece[]): boolean => {
+  return pieces.some(piece => {
+    if (!piece.material) return false;
+    
+    const trimmedMaterial = piece.material.trim().toLowerCase();
+    return trimmedMaterial !== '' && 
+           trimmedMaterial !== 'sin especificar';
+  });
+};
+

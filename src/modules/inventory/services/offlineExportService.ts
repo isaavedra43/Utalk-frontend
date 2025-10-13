@@ -1,10 +1,59 @@
 import type { Platform } from '../types';
+import { hasMaterialsSpecified } from '../utils/calculations';
 
 /**
  * Servicio de exportación completamente offline
  * No requiere conexión a internet ni dependencias externas
  */
 export class OfflineExportService {
+  
+  /**
+   * Genera una columna de tabla para el diseño de 3 columnas
+   */
+  private static generateTableColumn(pieces: Platform['pieces'], hasMaterials: boolean, columnTitle: string): string {
+    if (pieces.length === 0) {
+      return `
+        <div class="table-column">
+          <div style="text-align: center; margin-bottom: 4px; font-weight: bold; font-size: 8px; color: #6b7280;">
+            ${columnTitle}
+          </div>
+          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 7px;">
+            Sin registros
+          </div>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="table-column">
+        <div style="text-align: center; margin-bottom: 4px; font-weight: bold; font-size: 8px; color: #4f46e5; background: #f0f4ff; padding: 3px;">
+          ${columnTitle}
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              ${hasMaterials ? '<th>Material</th>' : ''}
+              <th>Long. (m)</th>
+              <th>Ancho (m)</th>
+              <th>Metros</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pieces.map(piece => `
+              <tr>
+                <td style="font-weight: bold;">${piece.number}</td>
+                ${hasMaterials ? `<td style="text-align: left; padding-left: 4px;">${piece.material || 'Sin especificar'}</td>` : ''}
+                <td style="font-family: monospace;">${piece.length.toFixed(2)}</td>
+                <td style="font-family: monospace;">${piece.standardWidth.toFixed(2)}</td>
+                <td style="font-family: monospace; font-weight: bold; color: #059669;">${piece.linearMeters.toFixed(3)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
   
   /**
    * Exporta a PDF usando solo APIs nativas del navegador
@@ -83,9 +132,15 @@ export class OfflineExportService {
    * Genera contenido HTML optimizado para PDF
    */
   private static generatePDFHTML(platform: Platform): string {
-    const hasMaterials = platform.pieces.some(piece => 
-      piece.material && piece.material !== 'Sin especificar'
-    );
+    const hasMaterials = hasMaterialsSpecified(platform.pieces);
+    
+    // Dividir las piezas en 3 columnas para optimizar espacio
+    const totalPieces = platform.pieces.length;
+    const piecesPerColumn = Math.ceil(totalPieces / 3);
+    
+    const column1 = platform.pieces.slice(0, piecesPerColumn);
+    const column2 = platform.pieces.slice(piecesPerColumn, piecesPerColumn * 2);
+    const column3 = platform.pieces.slice(piecesPerColumn * 2);
 
     return `
 <!DOCTYPE html>
@@ -124,27 +179,45 @@ export class OfflineExportService {
         .info-item { display: flex; flex-direction: column; gap: 2px; }
         .info-label { font-weight: bold; color: #4a5568; font-size: 9px; }
         .info-value { font-size: 10px; color: #2d3748; }
+        .table-container { 
+            display: flex; 
+            gap: 6px; 
+            margin: 10px 0; 
+            width: 100%; 
+            align-items: flex-start; 
+        }
+        .table-column { 
+            flex: 1; 
+            min-width: 0; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 4px; 
+            overflow: hidden; 
+        }
         table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin: 10px 0; 
             background: white; 
-            border-radius: 6px; 
-            overflow: hidden; 
+            font-size: 8px; 
         }
         th { 
             background: #4f46e5; 
             color: white; 
-            padding: 6px 4px; 
-            text-align: left; 
+            padding: 4px 3px; 
+            text-align: center; 
             font-weight: bold; 
-            font-size: 9px; 
+            font-size: 8px; 
+            border-right: 1px solid #3b82f6; 
         }
+        th:last-child { border-right: none; }
         td { 
-            padding: 4px 4px; 
+            padding: 3px 2px; 
             border-bottom: 1px solid #e2e8f0; 
-            font-size: 9px; 
+            border-right: 1px solid #e2e8f0; 
+            font-size: 7px; 
+            line-height: 1.3; 
+            text-align: center; 
         }
+        td:last-child { border-right: none; }
         tr:nth-child(even) { background: #f8fafc; }
         .total-row { 
             background: #059669; 
@@ -196,10 +269,40 @@ export class OfflineExportService {
             border-top: 1px solid #e2e8f0; 
         }
         @media print {
-            body { margin: 0; padding: 8px; }
+            body { margin: 0; padding: 6px; }
             .header { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
             .total-row { background: #059669 !important; -webkit-print-color-adjust: exact; }
             th { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
+            .table-container { 
+                page-break-inside: avoid; 
+                display: flex !important; 
+                gap: 4px !important; 
+                margin: 8px 0 !important; 
+            }
+            .table-column { 
+                flex: 1 !important; 
+                page-break-inside: avoid; 
+                border: 1px solid #ccc !important; 
+            }
+            table { 
+                font-size: 7px !important; 
+                page-break-inside: avoid; 
+            }
+            th { 
+                padding: 2px 1px !important; 
+                font-size: 7px !important; 
+                background: #4f46e5 !important; 
+                -webkit-print-color-adjust: exact; 
+            }
+            td { 
+                padding: 1px 1px !important; 
+                font-size: 6px !important; 
+                line-height: 1.2 !important; 
+            }
+            .summary { 
+                page-break-inside: avoid; 
+                margin-top: 10px !important; 
+            }
         }
     </style>
 </head>
@@ -252,35 +355,26 @@ export class OfflineExportService {
         </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>No.</th>
-                ${hasMaterials ? '<th>Material</th>' : ''}
-                <th>Longitud (m)</th>
-                <th>Ancho (m)</th>
-                <th>Metros Lineales</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${platform.pieces.map(piece => `
-                <tr>
-                    <td>${piece.number}</td>
-                    ${hasMaterials ? `<td>${piece.material}</td>` : ''}
-                    <td>${piece.length.toFixed(2)}</td>
-                    <td>${piece.standardWidth.toFixed(2)}</td>
-                    <td>${piece.linearMeters.toFixed(3)}</td>
+    <div class="table-container">
+        ${this.generateTableColumn(column1, hasMaterials, `Parte 1 (${column1.length} registros)`)}
+        ${this.generateTableColumn(column2, hasMaterials, `Parte 2 (${column2.length} registros)`)}
+        ${this.generateTableColumn(column3, hasMaterials, `Parte 3 (${column3.length} registros)`)}
+    </div>
+    
+    <!-- Fila de totales -->
+    <div style="margin-top: 10px; border: 2px solid #059669; border-radius: 6px; overflow: hidden;">
+        <table style="font-size: 9px; width: 100%;">
+            <tbody>
+                <tr class="total-row" style="background: #059669 !important;">
+                    <td style="width: 15%; padding: 8px; font-size: 10px; font-weight: bold;">TOTAL GENERAL</td>
+                    ${hasMaterials ? '<td style="width: 25%; padding: 8px; font-size: 9px;">—</td>' : ''}
+                    <td style="width: 20%; padding: 8px; font-size: 9px; font-family: monospace; font-weight: bold;">${platform.totalLength.toFixed(2)}</td>
+                    <td style="width: 20%; padding: 8px; font-size: 9px; font-family: monospace; font-weight: bold;">${platform.standardWidth.toFixed(2)}</td>
+                    <td style="width: 20%; padding: 8px; font-size: 10px; font-family: monospace; font-weight: bold; background: #047857 !important;">${platform.totalLinearMeters.toFixed(3)}</td>
                 </tr>
-            `).join('')}
-            <tr class="total-row">
-                <td>TOTAL</td>
-                ${hasMaterials ? '<td>—</td>' : ''}
-                <td>${platform.totalLength.toFixed(2)}</td>
-                <td>${platform.standardWidth.toFixed(2)}</td>
-                <td>${platform.totalLinearMeters.toFixed(3)}</td>
-            </tr>
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 
     <div class="summary">
         <h3>RESUMEN</h3>
@@ -321,9 +415,7 @@ export class OfflineExportService {
    * Genera contenido CSV
    */
   private static generateCSVContent(platform: Platform): string {
-    const hasMaterials = platform.pieces.some(piece => 
-      piece.material && piece.material !== 'Sin especificar'
-    );
+    const hasMaterials = hasMaterialsSpecified(platform.pieces);
 
     const rows: string[] = [];
     
