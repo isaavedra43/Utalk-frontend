@@ -6,7 +6,7 @@ import type { Platform, Evidence } from '../types';
   declare module 'jspdf' {
     interface jsPDF {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      autoTable: (options: any) => jsPDF;
+      autoTable: (options: any) => void;
     }
   }
 
@@ -292,7 +292,7 @@ export class PDFReportService {
 
   private static addPiecesTable(doc: jsPDF, platform: Platform, yPosition: number) {
     try {
-      console.log('addPiecesTable - Datos recibidos:', {
+      console.log('addPiecesTable - NUEVO DISEÑO 3 COLUMNAS - Datos recibidos:', {
         piecesLength: platform.pieces?.length || 0,
         totalLength: platform.totalLength,
         totalLinearMeters: platform.totalLinearMeters,
@@ -306,6 +306,33 @@ export class PDFReportService {
         return yPosition + 20;
       }
 
+      // ✅ NUEVA LÓGICA: Verificar si hay materiales especificados
+      const hasMaterials = platform.pieces.some(piece => {
+        if (!piece.material) return false;
+        const trimmed = piece.material.trim().toLowerCase();
+        return trimmed !== '' && 
+               trimmed !== 'sin especificar' && 
+               trimmed !== 'no especificado' && 
+               trimmed !== 'n/a' && 
+               trimmed !== 'na';
+      });
+
+      // ✅ NUEVA LÓGICA: Dividir en 3 columnas
+      const totalPieces = platform.pieces.length;
+      const piecesPerColumn = Math.ceil(totalPieces / 3);
+      const column1 = platform.pieces.slice(0, piecesPerColumn);
+      const column2 = platform.pieces.slice(piecesPerColumn, piecesPerColumn * 2);
+      const column3 = platform.pieces.slice(piecesPerColumn * 2);
+
+      console.log('📊 NUEVO DISEÑO - Has materials:', hasMaterials);
+      console.log('📋 NUEVO DISEÑO - Distribución:', {
+        total: totalPieces,
+        perColumn: piecesPerColumn,
+        col1: column1.length,
+        col2: column2.length,
+        col3: column3.length
+      });
+
       const pageWidth = doc.internal.pageSize.getWidth();
       let currentY = yPosition;
 
@@ -314,7 +341,7 @@ export class PDFReportService {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(this.COLORS.primary);
 
-      doc.text('DETALLE DE PIEZAS', 20, currentY);
+      doc.text('DETALLE DE PIEZAS - DISEÑO 3 COLUMNAS', 20, currentY);
       currentY += 8;
 
       // Línea separadora simple
@@ -323,113 +350,115 @@ export class PDFReportService {
       doc.line(20, currentY, pageWidth - 20, currentY);
       currentY += 8;
 
-      // Crear tabla simple
-      const rowHeight = 6;
-      const colWidths = [15, 60, 30, 25, 35]; // Anchos de columnas
+      // ✅ NUEVO DISEÑO DE 3 COLUMNAS
+      const rowHeight = 5;
+      const columnWidth = (pageWidth - 60) / 3; // 3 columnas con márgenes
       const startX = 20;
 
-      // Encabezado de tabla simple
-      doc.setFontSize(this.FONTS.small);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(this.COLORS.primary);
-
-      let currentX = startX;
-      const headers = ['No.', 'Material', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales'];
-      headers.forEach((header, index) => {
-        const align = index > 1 ? 'center' : 'left';
-        doc.text(header, currentX + 3, currentY + 4, { align });
-        currentX += colWidths[index];
-      });
-
-      currentY += rowHeight + 2;
-
-      // Línea separadora del encabezado
-      doc.setDrawColor(this.COLORS.border);
-      doc.setLineWidth(0.5);
-      doc.line(startX, currentY, startX + colWidths.reduce((a, b) => a + b, 0), currentY);
-      currentY += 2;
-
-      // Datos de piezas simple
-      platform.pieces.forEach((piece, index) => {
-        if (currentY > doc.internal.pageSize.getHeight() - 50) {
-          doc.addPage();
-          currentY = 20;
-
-          // Repetir encabezado en nueva página
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(this.COLORS.primary);
-
-          currentX = startX;
-          headers.forEach((header, headerIndex) => {
-            const align = headerIndex > 1 ? 'center' : 'left';
-            doc.text(header, currentX + 3, currentY + 4, { align });
-            currentX += colWidths[headerIndex];
-          });
-
-          currentY += rowHeight + 2;
-          doc.setDrawColor(this.COLORS.border);
-          doc.setLineWidth(0.5);
-          doc.line(startX, currentY, startX + colWidths.reduce((a, b) => a + b, 0), currentY);
-          currentY += 2;
-        }
-
-        doc.setFontSize(this.FONTS.small);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(this.COLORS.text);
-
-        currentX = startX;
-        const rowData = [
-          (index + 1).toString(),
-          piece.material?.substring(0, 20) || 'Sin especificar',
-          (piece.length || 0).toFixed(2),
-          (piece.standardWidth || 0).toFixed(2),
-          (piece.linearMeters || 0).toFixed(3)
-        ];
-
-        rowData.forEach((data, colIndex) => {
-          const align = colIndex > 1 ? 'center' : 'left';
-          const textX = align === 'center' ? currentX + colWidths[colIndex] / 2 : currentX + 3;
-          doc.text(data, textX, currentY + 4, { align });
-          currentX += colWidths[colIndex];
-        });
-
-        currentY += rowHeight;
-      });
-
-      // Línea separadora antes del total
-      doc.setDrawColor(this.COLORS.border);
-      doc.setLineWidth(0.5);
-      doc.line(startX, currentY, startX + colWidths.reduce((a, b) => a + b, 0), currentY);
-      currentY += 2;
-
-      // Fila de total simple
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(this.COLORS.primary);
-
-      currentX = startX;
-      const totalData = [
-        'TOTAL',
-        '',
-        (platform.totalLength || 0).toFixed(2),
-        (platform.standardWidth || 0).toFixed(2),
-        (platform.totalLinearMeters || 0).toFixed(3)
+      // Generar las 3 columnas
+      const columns = [
+        { pieces: column1, title: `Parte 1 (${column1.length} registros)` },
+        { pieces: column2, title: `Parte 2 (${column2.length} registros)` },
+        { pieces: column3, title: `Parte 3 (${column3.length} registros)` }
       ];
 
-      totalData.forEach((data, colIndex) => {
-        const align = colIndex > 1 ? 'center' : 'left';
-        const textX = align === 'center' ? currentX + colWidths[colIndex] / 2 : currentX + 3;
-        doc.text(data, textX, currentY + 4, { align });
-        currentX += colWidths[colIndex];
+      columns.forEach((column, colIndex) => {
+        const columnX = startX + (colIndex * columnWidth);
+        
+        // Título de la columna
+        doc.setFontSize(this.FONTS.small);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(this.COLORS.primary);
+        doc.text(column.title, columnX, currentY);
+
+        currentY += 6;
+
+        // Encabezado de la columna
+        const headers = ['No.', 'Long.', 'Ancho', 'Metros'];
+        if (hasMaterials) {
+          headers.splice(1, 0, 'Material');
+        }
+
+        let headerX = columnX;
+        const headerWidths = hasMaterials ? [8, 25, 12, 12, 15] : [10, 15, 12, 15];
+        
+        headers.forEach((header, index) => {
+          doc.setFontSize(7);
+          doc.text(header, headerX + 2, currentY + 3);
+          headerX += headerWidths[index];
+        });
+
+        currentY += 4;
+
+        // Línea separadora del encabezado
+        doc.setDrawColor(this.COLORS.border);
+        doc.setLineWidth(0.3);
+        doc.line(columnX, currentY, columnX + columnWidth - 10, currentY);
+        currentY += 2;
+
+        // Datos de la columna
+        column.pieces.forEach((piece, index) => {
+          if (currentY > doc.internal.pageSize.getHeight() - 50) {
+            doc.addPage();
+            currentY = 20;
+          }
+
+          doc.setFontSize(6);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(this.COLORS.text);
+
+          let dataX = columnX;
+          const rowData = [
+            piece.number?.toString() || (index + 1).toString(),
+            (piece.length || 0).toFixed(2),
+            (piece.standardWidth || 0).toFixed(2),
+            (piece.linearMeters || 0).toFixed(3)
+          ];
+
+          if (hasMaterials) {
+            rowData.splice(1, 0, (piece.material || 'Sin especificar').substring(0, 15));
+          }
+
+          rowData.forEach((data, dataIndex) => {
+            doc.text(data, dataX + 2, currentY + 3);
+            dataX += headerWidths[dataIndex];
+          });
+
+          currentY += rowHeight;
+        });
+
+        // Resetear Y para la siguiente columna
+        currentY = yPosition + 15;
       });
 
-      currentY += rowHeight + 5;
+      // Ajustar Y para la fila de totales
+      currentY = yPosition + 15 + (Math.max(column1.length, column2.length, column3.length) * rowHeight) + 10;
 
-      // Resumen simple
+      // ✅ FILA DE TOTALES GENERAL
       if (currentY > doc.internal.pageSize.getHeight() - 30) {
         doc.addPage();
         currentY = 20;
       }
 
+      // Línea separadora antes del total
+      doc.setDrawColor(this.COLORS.primary);
+      doc.setLineWidth(1);
+      doc.line(20, currentY, pageWidth - 20, currentY);
+      currentY += 5;
+
+      // Fila de totales
+      doc.setFontSize(this.FONTS.normal);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(this.COLORS.primary);
+
+      const totalText = `TOTAL GENERAL: ${(platform.totalLinearMeters || 0).toFixed(2)} m²`;
+      const totalWidth = doc.getTextWidth(totalText);
+      const totalX = (pageWidth - totalWidth) / 2;
+      doc.text(totalText, totalX, currentY);
+
+      currentY += 10;
+
+      // Resumen simple
       const summaryText = `METROS TOTALES DE LA CARGA: ${(platform.totalLinearMeters || 0).toFixed(2)} m²`;
       const summaryWidth = doc.getTextWidth(summaryText);
       const summaryX = (pageWidth - summaryWidth) / 2;
