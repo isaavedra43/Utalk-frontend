@@ -2,7 +2,7 @@ import type { Platform } from '../types';
 import { hasMaterialsSpecified } from '../utils/calculations';
 
 /**
- * Servicio de exportación completamente offline
+ * Servicio de exportación completamente offline - VERSIÓN ACTUALIZADA
  * No requiere conexión a internet ni dependencias externas
  */
 export class OfflineExportService {
@@ -14,10 +14,10 @@ export class OfflineExportService {
     if (pieces.length === 0) {
       return `
         <div class="table-column">
-          <div style="text-align: center; margin-bottom: 4px; font-weight: bold; font-size: 8px; color: #6b7280;">
+          <div class="column-header">
             ${columnTitle}
           </div>
-          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 7px;">
+          <div class="empty-column">
             Sin registros
           </div>
         </div>
@@ -26,7 +26,7 @@ export class OfflineExportService {
     
     return `
       <div class="table-column">
-        <div style="text-align: center; margin-bottom: 4px; font-weight: bold; font-size: 8px; color: #4f46e5; background: #f0f4ff; padding: 3px;">
+        <div class="column-header">
           ${columnTitle}
         </div>
         <table>
@@ -42,11 +42,11 @@ export class OfflineExportService {
           <tbody>
             ${pieces.map(piece => `
               <tr>
-                <td style="font-weight: bold;">${piece.number}</td>
-                ${hasMaterials ? `<td style="text-align: left; padding-left: 4px;">${piece.material || 'Sin especificar'}</td>` : ''}
-                <td style="font-family: monospace;">${piece.length.toFixed(2)}</td>
-                <td style="font-family: monospace;">${piece.standardWidth.toFixed(2)}</td>
-                <td style="font-family: monospace; font-weight: bold; color: #059669;">${piece.linearMeters.toFixed(3)}</td>
+                <td class="number-cell">${piece.number}</td>
+                ${hasMaterials ? `<td class="material-cell">${piece.material || 'Sin especificar'}</td>` : ''}
+                <td class="number-cell">${piece.length.toFixed(2)}</td>
+                <td class="number-cell">${piece.standardWidth.toFixed(2)}</td>
+                <td class="meters-cell">${piece.linearMeters.toFixed(3)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -60,12 +60,12 @@ export class OfflineExportService {
    */
   static exportToPDF(platform: Platform): void {
     try {
-      console.log('📄 Generando PDF completamente offline...');
+      console.log('📄 Generando PDF con nuevo diseño...');
       
       const htmlContent = this.generatePDFHTML(platform);
       
       // Crear ventana de impresión
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      const printWindow = window.open('', '_blank', 'width=1200,height=800');
       
       if (!printWindow) {
         throw new Error('No se pudo abrir la ventana de impresión');
@@ -129,10 +129,14 @@ export class OfflineExportService {
   }
 
   /**
-   * Genera contenido HTML optimizado para PDF
+   * Genera contenido HTML optimizado para PDF - VERSIÓN COMPLETAMENTE NUEVA
    */
   private static generatePDFHTML(platform: Platform): string {
+    // Debug: Log para verificar los materiales
+    console.log('🔍 Verificando materiales en platform.pieces:', platform.pieces.map(p => ({ number: p.number, material: p.material })));
+    
     const hasMaterials = hasMaterialsSpecified(platform.pieces);
+    console.log('📊 Has materials specified:', hasMaterials);
     
     // Dividir las piezas en 3 columnas para optimizar espacio
     const totalPieces = platform.pieces.length;
@@ -141,6 +145,8 @@ export class OfflineExportService {
     const column1 = platform.pieces.slice(0, piecesPerColumn);
     const column2 = platform.pieces.slice(piecesPerColumn, piecesPerColumn * 2);
     const column3 = platform.pieces.slice(piecesPerColumn * 2);
+    
+    console.log(`📋 Distribución: Total=${totalPieces}, Por columna=${piecesPerColumn}, Col1=${column1.length}, Col2=${column2.length}, Col3=${column3.length}`);
 
     return `
 <!DOCTYPE html>
@@ -148,6 +154,7 @@ export class OfflineExportService {
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Carga ${platform.platformNumber}</title>
+    <!-- Cache buster: ${Date.now()} -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -155,18 +162,18 @@ export class OfflineExportService {
             font-size: 11px; 
             line-height: 1.3; 
             color: #333; 
-            padding: 10px; 
+            padding: 8px; 
         }
         .header { 
             text-align: center; 
             margin-bottom: 15px; 
-            padding: 10px; 
+            padding: 12px; 
             background: #4f46e5; 
             color: white; 
             border-radius: 6px; 
         }
-        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-        .subtitle { font-size: 12px; opacity: 0.9; }
+        .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .subtitle { font-size: 14px; opacity: 0.9; }
         .info-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
@@ -179,6 +186,8 @@ export class OfflineExportService {
         .info-item { display: flex; flex-direction: column; gap: 2px; }
         .info-label { font-weight: bold; color: #4a5568; font-size: 9px; }
         .info-value { font-size: 10px; color: #2d3748; }
+        
+        /* NUEVO DISEÑO DE 3 COLUMNAS */
         .table-container { 
             display: flex; 
             gap: 6px; 
@@ -192,6 +201,23 @@ export class OfflineExportService {
             border: 1px solid #e2e8f0; 
             border-radius: 4px; 
             overflow: hidden; 
+            background: white;
+        }
+        .column-header {
+            text-align: center; 
+            margin-bottom: 4px; 
+            font-weight: bold; 
+            font-size: 9px; 
+            color: #4f46e5; 
+            background: #f0f4ff; 
+            padding: 4px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .empty-column {
+            text-align: center; 
+            padding: 20px; 
+            color: #9ca3af; 
+            font-size: 8px;
         }
         table { 
             width: 100%; 
@@ -218,14 +244,33 @@ export class OfflineExportService {
             text-align: center; 
         }
         td:last-child { border-right: none; }
+        .number-cell { font-family: monospace; font-weight: bold; }
+        .material-cell { text-align: left; padding-left: 4px; }
+        .meters-cell { font-family: monospace; font-weight: bold; color: #059669; }
         tr:nth-child(even) { background: #f8fafc; }
+        
+        /* FILA DE TOTALES */
+        .total-section {
+            margin-top: 10px; 
+            border: 2px solid #059669; 
+            border-radius: 6px; 
+            overflow: hidden;
+        }
         .total-row { 
             background: #059669; 
             color: white; 
             font-weight: bold; 
-            font-size: 10px; 
+            font-size: 9px; 
         }
-        .total-row td { border: none; padding: 6px 4px; }
+        .total-row td { 
+            border: none; 
+            padding: 8px 4px; 
+            text-align: center;
+            font-family: monospace;
+        }
+        .total-label { font-size: 10px; }
+        .total-value { font-size: 10px; background: #047857 !important; }
+        
         .summary { 
             margin-top: 15px; 
             padding: 10px; 
@@ -268,6 +313,7 @@ export class OfflineExportService {
             font-size: 8px; 
             border-top: 1px solid #e2e8f0; 
         }
+        
         @media print {
             body { margin: 0; padding: 6px; }
             .header { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
@@ -355,6 +401,7 @@ export class OfflineExportService {
         </div>
     </div>
 
+    <!-- NUEVO DISEÑO DE 3 COLUMNAS -->
     <div class="table-container">
         ${this.generateTableColumn(column1, hasMaterials, `Parte 1 (${column1.length} registros)`)}
         ${this.generateTableColumn(column2, hasMaterials, `Parte 2 (${column2.length} registros)`)}
@@ -362,15 +409,15 @@ export class OfflineExportService {
     </div>
     
     <!-- Fila de totales -->
-    <div style="margin-top: 10px; border: 2px solid #059669; border-radius: 6px; overflow: hidden;">
+    <div class="total-section">
         <table style="font-size: 9px; width: 100%;">
             <tbody>
-                <tr class="total-row" style="background: #059669 !important;">
-                    <td style="width: 15%; padding: 8px; font-size: 10px; font-weight: bold;">TOTAL GENERAL</td>
-                    ${hasMaterials ? '<td style="width: 25%; padding: 8px; font-size: 9px;">—</td>' : ''}
-                    <td style="width: 20%; padding: 8px; font-size: 9px; font-family: monospace; font-weight: bold;">${platform.totalLength.toFixed(2)}</td>
-                    <td style="width: 20%; padding: 8px; font-size: 9px; font-family: monospace; font-weight: bold;">${platform.standardWidth.toFixed(2)}</td>
-                    <td style="width: 20%; padding: 8px; font-size: 10px; font-family: monospace; font-weight: bold; background: #047857 !important;">${platform.totalLinearMeters.toFixed(3)}</td>
+                <tr class="total-row">
+                    <td class="total-label" style="width: 15%;">TOTAL GENERAL</td>
+                    ${hasMaterials ? '<td class="total-label" style="width: 25%;">—</td>' : ''}
+                    <td class="total-label" style="width: 20%;">${platform.totalLength.toFixed(2)}</td>
+                    <td class="total-label" style="width: 20%;">${platform.standardWidth.toFixed(2)}</td>
+                    <td class="total-value" style="width: 20%;">${platform.totalLinearMeters.toFixed(3)}</td>
                 </tr>
             </tbody>
         </table>
