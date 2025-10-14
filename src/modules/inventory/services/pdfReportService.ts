@@ -350,89 +350,129 @@ export class PDFReportService {
       doc.line(20, currentY, pageWidth - 20, currentY);
       currentY += 8;
 
-      // ✅ NUEVO DISEÑO DE 3 COLUMNAS
+      // ✅ NUEVO DISEÑO DE 3 COLUMNAS EN SERIE HORIZONTAL
       const rowHeight = 5;
-      const columnWidth = (pageWidth - 60) / 3; // 3 columnas con márgenes
+      const availableWidth = pageWidth - 40; // Márgenes izquierdo y derecho
+      const columnWidth = availableWidth / 3; // 3 columnas iguales
       const startX = 20;
 
-      // Generar las 3 columnas
+      // Generar las 3 columnas en paralelo
       const columns = [
-        { pieces: column1, title: `Parte 1 (${column1.length} registros)` },
-        { pieces: column2, title: `Parte 2 (${column2.length} registros)` },
-        { pieces: column3, title: `Parte 3 (${column3.length} registros)` }
+        { pieces: column1, title: `Parte 1 (${column1.length} reg.)`, x: startX },
+        { pieces: column2, title: `Parte 2 (${column2.length} reg.)`, x: startX + columnWidth },
+        { pieces: column3, title: `Parte 3 (${column3.length} reg.)`, x: startX + (columnWidth * 2) }
       ];
 
-      columns.forEach((column, colIndex) => {
-        const columnX = startX + (colIndex * columnWidth);
-        
-        // Título de la columna
-        doc.setFontSize(this.FONTS.small);
+      // Títulos de las columnas
+      columns.forEach((column) => {
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(this.COLORS.primary);
-        doc.text(column.title, columnX, currentY);
+        doc.text(column.title, column.x, currentY);
+      });
 
-        currentY += 6;
+      currentY += 6;
 
-        // Encabezado de la columna
-        const headers = ['No.', 'Long.', 'Ancho', 'Metros'];
-        if (hasMaterials) {
-          headers.splice(1, 0, 'Material');
-        }
+      // Encabezados de las columnas
+      const headers = ['No.', 'Long.', 'Ancho', 'Metros'];
+      if (hasMaterials) {
+        headers.splice(1, 0, 'Material');
+      }
 
-        let headerX = columnX;
-        const headerWidths = hasMaterials ? [8, 25, 12, 12, 15] : [10, 15, 12, 15];
-        
+      const headerWidths = hasMaterials ? [8, 20, 12, 12, 12] : [10, 15, 12, 15];
+      const totalHeaderWidth = headerWidths.reduce((sum, width) => sum + width, 0);
+
+      columns.forEach((column) => {
+        let headerX = column.x;
         headers.forEach((header, index) => {
           doc.setFontSize(7);
           doc.text(header, headerX + 2, currentY + 3);
           headerX += headerWidths[index];
         });
-
-        currentY += 4;
-
-        // Línea separadora del encabezado
-        doc.setDrawColor(this.COLORS.border);
-        doc.setLineWidth(0.3);
-        doc.line(columnX, currentY, columnX + columnWidth - 10, currentY);
-        currentY += 2;
-
-        // Datos de la columna
-        column.pieces.forEach((piece, index) => {
-          if (currentY > doc.internal.pageSize.getHeight() - 50) {
-            doc.addPage();
-            currentY = 20;
-          }
-
-          doc.setFontSize(6);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(this.COLORS.text);
-
-          let dataX = columnX;
-          const rowData = [
-            piece.number?.toString() || (index + 1).toString(),
-            (piece.length || 0).toFixed(2),
-            (piece.standardWidth || 0).toFixed(2),
-            (piece.linearMeters || 0).toFixed(3)
-          ];
-
-          if (hasMaterials) {
-            rowData.splice(1, 0, (piece.material || 'Sin especificar').substring(0, 15));
-          }
-
-          rowData.forEach((data, dataIndex) => {
-            doc.text(data, dataX + 2, currentY + 3);
-            dataX += headerWidths[dataIndex];
-          });
-
-          currentY += rowHeight;
-        });
-
-        // Resetear Y para la siguiente columna
-        currentY = yPosition + 15;
       });
 
+      currentY += 4;
+
+      // Líneas separadoras de encabezados
+      columns.forEach((column) => {
+        doc.setDrawColor(this.COLORS.border);
+        doc.setLineWidth(0.3);
+        doc.line(column.x, currentY, column.x + totalHeaderWidth, currentY);
+      });
+
+      currentY += 2;
+
+      // Datos de las columnas en paralelo
+      const maxRows = Math.max(column1.length, column2.length, column3.length);
+      
+      for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+        // Verificar si necesitamos nueva página
+        if (currentY > doc.internal.pageSize.getHeight() - 50) {
+          doc.addPage();
+          currentY = 20;
+          
+          // Repetir encabezados en nueva página
+          columns.forEach((column) => {
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(this.COLORS.primary);
+            doc.text(column.title, column.x, currentY);
+          });
+          
+          currentY += 6;
+          
+          columns.forEach((column) => {
+            let headerX = column.x;
+            headers.forEach((header, index) => {
+              doc.setFontSize(7);
+              doc.text(header, headerX + 2, currentY + 3);
+              headerX += headerWidths[index];
+            });
+          });
+          
+          currentY += 4;
+          
+          columns.forEach((column) => {
+            doc.setDrawColor(this.COLORS.border);
+            doc.setLineWidth(0.3);
+            doc.line(column.x, currentY, column.x + totalHeaderWidth, currentY);
+          });
+          
+          currentY += 2;
+        }
+
+        // Renderizar fila en las 3 columnas
+        columns.forEach((column) => {
+          const piece = column.pieces[rowIndex];
+          if (piece) {
+            doc.setFontSize(6);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(this.COLORS.text);
+
+            let dataX = column.x;
+            const rowData = [
+              piece.number?.toString() || (rowIndex + 1).toString(),
+              (piece.length || 0).toFixed(2),
+              (piece.standardWidth || 0).toFixed(2),
+              (piece.linearMeters || 0).toFixed(3)
+            ];
+
+            if (hasMaterials) {
+              rowData.splice(1, 0, (piece.material || 'Sin especificar').substring(0, 15));
+            }
+
+            rowData.forEach((data, dataIndex) => {
+              doc.text(data, dataX + 2, currentY + 3);
+              dataX += headerWidths[dataIndex];
+            });
+          }
+        });
+
+        currentY += rowHeight;
+      }
+
       // Ajustar Y para la fila de totales
-      currentY = yPosition + 15 + (Math.max(column1.length, column2.length, column3.length) * rowHeight) + 10;
+      currentY += 5;
 
       // ✅ FILA DE TOTALES GENERAL
       if (currentY > doc.internal.pageSize.getHeight() - 30) {
