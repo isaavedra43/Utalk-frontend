@@ -22,7 +22,6 @@ import {
 import type { Platform, Evidence, Driver } from '../types';
 import { useInventory } from '../hooks/useInventory';
 import { useConfiguration } from '../hooks/useConfiguration';
-import { SimpleExportService } from '../services/simpleExportService';
 import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
@@ -241,11 +240,56 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   };
 
 
+  // Función para exportar CSV
+  const exportToCSV = (platform: Platform) => {
+    try {
+      const rows: string[] = [];
+      
+      // Encabezados
+      const headers = ['No.', 'Material', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales'];
+      rows.push(headers.join(','));
+      
+      // Datos
+      platform.pieces.forEach(piece => {
+        const row = [
+          piece.number?.toString() || '',
+          `"${piece.material || 'Sin especificar'}"`,
+          (piece.length || 0).toFixed(2),
+          (piece.standardWidth || 0).toFixed(2),
+          (piece.linearMeters || 0).toFixed(3)
+        ];
+        rows.push(row.join(','));
+      });
+      
+      // Totales
+      rows.push('');
+      rows.push(['TOTAL', '', (platform.totalLength || 0).toFixed(2), '', (platform.totalLinearMeters || 0).toFixed(3)].join(','));
+      
+      const csvContent = rows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Carga_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generando CSV:', error);
+      throw error;
+    }
+  };
+
   // Exportar a Excel
   const handleExportExcel = () => {
     try {
       setExporting(true);
-      SimpleExportService.exportToCSV(platform);
+      exportToCSV(platform);
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado a Excel (CSV) exitosamente');
     } catch (error) {

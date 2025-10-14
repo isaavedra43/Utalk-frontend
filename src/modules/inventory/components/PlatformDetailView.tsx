@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
-import { OfflineExportService } from '../services/offlineExportService';
 import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
@@ -117,15 +116,68 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     showNotification('success', 'Carga marcada como completada');
   };
 
-  // Exportar a PDF - SERVICIO ORIGINAL CON NUEVO DISEÑO
-  const handleExportPDF = () => {
+  // Función para exportar CSV
+  const exportToCSV = (platform: Platform) => {
+    try {
+      const rows: string[] = [];
+      
+      // Encabezados
+      const headers = ['No.', 'Material', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales'];
+      rows.push(headers.join(','));
+      
+      // Datos
+      platform.pieces.forEach(piece => {
+        const row = [
+          piece.number?.toString() || '',
+          `"${piece.material || 'Sin especificar'}"`,
+          (piece.length || 0).toFixed(2),
+          (piece.standardWidth || 0).toFixed(2),
+          (piece.linearMeters || 0).toFixed(3)
+        ];
+        rows.push(row.join(','));
+      });
+      
+      // Totales
+      rows.push('');
+      rows.push(['TOTAL', '', (platform.totalLength || 0).toFixed(2), '', (platform.totalLinearMeters || 0).toFixed(3)].join(','));
+      
+      const csvContent = rows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Carga_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generando CSV:', error);
+      throw error;
+    }
+  };
+
+  // Exportar a PDF - Usar PDFReportService
+  const handleExportPDF = async () => {
     try {
       setExporting(true);
 
-      console.log('📄 Usando OfflineExportService con nuevo diseño 3 columnas...');
+      console.log('📄 Usando PDFReportService con nuevo diseño 3 columnas...');
 
-      // Usar el servicio original que ahora tiene el nuevo diseño
-      OfflineExportService.exportToPDF(platform);
+      // Importar dinámicamente PDFReportService
+      const { PDFReportService } = await import('../services/pdfReportService');
+      
+      const pdfOptions = {
+        platform,
+        signature: undefined,
+        includeEvidence: false,
+      };
+
+      await PDFReportService.downloadReport(pdfOptions);
 
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado a PDF exitosamente (Nuevo Diseño 3 Columnas)');
@@ -141,8 +193,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const handleExportExcel = () => {
     try {
       setExporting(true);
-      // ✅ USAR SERVICIO COMPLETAMENTE OFFLINE
-      OfflineExportService.exportToCSV(platform);
+      exportToCSV(platform);
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado a Excel (CSV) exitosamente (Offline)');
     } catch (error) {
@@ -153,12 +204,52 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     }
   };
 
-  // Exportar como Imagen - COMPLETAMENTE OFFLINE
+  // Exportar como Imagen - Función básica
   const handleExportImage = () => {
     try {
       setExporting(true);
-      // ✅ USAR SERVICIO COMPLETAMENTE OFFLINE
-      OfflineExportService.exportToImage(platform);
+      
+      // Crear una imagen básica del resumen
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('No se pudo crear contexto de canvas');
+      }
+
+      canvas.width = 800;
+      canvas.height = 600;
+      
+      // Fondo blanco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Texto negro
+      ctx.fillStyle = '#000000';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`REPORTE DE CARGA`, canvas.width / 2, 50);
+      
+      ctx.font = '18px Arial';
+      ctx.fillText(`${platform.platformNumber}`, canvas.width / 2, 80);
+      
+      ctx.font = '16px Arial';
+      ctx.fillText(`Total de piezas: ${platform.pieces.length}`, canvas.width / 2, 120);
+      ctx.fillText(`Metros lineales: ${platform.totalLinearMeters.toFixed(2)} m²`, canvas.width / 2, 150);
+      ctx.fillText(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, canvas.width / 2, 180);
+      
+      // Convertir a blob y descargar
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `Carga_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.png`;
+          link.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado como imagen exitosamente (Offline)');
     } catch (error) {
