@@ -234,40 +234,37 @@ export class PDFReportService {
       const pageWidth = doc.internal.pageSize.getWidth();
       let currentY = yPosition;
 
-      // Título de la sección simple
-      doc.setFontSize(this.FONTS.heading);
+      // ✅ TÍTULO DE SECCIÓN MÁS PEQUEÑO
+      doc.setFontSize(this.FONTS.normal);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(this.COLORS.primary);
 
       doc.text('INFORMACIÓN DE LA CARGA', 20, currentY);
-      currentY += 8;
+      currentY += 5; // Reducido de 8 a 5
 
       // Línea separadora simple
       doc.setDrawColor(this.COLORS.border);
       doc.setLineWidth(0.5);
       doc.line(20, currentY, pageWidth - 20, currentY);
-      currentY += 8;
+      currentY += 5; // Reducido de 8 a 5
 
-      // Información simple en lista
-      doc.setFontSize(this.FONTS.normal);
+      // ✅ INFORMACIÓN MÁS COMPACTA
+      doc.setFontSize(this.FONTS.small);
       doc.setFont('helvetica', 'normal');
       
-      const lineHeight = 6;
+      const lineHeight = 4; // Reducido de 6 a 4
       const leftMargin = 20;
 
-      // Crear información básica como lista simple
+      // Crear información básica como lista simple y compacta
       const infoLines = [
         `Número de Carga: ${platform.platformNumber || 'N/A'}`,
-        `Tipo de Plataforma: ${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}`,
-        `Estado: ${platform.status === 'in_progress' ? 'En Proceso' :
+        `Tipo: ${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'} | Estado: ${platform.status === 'in_progress' ? 'En Proceso' :
                   platform.status === 'completed' ? 'Completada' : 'Exportada'}`,
-        `Fecha de Recepción: ${platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A'}`,
-        `Materiales: ${platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar'}`,
-        `${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}: ${platform.provider || platform.client || 'No especificado'}`,
-        `Chofer: ${platform.driver || 'No especificado'}`,
+        `Fecha: ${platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A'} | Materiales: ${platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar'}`,
+        `${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}: ${platform.provider || platform.client || 'No especificado'} | Chofer: ${platform.driver || 'No especificado'}`,
         ...(platform.platformType === 'client' && platform.ticketNumber ?
-          [`Número de Ticket: ${platform.ticketNumber}`] : []),
-        `Observaciones: ${platform.notes || 'Sin observaciones'}`,
+          [`Ticket: ${platform.ticketNumber} | Observaciones: ${platform.notes || 'Sin observaciones'}`] : 
+          [`Observaciones: ${platform.notes || 'Sin observaciones'}`]),
         `Creado por: ${platform.createdByName || platform.createdBy || 'Sistema'}`,
       ];
 
