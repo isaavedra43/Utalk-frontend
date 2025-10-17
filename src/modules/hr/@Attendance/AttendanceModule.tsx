@@ -54,6 +54,23 @@ const AttendanceModule: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Limpiar URLs con IDs inválidos
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('reportId');
+    
+    if (reportId && reports.length > 0) {
+      const reportExists = reports.some((report: AttendanceReport) => report.id === reportId);
+      
+      if (!reportExists) {
+        console.warn('⚠️ ID de reporte inválido en URL, limpiando:', reportId);
+        // Limpiar la URL sin recargar la página
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [reports]);
+
   const handleCreateReport = () => {
     console.log('🔄 Iniciando creación de reporte de asistencia...');
     try {
@@ -75,6 +92,15 @@ const AttendanceModule: React.FC = () => {
   };
 
   const handleViewReport = (report: AttendanceReport) => {
+    // Validar que el reporte existe en la lista actual
+    const reportExists = reports.some((r: AttendanceReport) => r.id === report.id);
+    
+    if (!reportExists) {
+      console.warn('⚠️ Intento de acceder a reporte inexistente:', report.id);
+      alert('El reporte seleccionado no existe o ha sido eliminado');
+      return;
+    }
+    
     setSelectedReport(report);
     setActiveView('detail');
   };

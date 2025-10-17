@@ -49,7 +49,10 @@ export class ErrorBoundary extends Component<Props, State> {
         (typeof error === 'object' && Object.keys(error).length === 0) ||
         (typeof error === 'object' && error.toString() === '{}') ||
         (typeof error === 'string' && error.trim() === '') ||
-        (typeof error === 'object' && JSON.stringify(error) === '{}')) {
+        (typeof error === 'object' && JSON.stringify(error) === '{}') ||
+        (typeof error === 'object' && error.toString() === '[object Object]') ||
+        (typeof error === 'object' && error.constructor === Object && Object.keys(error).length === 0) ||
+        (error && typeof error === 'object' && !(error as Error).message && !(error as Error).stack && !(error as Error).name)) {
       console.warn('⚠️ getDerivedStateFromError - Error vacío detectado y filtrado');
       // NO actualizar el estado para errores vacíos
       return { hasError: false, retryCount: 0, isRecovering: false };
@@ -69,12 +72,15 @@ export class ErrorBoundary extends Component<Props, State> {
       return;
     }
 
-    // ✅ IGNORAR errores vacíos o sin información útil
+    // ✅ IGNORAR errores vacíos o sin información útil - FILTRO MÁS AGRESIVO
     if (!error || 
         (typeof error === 'object' && Object.keys(error).length === 0) ||
         (typeof error === 'object' && error.toString() === '{}') ||
         (typeof error === 'string' && error.trim() === '') ||
-        (typeof error === 'object' && JSON.stringify(error) === '{}')) {
+        (typeof error === 'object' && JSON.stringify(error) === '{}') ||
+        (typeof error === 'object' && error.toString() === '[object Object]') ||
+        (typeof error === 'object' && error.constructor === Object && Object.keys(error).length === 0) ||
+        (error && typeof error === 'object' && !(error as Error).message && !(error as Error).stack && !(error as Error).name)) {
       console.warn('🚨 ErrorBoundary - Error vacío o inválido ignorado:', error);
       // Resetear el estado para que no se muestre el fallback
       if (this.state.hasError) {

@@ -29,6 +29,16 @@ interface BackendResponse {
   };
 }
 
+// Interfaz para errores de Axios
+interface AxiosError {
+  response?: {
+    status: number;
+    data?: unknown;
+  };
+  code?: string;
+  message?: string;
+}
+
 interface EmployeeRecord {
   employeeId: string;
   status: string;
@@ -111,9 +121,25 @@ export const AttendanceDetail: React.FC<AttendanceDetailProps> = ({
         console.warn('⚠️ AttendanceDetail - Respuesta inválida:', response);
         setError('Respuesta inválida del servidor');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('❌ AttendanceDetail - Error cargando detalle:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar detalle';
+      
+      // Manejo específico de errores según el tipo
+      let errorMessage = 'Error al cargar detalle';
+      
+      const axiosError = err as AxiosError;
+      if (axiosError?.response?.status === 404) {
+        errorMessage = 'El reporte de asistencia no existe o ha sido eliminado';
+      } else if (axiosError?.response?.status === 403) {
+        errorMessage = 'No tienes permisos para ver este reporte';
+      } else if (axiosError?.response?.status === 500) {
+        errorMessage = 'Error interno del servidor. Por favor, intenta más tarde';
+      } else if (axiosError?.code === 'NETWORK_ERROR') {
+        errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente';
+      } else if (err instanceof Error && err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);
