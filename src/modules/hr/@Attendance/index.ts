@@ -10,4 +10,3 @@ export * from './components/AttendanceList';
 export * from './components/AttendanceDetail';
 export * from './components/AttendanceForm';
 export * from './components/AttendanceStats';
-export * from './components/ExportModal';
