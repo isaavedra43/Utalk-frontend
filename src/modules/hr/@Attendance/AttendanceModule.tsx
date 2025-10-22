@@ -6,10 +6,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Search,
-  Download,
-  CheckCircle,
-  AlertCircle,
-  Users
+  AlertCircle
 } from 'lucide-react';
 import { AttendanceList } from './components/AttendanceList';
 import { AttendanceDetail } from './components/AttendanceDetail';
@@ -19,7 +16,6 @@ import { AttendanceReport, ApprovalRequest, CreateAttendanceReportRequest } from
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatHours } from '@/utils/dateUtils';
 
 const AttendanceModule: React.FC = () => {
   console.log('🔍 AttendanceModule - Iniciando renderizado');
@@ -51,184 +47,101 @@ const AttendanceModule: React.FC = () => {
     } catch (effectError) {
       console.error('❌ AttendanceModule - Error en useEffect:', effectError);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadReports, loadPermissions]);
 
-  // Limpiar URLs con IDs inválidos
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reportId = urlParams.get('reportId');
+  // Filtrar reportes según los filtros
+  const filteredReports = reports.filter(report => {
+    const matchesSearch = !searchTerm || 
+      report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.date.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (reportId && reports.length > 0) {
-      const reportExists = reports.some((report: AttendanceReport) => report.id === reportId);
-      
-      if (!reportExists) {
-        console.warn('⚠️ ID de reporte inválido en URL, limpiando:', reportId);
-        // Limpiar la URL sin recargar la página
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
-      }
-    }
-  }, [reports]);
+    const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
-  const handleCreateReport = () => {
-    console.log('🔄 Iniciando creación de reporte de asistencia...');
+  const handleCreateReport = async (data: CreateAttendanceReportRequest) => {
     try {
-      // Protección adicional contra errores de estado
-      if (activeView === 'form') {
-        console.log('⚠️ Ya estamos en la vista de formulario, ignorando...');
-        return;
-      }
-
-      setSelectedReport(null);
-      setActiveView('form');
-      console.log('✅ Vista cambiada a formulario exitosamente');
-    } catch (error) {
-      console.error('❌ Error al cambiar a vista de formulario:', error);
-      // No recargar la página, solo resetear el estado
+      console.log('🔍 AttendanceModule - Creando reporte:', data);
+      await createReport(data);
       setActiveView('list');
-      setSelectedReport(null);
+      console.log('✅ AttendanceModule - Reporte creado exitosamente');
+    } catch (error) {
+      console.error('❌ AttendanceModule - Error creando reporte:', error);
+    }
+  };
+
+  const handleUpdateReport = async (reportId: string, data: Partial<CreateAttendanceReportRequest>) => {
+    try {
+      console.log('🔍 AttendanceModule - Actualizando reporte:', reportId, data);
+      await updateReport(reportId, data);
+      setActiveView('list');
+      console.log('✅ AttendanceModule - Reporte actualizado exitosamente');
+    } catch (error) {
+      console.error('❌ AttendanceModule - Error actualizando reporte:', error);
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    try {
+      console.log('🔍 AttendanceModule - Eliminando reporte:', reportId);
+      await deleteReport(reportId);
+      console.log('✅ AttendanceModule - Reporte eliminado exitosamente');
+    } catch (error) {
+      console.error('❌ AttendanceModule - Error eliminando reporte:', error);
+    }
+  };
+
+  const handleApproveReport = async (request: ApprovalRequest) => {
+    try {
+      console.log('🔍 AttendanceModule - Aprobando reporte:', request);
+      await approveReport(request);
+      console.log('✅ AttendanceModule - Reporte aprobado exitosamente');
+    } catch (error) {
+      console.error('❌ AttendanceModule - Error aprobando reporte:', error);
     }
   };
 
   const handleViewReport = (report: AttendanceReport) => {
-    // Validar que el reporte existe en la lista actual
-    const reportExists = reports.some((r: AttendanceReport) => r.id === report.id);
-    
-    if (!reportExists) {
-      console.warn('⚠️ Intento de acceder a reporte inexistente:', report.id);
-      alert('El reporte seleccionado no existe o ha sido eliminado');
-      return;
-    }
-    
+    console.log('🔍 AttendanceModule - Viendo reporte:', report.id);
     setSelectedReport(report);
     setActiveView('detail');
   };
 
   const handleEditReport = (report: AttendanceReport) => {
+    console.log('🔍 AttendanceModule - Editando reporte:', report.id);
     setSelectedReport(report);
     setActiveView('form');
   };
 
-  const handleDeleteReport = async (reportId: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este reporte?')) {
-      await deleteReport(reportId);
-      loadReports();
-    }
+  const handleBackToList = () => {
+    console.log('🔍 AttendanceModule - Volviendo a la lista');
+    setSelectedReport(null);
+    setActiveView('list');
   };
 
-  const handleApproveReport = async (reportId: string) => {
-    const request: ApprovalRequest = {
-      reportId,
-      action: 'approve',
-      approvedBy: 'current_user' // En implementación real vendría del contexto de autenticación
-    };
-    await approveReport(request);
-    loadReports();
-  };
-
-  const handleRejectReport = async (reportId: string, reason?: string) => {
-    const request: ApprovalRequest = {
-      reportId,
-      action: 'reject',
-      reason: reason || 'Reporte rechazado por el supervisor',
-      approvedBy: 'current_user' // En implementación real vendría del contexto de autenticación
-    };
-    await approveReport(request);
-    loadReports();
-  };
-
-  const handleFormSubmit = async (data: CreateAttendanceReportRequest) => {
-    try {
-      console.log('📝 Enviando reporte de asistencia:', data);
-      if (selectedReport) {
-        await updateReport(selectedReport.id, data);
-        console.log('✅ Reporte actualizado exitosamente');
-      } else {
-        await createReport(data);
-        console.log('✅ Reporte creado exitosamente');
-      }
-      
-      // Esperar un poco antes de cambiar de vista para evitar errores de estado
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      setActiveView('list');
-      setSelectedReport(null);
-      
-      // Recargar reportes después de cambiar de vista
-      await loadReports();
-    } catch (error) {
-      // Solo loggear errores reales, no objetos vacíos
-      if (error && typeof error === 'object' && Object.keys(error).length > 0 && error instanceof Error) {
-        console.error('❌ Error en reporte de asistencia:', error);
-      } else if (error && typeof error === 'string') {
-        console.error('❌ Error en reporte de asistencia:', error);
-      }
-      // No recargar la página, solo mostrar error
-    }
-  };
-
-  const handleFormCancel = () => {
-    console.log('🔄 Cancelando formulario de asistencia...');
-    try {
-      // Protección adicional contra errores de estado
-      if (activeView === 'list') {
-        console.log('⚠️ Ya estamos en la vista de lista, ignorando...');
-        return;
-      }
-
-      setActiveView('list');
-      setSelectedReport(null);
-      console.log('✅ Vista cambiada a lista exitosamente');
-    } catch (error) {
-      console.error('❌ Error al cambiar a vista de lista:', error);
-      // No recargar la página, solo resetear el estado
-      setActiveView('list');
-      setSelectedReport(null);
-    }
-  };
-
-  const filteredReports = reports.filter((report: AttendanceReport) => {
-    try {
-      const matchesSearch = report.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           report.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    } catch (filterError) {
-      console.warn('⚠️ Error al filtrar reporte:', report, filterError);
-      return false;
-    }
-  });
-
-  console.log('🔍 AttendanceModule - Estado actual:', { 
-    loading, 
-    error, 
-    reportsCount: reports?.length || 0,
-    activeView,
-    hasPermissions: !!permissions
-  });
-
+  // Mostrar estado de carga
   if (loading) {
-    console.log('🔄 AttendanceModule - Mostrando loading');
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando módulo de asistencia...</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Cargando reportes de asistencia...</h3>
+          <p className="text-gray-600">Por favor espera mientras cargamos los datos</p>
         </div>
       </div>
     );
   }
 
+  // Mostrar error si hay uno
   if (error) {
-    console.log('❌ AttendanceModule - Mostrando error:', error);
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar datos</h3>
-          <p className="text-gray-600">{error}</p>
-          <Button onClick={loadReports} className="mt-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar asistencia</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => loadReports()}>
             Reintentar
           </Button>
         </div>
@@ -236,181 +149,73 @@ const AttendanceModule: React.FC = () => {
     );
   }
 
-  console.log('🔍 AttendanceModule - Renderizando vista:', activeView);
-
-  if (activeView === 'form') {
-    console.log('📝 AttendanceModule - Renderizando formulario');
-    return (
-      <div className="space-y-6">
-        <div className="min-h-[400px]">
-          <AttendanceForm
-            report={selectedReport}
-            onSubmit={handleFormSubmit}
-            onCancel={handleFormCancel}
-          />
-        </div>
-      </div>
-    );
-  }
-
+  // Renderizar vista de detalle
   if (activeView === 'detail' && selectedReport) {
-    console.log('👁️ AttendanceModule - Renderizando detalle');
     return (
-      <div className="space-y-6">
-        <div className="min-h-[400px]">
-          <AttendanceDetail
-            reportId={selectedReport.id}
-            onBack={() => {
-              console.log('🔄 Regresando a vista de lista desde detalle...');
-              setActiveView('list');
-            }}
-          />
-        </div>
-      </div>
+      <AttendanceDetail
+        reportId={selectedReport.id}
+        onBack={handleBackToList}
+      />
     );
   }
 
-  console.log('📋 AttendanceModule - Renderizando lista con', filteredReports.length, 'reportes');
-  
+  // Renderizar formulario de creación/edición
+  if (activeView === 'form') {
+    return (
+      <AttendanceForm
+        report={selectedReport}
+        onSubmit={selectedReport ? 
+          (data) => handleUpdateReport(selectedReport.id, data) : 
+          handleCreateReport
+        }
+        onCancel={handleBackToList}
+      />
+    );
+  }
+
+  // Vista principal de lista
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Control de Asistencia</h1>
-          <p className="text-gray-600 mt-1">
-            Gestión diaria de asistencia y movimientos de empleados
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Reportes de Asistencia</h1>
+          <p className="text-gray-600">Gestiona los reportes de asistencia de los empleados</p>
         </div>
-
-        <div className="flex items-center space-x-3 mt-4 sm:mt-0">
-          <Button
-            onClick={handleCreateReport}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {loading ? 'Cargando...' : 'Nuevo Reporte'}
-          </Button>
-          <Button
-            onClick={() => {
-              console.log('🧪 Prueba del módulo de asistencia');
-              console.log('📊 Reportes actuales:', reports.length);
-              console.log('🔐 Permisos:', permissions);
-              console.log('⏳ Loading:', loading);
-              console.log('❌ Error:', error);
-              console.log('🔄 Vista actual:', activeView);
-              console.log('📋 Reporte seleccionado:', selectedReport?.id || 'ninguno');
-
-              // Probar creación de reporte
-              if (activeView === 'list') {
-                console.log('🔄 Probando cambio a formulario...');
-                handleCreateReport();
-              } else if (activeView === 'form') {
-                console.log('🔄 Probando regreso a lista...');
-                handleFormCancel();
-              }
-            }}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            🧪 Prueba
-          </Button>
-        </div>
+        <Button 
+          onClick={() => setActiveView('form')}
+          className="flex items-center space-x-2"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Nuevo Reporte</span>
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-blue-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Empleados Totales</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {reports.reduce((sum: number, r: AttendanceReport) => {
-                  try {
-                    return sum + (r?.totalEmployees || 0);
-                  } catch {
-                    return sum;
-                  }
-                }, 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <CheckCircle className="h-8 w-8 text-green-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Asistencias Hoy</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {reports && reports.length > 0 && reports[0]?.presentCount ? reports[0].presentCount : 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <CheckCircle className="h-8 w-8 text-orange-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Horas Extra Hoy</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {reports && reports.length > 0 && reports[0]?.overtimeHours !== undefined 
-                  ? formatHours(reports[0].overtimeHours) 
-                  : '0h'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-purple-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Reportes Totales</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {reports?.length || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
+      {/* Filtros */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
-          <div className="flex-1 max-w-md">
+        <div className="flex items-center space-x-4">
+          <div className="flex-1">
             <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Buscar por fecha o notas..."
+                placeholder="Buscar reportes..."
                 value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
           </div>
-
-          <div className="flex items-center space-x-3">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="draft">Borrador</SelectItem>
-                <SelectItem value="completed">Completado</SelectItem>
-                <SelectItem value="approved">Aprobado</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrar por estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="draft">Borrador</SelectItem>
+              <SelectItem value="completed">Completado</SelectItem>
+              <SelectItem value="approved">Aprobado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -438,7 +243,7 @@ const AttendanceModule: React.FC = () => {
                 onEdit={handleEditReport}
                 onDelete={handleDeleteReport}
                 onApprove={handleApproveReport}
-                onReject={handleRejectReport}
+                onReject={handleApproveReport}
               />
             );
           } catch (listError) {
@@ -447,8 +252,8 @@ const AttendanceModule: React.FC = () => {
               <div className="p-6 text-center">
                 <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <p className="text-gray-600">Error al cargar la lista de reportes</p>
-                <Button onClick={loadReports} className="mt-4" size="sm">
-                  Reintentar
+                <Button onClick={handleBackToList} className="mt-4">
+                  Volver
                 </Button>
               </div>
             );
