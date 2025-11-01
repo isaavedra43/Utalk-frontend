@@ -432,7 +432,7 @@ export const VehicleDetailPanel: React.FC<VehicleDetailPanelProps> = ({ vehicle,
                 <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-3">
                   <p className="text-xs font-semibold text-gray-800">Costo por km</p>
                   <p className="text-lg font-semibold text-gray-900">${vehicle.expenses.averageCostPerKmUsd.toFixed(2)} USD/km</p>
-                  <p className="text-xs text-gray-500">Objetivo < 0.95 USD/km</p>
+                  <p className="text-xs text-gray-500">Objetivo &lt; 0.95 USD/km</p>
                 </div>
               </div>
             </section>
