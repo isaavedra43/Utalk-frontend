@@ -94,9 +94,9 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       return false;
     }
     
-    // TEMPORAL: Permitir acceso al módulo de inventario mientras se configura en el backend
-    if (moduleId === 'inventory') {
-      infoLog('Acceso temporal permitido al módulo de inventario', { moduleId });
+    // TEMPORAL: Permitir acceso a módulos en despliegue mientras se configura en el backend
+    if (moduleId === 'inventory' || moduleId === 'fleet-tracking') {
+      infoLog('Acceso temporal permitido a módulo en despliegue', { moduleId });
       return true;
     }
     
@@ -148,9 +148,9 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       return false;
     }
     
-    // TEMPORAL: Permitir todos los permisos al módulo de inventario mientras se configura en el backend
-    if (moduleId === 'inventory') {
-      infoLog('Permiso temporal otorgado al módulo de inventario', { moduleId, action });
+    // TEMPORAL: Permitir todos los permisos a módulos en despliegue mientras se configura en el backend
+    if (moduleId === 'inventory' || moduleId === 'fleet-tracking') {
+      infoLog('Permiso temporal otorgado a módulo en despliegue', { moduleId, action });
       return true;
     }
     

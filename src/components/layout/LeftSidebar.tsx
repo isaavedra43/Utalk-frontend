@@ -18,7 +18,8 @@ import {
   Bot,
   Package,
   Settings,
-  Archive
+  Archive,
+  Truck
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -135,6 +136,11 @@ export const LeftSidebar: React.FC = () => {
       id: 'services',
       icon: Settings,
       title: 'Servicios'
+    },
+    {
+      id: 'fleet-tracking',
+      icon: Truck,
+      title: 'Rastreo de Flotilla'
     }
   ], []);
 
