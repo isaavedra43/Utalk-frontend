@@ -18,6 +18,7 @@ const MonitoringBubble = lazy(() => import('./components/monitoring').then(m => 
 const ToastContainer = lazy(() => import('./components/ui/ToastContainer').then(m => ({ default: m.default })));
 const PWAInstallPrompt = lazy(() => import('./components/pwa/PWAInstallPrompt').then(m => ({ default: m.PWAInstallPrompt })));
 const PWAUpdatePrompt = lazy(() => import('./components/pwa/PWAUpdatePrompt').then(m => ({ default: m.PWAUpdatePrompt })));
+const FleetTrackingModule = lazy(() => import('./modules/fleet-tracking').then(m => ({ default: m.FleetTrackingModule })));
 
 // ✅ Loading component optimizado
 const PageLoader = () => (
@@ -189,6 +190,14 @@ const AppContent: React.FC = () => {
           <Route path="/services/*" element={
             <ErrorBoundary>
               <ProtectedRoute moduleId="services">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/fleet-tracking/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="fleet-tracking">
                 <MainLayout />
               </ProtectedRoute>
             </ErrorBoundary>

@@ -30,6 +30,7 @@ export { CopilotModule } from './copilot';
 export { default as InventoryModule } from './inventory/InventoryModule';
 export { ShippingModule } from './shipping';
 export { ServicesModule } from './services';
+export { FleetTrackingModule } from './fleet-tracking';
 
 // Módulo de nómina integrado en HR
  

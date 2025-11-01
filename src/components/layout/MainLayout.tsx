@@ -21,6 +21,7 @@ const CopilotModule = lazy(() => import('../../modules/copilot/CopilotModule').t
 const InventoryModule = lazy(() => import('../../modules/inventory/InventoryModule').then(m => ({ default: m.default })));
 const ShippingModule = lazy(() => import('../../modules/shipping/ShippingModule').then(m => ({ default: m.default })));
 const ServicesModule = lazy(() => import('../../modules/services/ServicesModule').then(m => ({ default: m.default })));
+const FleetTrackingModule = lazy(() => import('../../modules/fleet-tracking/FleetTrackingModule').then(m => ({ default: m.default })));
 import { CallsModule } from '../../modules';
 
 import { ModulePlaceholder } from './ModulePlaceholder';
@@ -103,8 +104,9 @@ export const MainLayout: React.FC = () => {
     if (path === '/supervision') return 'supervision';
     if (path === '/copilot') return 'copilot';
     if (path.startsWith('/inventory')) return 'inventory';
-    if (path === '/shipping') return 'shipping';
-    if (path === '/services') return 'services';
+    if (path.startsWith('/shipping')) return 'shipping';
+    if (path.startsWith('/services')) return 'services';
+    if (path.startsWith('/fleet-tracking')) return 'fleet-tracking';
     return 'dashboard'; // default
   };
   
@@ -232,7 +234,14 @@ export const MainLayout: React.FC = () => {
             </ProtectedRoute>
           </Suspense>
         )}
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'shipping' && currentModule !== 'services' && (
+        {currentModule === 'fleet-tracking' && (
+          <Suspense fallback={Fallback}>
+            <ProtectedRoute moduleId="fleet-tracking">
+              <FleetTrackingModule />
+            </ProtectedRoute>
+          </Suspense>
+        )}
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'shipping' && currentModule !== 'services' && currentModule !== 'fleet-tracking' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>
