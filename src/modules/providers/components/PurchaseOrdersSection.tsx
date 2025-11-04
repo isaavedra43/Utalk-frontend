@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, FileText, Package, Calendar, DollarSign, CheckCircle, XCircle, Clock, Truck, X, Save, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Trash2, FileText, Package, Calendar, CheckCircle, XCircle, Clock, Truck, X, Save, AlertCircle, Search, Image as ImageIcon } from 'lucide-react';
 import type { PurchaseOrder, PurchaseOrderItem, ProviderMaterial } from '../types';
 
 interface PurchaseOrdersSectionProps {
@@ -23,13 +23,17 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
   const [viewingOrder, setViewingOrder] = useState<PurchaseOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
   const [orderItems, setOrderItems] = useState<PurchaseOrderItem[]>([]);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
   const [formData, setFormData] = useState({
     notes: '',
     internalNotes: '',
     expectedDeliveryDate: '',
     deliveryAddress: '',
     deliveryNotes: '',
-    tax: '16',
+    tax: '0',
+    discount: '0',
+    discountType: 'percentage' as 'percentage' | 'amount',
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,11 +63,15 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
     });
   };
 
-  const calculateTotals = (items: PurchaseOrderItem[], taxRate: number) => {
+  const calculateTotals = (items: PurchaseOrderItem[], taxRate: number, discount: number, discountType: 'percentage' | 'amount') => {
     const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-    const tax = subtotal * (taxRate / 100);
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
+    const discountAmount = discountType === 'percentage' 
+      ? subtotal * (discount / 100)
+      : discount;
+    const subtotalAfterDiscount = Math.max(0, subtotal - discountAmount);
+    const tax = subtotalAfterDiscount * (taxRate / 100);
+    const total = subtotalAfterDiscount + tax;
+    return { subtotal, discountAmount, subtotalAfterDiscount, tax, total };
   };
 
   const addItemToOrder = (material: ProviderMaterial) => {
@@ -87,6 +95,9 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
       };
       setOrderItems([...orderItems, newItem]);
     }
+    setSelectedMaterial(null);
+    setMaterialSearch('');
+    setShowMaterialDropdown(false);
   };
 
   const updateItemQuantity = (itemId: string, quantity: number) => {
@@ -112,12 +123,27 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
       expectedDeliveryDate: '',
       deliveryAddress: '',
       deliveryNotes: '',
-      tax: '16',
+      tax: '0',
+      discount: '0',
+      discountType: 'percentage',
     });
     setOrderItems([]);
+    setMaterialSearch('');
+    setShowMaterialDropdown(false);
     setErrors({});
     setEditingOrder(null);
   };
+
+  // Filtrar materiales por búsqueda
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => 
+      m.isActive && (
+        m.name.toLowerCase().includes(materialSearch.toLowerCase()) ||
+        m.category?.toLowerCase().includes(materialSearch.toLowerCase()) ||
+        m.sku?.toLowerCase().includes(materialSearch.toLowerCase())
+      )
+    );
+  }, [materials, materialSearch]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -138,14 +164,15 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
     setSaving(true);
     try {
       const taxRate = parseFloat(formData.tax) || 0;
-      const totals = calculateTotals(orderItems, taxRate);
+      const discount = parseFloat(formData.discount) || 0;
+      const totals = calculateTotals(orderItems, taxRate, discount, formData.discountType);
 
       const orderData = {
         providerId,
         providerName: '', // This will be filled by the backend
         status: 'draft' as const,
         items: orderItems,
-        subtotal: totals.subtotal,
+        subtotal: totals.subtotalAfterDiscount,
         tax: totals.tax,
         total: totals.total,
         notes: formData.notes.trim() || undefined,
@@ -330,9 +357,9 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
       {/* Create Order Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto my-8">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
                 {editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
               </h3>
               <button
@@ -340,9 +367,9 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
                   resetForm();
                   setShowCreateModal(false);
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-blue-800 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -354,163 +381,372 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
                 </div>
               )}
 
-              {/* Select Materials */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Seleccionar Materiales</h4>
-                {materials.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <Package className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No hay materiales disponibles</p>
-                    <p className="text-xs text-gray-400 mt-1">Agrega materiales primero en la sección de Materiales</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
-                    {materials.filter(m => m.isActive).map((material) => (
-                      <button
-                        key={material.id}
-                        type="button"
-                        onClick={() => addItemToOrder(material)}
-                        className="p-3 text-left border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                      >
-                        <p className="text-sm font-medium text-gray-900 truncate">{material.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatCurrency(material.unitPrice)} / {material.unit}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Tabla de artículos */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                  <h4 className="text-base font-semibold text-gray-900">Tabla de artículos</h4>
+                  <button
+                    type="button"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Acciones en bloque
+                  </button>
+                </div>
 
-              {/* Order Items */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Artículos de la Orden</h4>
-                {errors.items && (
-                  <p className="text-sm text-red-600 mb-2">{errors.items}</p>
-                )}
-                {orderItems.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No hay artículos en la orden</p>
-                    <p className="text-xs text-gray-400 mt-1">Selecciona materiales arriba para agregarlos</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {orderItems.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{item.materialName}</p>
-                          <p className="text-xs text-gray-500">
-                            {formatCurrency(item.unitPrice)} / {item.unit}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
+                <div className="p-6">
+                  {/* Fila para agregar nuevo artículo */}
+                  <div className="mb-4">
+                    <div className="grid grid-cols-12 gap-4 items-start">
+                      {/* DETALLES DEL ARTÍCULO */}
+                      <div className="col-span-12 md:col-span-5 relative">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
+                          Detalles del Artículo
+                        </label>
+                        <div className="relative">
                           <input
-                            type="number"
-                            min="1"
-                            step="0.01"
-                            value={item.quantity}
-                            onChange={(e) => updateItemQuantity(item.id, parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                          <span className="text-sm text-gray-600 w-16 text-right">
-                            {formatCurrency(item.subtotal)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeItem(item.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            type="text"
+                            value={materialSearch}
+                            onChange={(e) => {
+                              setMaterialSearch(e.target.value);
+                              setShowMaterialDropdown(true);
+                            }}
+                                                         onFocus={() => setShowMaterialDropdown(true)}
+                             onBlur={() => setTimeout(() => setShowMaterialDropdown(false), 200)}
+                             placeholder="Escriba o haga clic para seleccionar un artículo."
+                             className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                           />
+                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                                     {showMaterialDropdown && filteredMaterials.length > 0 && (
+                             <div 
+                               className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                               onMouseDown={(e) => e.preventDefault()}
+                             >
+                               {filteredMaterials.map((material) => (
+                                 <button
+                                   key={material.id}
+                                   type="button"
+                                   onClick={() => addItemToOrder(material)}
+                                   className="w-full p-3 flex items-center gap-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                                 >
+                                  {material.imageUrl ? (
+                                    <img
+                                      src={material.imageUrl}
+                                      alt={material.name}
+                                      className="w-12 h-12 object-cover rounded border border-gray-200 flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                      <ImageIcon className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{material.name}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {formatCurrency(material.unitPrice)} / {material.unit}
+                                      {material.category && ` • ${material.category}`}
+                                      {material.sku && ` • SKU: ${material.sku}`}
+                                    </p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
+
+                      {/* CUENTA */}
+                      <div className="col-span-12 md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
+                          Cuenta
+                        </label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                          <option>Seleccione una cuenta</option>
+                        </select>
+                      </div>
+
+                      {/* CANTIDAD */}
+                      <div className="col-span-12 md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
+                          Cantidad
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value="1.00"
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                        />
+                      </div>
+
+                      {/* TARIFA */}
+                      <div className="col-span-12 md:col-span-1">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
+                          Tarifa
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value="0.00"
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                        />
+                      </div>
+
+                      {/* IMPORTE */}
+                      <div className="col-span-12 md:col-span-1">
+                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
+                          Importe
+                        </label>
+                        <input
+                          type="text"
+                          value="0.00"
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
-                )}
+
+                  {/* Items agregados */}
+                  {errors.items && (
+                    <p className="text-sm text-red-600 mb-2">{errors.items}</p>
+                  )}
+                  {orderItems.length > 0 && (
+                    <div className="space-y-2 border-t border-gray-200 pt-4">
+                      {orderItems.map((item) => {
+                        const material = materials.find(m => m.id === item.materialId);
+                        return (
+                          <div key={item.id} className="grid grid-cols-12 gap-4 items-center py-2 border-b border-gray-100 last:border-b-0">
+                            {/* Detalles del artículo con imagen */}
+                            <div className="col-span-12 md:col-span-5 flex items-center gap-3">
+                              {material?.imageUrl ? (
+                                <img
+                                  src={material.imageUrl}
+                                  alt={material.name}
+                                  className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                  <ImageIcon className="w-5 h-5 text-gray-400" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{item.materialName}</p>
+                                <p className="text-xs text-gray-500">
+                                  {formatCurrency(item.unitPrice)} / {item.unit}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Cuenta */}
+                            <div className="col-span-12 md:col-span-3">
+                              <select className="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                                <option>Seleccione una cuenta</option>
+                              </select>
+                            </div>
+
+                            {/* Cantidad */}
+                            <div className="col-span-12 md:col-span-2">
+                              <input
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                value={item.quantity}
+                                onChange={(e) => updateItemQuantity(item.id, parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                              />
+                            </div>
+
+                            {/* Tarifa */}
+                            <div className="col-span-12 md:col-span-1">
+                              <input
+                                type="text"
+                                value={formatCurrency(item.unitPrice)}
+                                disabled
+                                className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm"
+                              />
+                            </div>
+
+                            {/* Importe y acciones */}
+                            <div className="col-span-12 md:col-span-1 flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900 flex-1 text-right">
+                                {formatCurrency(item.subtotal)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Botones para agregar más items */}
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Añadir nueva fila
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 ml-4"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Agregar artículos a granel
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Totals */}
-              {orderItems.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium">{formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0).subtotal)}</span>
+              {/* Notas del cliente y Resumen */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Notas del cliente */}
+                <div className="lg:col-span-2">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h4 className="text-base font-semibold text-gray-900 mb-4">Notas del cliente</h4>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="Aparecerá en la orden de compra"
+                    />
                   </div>
-                  <div className="flex items-center justify-between text-sm gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">IVA:</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={formData.tax}
-                        onChange={(e) => setFormData({ ...formData, tax: e.target.value })}
-                        className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-gray-600">%</span>
+
+                  {/* Campos adicionales */}
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fecha de Entrega Esperada
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={formData.expectedDeliveryDate}
+                          onChange={(e) => setFormData({ ...formData, expectedDeliveryDate: e.target.value })}
+                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
-                    <span className="font-medium">{formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0).tax)}</span>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dirección de Entrega
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.deliveryAddress}
+                        onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Dirección completa..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Notas Internas
+                      </label>
+                      <textarea
+                        value={formData.internalNotes}
+                        onChange={(e) => setFormData({ ...formData, internalNotes: e.target.value })}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="Notas internas (no visibles para el proveedor)..."
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-base font-semibold pt-2 border-t border-gray-200">
-                    <span className="text-gray-900">Total:</span>
-                    <span className="text-gray-900">{formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0).total)}</span>
+                </div>
+
+                {/* Resumen */}
+                <div className="lg:col-span-1">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 sticky top-4">
+                    <h4 className="text-base font-semibold text-gray-900 mb-4">Resumen</h4>
+                    {orderItems.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Subtotal:</span>
+                          <span className="font-medium text-gray-900">
+                            {formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0, parseFloat(formData.discount) || 0, formData.discountType).subtotal)}
+                          </span>
+                        </div>
+
+                        {/* Descuento */}
+                        <div className="border-t border-gray-200 pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600">Descuento:</span>
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={formData.discountType}
+                                onChange={(e) => setFormData({ ...formData, discountType: e.target.value as 'percentage' | 'amount' })}
+                                className="text-xs border border-gray-300 rounded px-1 py-0.5"
+                              >
+                                <option value="percentage">%</option>
+                                <option value="amount">$</option>
+                              </select>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={formData.discount}
+                                onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
+                                className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-medium text-gray-900">
+                              {formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0, parseFloat(formData.discount) || 0, formData.discountType).discountAmount)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* IVA */}
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">IVA:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              value={formData.tax}
+                              onChange={(e) => setFormData({ ...formData, tax: e.target.value })}
+                              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-gray-600">%</span>
+                          </div>
+                          <span className="font-medium text-gray-900">
+                            {formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0, parseFloat(formData.discount) || 0, formData.discountType).tax)}
+                          </span>
+                        </div>
+
+                        {/* Total */}
+                        <div className="border-t border-gray-300 pt-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-base font-semibold text-gray-900">Total (MXN):</span>
+                            <span className="text-lg font-bold text-gray-900">
+                              {formatCurrency(calculateTotals(orderItems, parseFloat(formData.tax) || 0, parseFloat(formData.discount) || 0, formData.discountType).total)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 text-sm">
+                        Agrega artículos para ver el resumen
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Additional Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Entrega Esperada
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.expectedDeliveryDate}
-                    onChange={(e) => setFormData({ ...formData, expectedDeliveryDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dirección de Entrega
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.deliveryAddress}
-                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Dirección completa..."
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notas para el Proveedor
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Notas visibles para el proveedor..."
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notas Internas
-                  </label>
-                  <textarea
-                    value={formData.internalNotes}
-                    onChange={(e) => setFormData({ ...formData, internalNotes: e.target.value })}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Notas internas (no visibles para el proveedor)..."
-                  />
                 </div>
               </div>
 
