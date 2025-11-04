@@ -1,21 +1,23 @@
-import React, { useMemo, useState } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer } from 'lucide-react';
-import type { PurchaseOrder, Payment } from '../types';
+import React, { useEffect, useState } from 'react';
+import { DollarSign, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer, Loader2, AlertCircle } from 'lucide-react';
+import { ProvidersService } from '../services/providersService';
+import type { AccountStatement } from '../types';
 
 interface AccountStatementSectionProps {
+  providerId: string;
   providerName: string;
-  purchaseOrders: PurchaseOrder[];
-  payments: Payment[];
   onExportPDF?: () => void;
 }
 
 export const AccountStatementSection: React.FC<AccountStatementSectionProps> = ({
+  providerId,
   providerName,
-  purchaseOrders,
-  payments,
   onExportPDF,
 }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<'all' | '30' | '60' | '90'>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statementData, setStatementData] = useState<AccountStatement | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -32,99 +34,137 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
     });
   };
 
-  // Calculate statement data
-  const statementData = useMemo(() => {
-    const now = new Date();
-    const daysFilter = selectedPeriod === 'all' ? null : parseInt(selectedPeriod);
-    const filterDate = daysFilter ? new Date(now.getTime() - daysFilter * 24 * 60 * 60 * 1000) : null;
+  // Cargar datos del backend
+  useEffect(() => {
+    const loadAccountStatement = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Calcular fechas según el período seleccionado
+        let dateFrom: string | undefined;
+        if (selectedPeriod !== 'all') {
+          const days = parseInt(selectedPeriod);
+          const date = new Date();
+          date.setDate(date.getDate() - days);
+          dateFrom = date.toISOString().split('T')[0];
+        }
 
-    // Filter orders and payments by period
-    const filteredOrders = purchaseOrders.filter(order => {
-      if (!filterDate) return true;
-      return new Date(order.createdAt) >= filterDate;
-    });
-
-    const filteredPayments = payments.filter(payment => {
-      if (!filterDate) return true;
-      return new Date(payment.paymentDate) >= filterDate;
-    });
-
-    // Calculate totals
-    const totalOrders = filteredOrders
-      .filter(o => ['sent', 'accepted', 'in_transit', 'delivered'].includes(o.status))
-      .reduce((sum, order) => sum + order.total, 0);
-
-    const totalPayments = filteredPayments
-      .filter(p => p.status === 'completed')
-      .reduce((sum, payment) => sum + payment.amount, 0);
-
-    const currentBalance = totalOrders - totalPayments;
-
-    // Prepare timeline items (both orders and payments combined and sorted)
-    const timelineItems: Array<{
-      id: string;
-      type: 'order' | 'payment';
-      date: string;
-      description: string;
-      orderAmount?: number;
-      paymentAmount?: number;
-      balance: number;
-      status: string;
-    }> = [];
-
-    // Add orders
-    filteredOrders.forEach(order => {
-      if (['sent', 'accepted', 'in_transit', 'delivered'].includes(order.status)) {
-        timelineItems.push({
-          id: order.id,
-          type: 'order',
-          date: order.createdAt,
-          description: `Orden de Compra #${order.orderNumber}`,
-          orderAmount: order.total,
-          balance: 0, // Will calculate later
-          status: order.status,
+        const data = await ProvidersService.getAccountStatement(providerId, {
+          dateFrom,
+          dateTo: undefined, // Hasta hoy
         });
+        
+        setStatementData(data);
+      } catch (err) {
+        console.error('Error loading account statement:', err);
+        setError(err instanceof Error ? err.message : 'Error al cargar el estado de cuenta');
+      } finally {
+        setLoading(false);
       }
-    });
-
-    // Add payments
-    filteredPayments.forEach(payment => {
-      if (payment.status === 'completed') {
-        timelineItems.push({
-          id: payment.id,
-          type: 'payment',
-          date: payment.paymentDate,
-          description: `Pago #${payment.paymentNumber}${payment.orderNumber ? ` (Orden #${payment.orderNumber})` : ''}`,
-          paymentAmount: payment.amount,
-          balance: 0, // Will calculate later
-          status: payment.status,
-        });
-      }
-    });
-
-    // Sort by date
-    timelineItems.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    // Calculate running balance
-    let runningBalance = 0;
-    timelineItems.forEach(item => {
-      if (item.type === 'order') {
-        runningBalance += item.orderAmount || 0;
-      } else {
-        runningBalance -= item.paymentAmount || 0;
-      }
-      item.balance = runningBalance;
-    });
-
-    return {
-      totalOrders,
-      totalPayments,
-      currentBalance,
-      timelineItems,
-      ordersCount: filteredOrders.filter(o => ['sent', 'accepted', 'in_transit', 'delivered'].includes(o.status)).length,
-      paymentsCount: filteredPayments.filter(p => p.status === 'completed').length,
     };
-  }, [purchaseOrders, payments, selectedPeriod]);
+
+    loadAccountStatement();
+  }, [providerId, selectedPeriod]);
+
+  // Si está cargando, mostrar skeleton
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Estado de Cuenta</h3>
+            <p className="text-sm text-gray-500 mt-1">{providerName}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <span className="ml-3 text-gray-600">Cargando estado de cuenta...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Si hay error, mostrarlo
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Estado de Cuenta</h3>
+            <p className="text-sm text-gray-500 mt-1">{providerName}</p>
+          </div>
+        </div>
+        
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Error</p>
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no hay datos
+  if (!statementData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Estado de Cuenta</h3>
+            <p className="text-sm text-gray-500 mt-1">{providerName}</p>
+          </div>
+        </div>
+        
+        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-500">No hay datos disponibles</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentBalance = statementData.currentBalance;
+  const totalOrders = statementData.totalOrders || 0;
+  const totalPayments = statementData.totalPayments || 0;
+
+  // Crear timeline combinando órdenes y pagos
+  const timelineItems = [
+    ...(statementData.orders?.map(order => ({
+      id: order.id,
+      type: 'order' as const,
+      date: order.date,
+      description: `Orden de Compra #${order.orderNumber}`,
+      orderAmount: order.amount,
+      paymentAmount: undefined,
+      balance: 0, // Se calculará después
+      status: order.status,
+    })) || []),
+    ...(statementData.payments?.map(payment => ({
+      id: payment.id,
+      type: 'payment' as const,
+      date: payment.date,
+      description: `Pago #${payment.paymentNumber}`,
+      orderAmount: undefined,
+      paymentAmount: payment.amount,
+      balance: 0, // Se calculará después
+      status: payment.status || 'completed',
+    })) || []),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Calcular balance acumulado
+  let runningBalance = statementData.openingBalance || 0;
+  timelineItems.forEach(item => {
+    if (item.type === 'order') {
+      runningBalance += item.orderAmount || 0;
+    } else {
+      runningBalance -= item.paymentAmount || 0;
+    }
+    item.balance = runningBalance;
+  });
 
   return (
     <div className="space-y-6">
@@ -172,6 +212,19 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
 
       {/* Summary Cards - Super Simple */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Opening Balance */}
+        {statementData.openingBalance !== undefined && statementData.openingBalance !== 0 && (
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-2 bg-purple-600 rounded-lg">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-sm font-medium text-purple-900">Saldo Inicial</p>
+            </div>
+            <p className="text-2xl font-bold text-purple-900">{formatCurrency(statementData.openingBalance)}</p>
+          </div>
+        )}
+
         {/* Total Orders */}
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
           <div className="flex items-center gap-2 mb-2">
@@ -180,8 +233,8 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
             </div>
             <p className="text-sm font-medium text-blue-900">Total Órdenes</p>
           </div>
-          <p className="text-2xl font-bold text-blue-900">{formatCurrency(statementData.totalOrders)}</p>
-          <p className="text-xs text-blue-700 mt-1">{statementData.ordersCount} órdenes</p>
+          <p className="text-2xl font-bold text-blue-900">{formatCurrency(totalOrders)}</p>
+          <p className="text-xs text-blue-700 mt-1">{statementData.orders?.length || 0} órdenes</p>
         </div>
 
         {/* Total Payments */}
@@ -192,12 +245,14 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
             </div>
             <p className="text-sm font-medium text-green-900">Total Pagos</p>
           </div>
-          <p className="text-2xl font-bold text-green-900">{formatCurrency(statementData.totalPayments)}</p>
-          <p className="text-xs text-green-700 mt-1">{statementData.paymentsCount} pagos</p>
+          <p className="text-2xl font-bold text-green-900">{formatCurrency(totalPayments)}</p>
+          <p className="text-xs text-green-700 mt-1">{statementData.payments?.length || 0} pagos</p>
         </div>
 
         {/* Current Balance */}
-        <div className={`bg-gradient-to-br rounded-lg p-4 border col-span-1 md:col-span-2 ${
+        <div className={`bg-gradient-to-br rounded-lg p-4 border ${
+          statementData.openingBalance !== undefined && statementData.openingBalance !== 0 ? 'col-span-1' : 'col-span-1 md:col-span-2'
+        } ${
           statementData.currentBalance > 0
             ? 'from-red-50 to-red-100 border-red-200'
             : statementData.currentBalance < 0
@@ -274,7 +329,7 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
       <div>
         <h4 className="text-base font-semibold text-gray-900 mb-4">Movimientos</h4>
         
-        {statementData.timelineItems.length === 0 ? (
+        {timelineItems.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500">No hay movimientos en este período</p>
@@ -292,7 +347,7 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
 
             {/* Table Rows */}
             <div className="divide-y divide-gray-200">
-              {statementData.timelineItems.map((item, index) => (
+              {timelineItems.map((item, index) => (
                 <div
                   key={`${item.type}-${item.id}-${index}`}
                   className={`px-4 py-3 grid grid-cols-12 gap-4 text-sm hover:bg-gray-50 transition-colors ${
@@ -332,7 +387,7 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
                         ? 'text-yellow-600'
                         : 'text-gray-600'
                     }`}>
-                      {formatCurrency(Math.abs(item.balance))}
+                      {formatCurrency(item.balance)}
                     </span>
                   </div>
                 </div>
@@ -343,20 +398,20 @@ export const AccountStatementSection: React.FC<AccountStatementSectionProps> = (
             <div className="bg-gray-100 border-t-2 border-gray-300 px-4 py-4 grid grid-cols-12 gap-4 font-bold">
               <div className="col-span-6 text-gray-900 text-base">SALDO FINAL</div>
               <div className="col-span-2 text-right text-blue-600">
-                {formatCurrency(statementData.totalOrders)}
+                {formatCurrency(totalOrders)}
               </div>
               <div className="col-span-2 text-right text-green-600">
-                {formatCurrency(statementData.totalPayments)}
+                {formatCurrency(totalPayments)}
               </div>
               <div className="col-span-2 text-right">
                 <span className={`text-lg ${
-                  statementData.currentBalance > 0
+                  currentBalance > 0
                     ? 'text-red-600'
-                    : statementData.currentBalance < 0
+                    : currentBalance < 0
                     ? 'text-yellow-600'
                     : 'text-gray-600'
                 }`}>
-                  {formatCurrency(Math.abs(statementData.currentBalance))}
+                  {formatCurrency(Math.abs(currentBalance))}
                 </span>
               </div>
             </div>

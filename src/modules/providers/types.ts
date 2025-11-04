@@ -33,7 +33,8 @@ export interface ProviderMaterial {
   unitPrice: number;
   unit: string; // "m²", "kg", "pieza", etc.
   sku?: string;
-  imageUrl?: string;
+  images?: string[]; // Array de imágenes en Base64
+  imageUrl?: string; // Mantenido para compatibilidad
   stock?: number;
   minStock?: number;
   isActive: boolean;
@@ -63,6 +64,8 @@ export interface PurchaseOrder {
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'in_transit' | 'delivered' | 'cancelled';
   items: PurchaseOrderItem[];
   subtotal: number;
+  discount?: number;
+  discountType?: 'percentage' | 'amount';
   tax: number;
   total: number;
   notes?: string;
@@ -73,15 +76,21 @@ export interface PurchaseOrder {
   sentAt?: string;
   expectedDeliveryDate?: string;
   acceptedAt?: string;
+  acceptedDeliveryDate?: string;
   deliveredAt?: string;
+  rejectedAt?: string;
+  cancelledAt?: string;
   
   // Quien lo crea/gestiona
   createdBy: string;
   createdByName: string;
+  acceptedBy?: string;
   
   // Información de entrega
   deliveryAddress?: string;
   deliveryNotes?: string;
+  rejectionReason?: string;
+  cancellationReason?: string;
   
   // Documentos
   attachments?: string[];

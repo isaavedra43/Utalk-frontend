@@ -12,6 +12,7 @@ import { AlertsSection } from './AlertsSection';
 import { ProviderKPIs } from './ProviderKPIs';
 
 interface ProviderDetailViewProps {
+  loading?: boolean;
   provider: Provider;
   materials: ProviderMaterial[];
   purchaseOrders: PurchaseOrder[];
@@ -38,6 +39,7 @@ interface ProviderDetailViewProps {
 type Tab = 'overview' | 'materials' | 'orders' | 'payments' | 'statement' | 'documents' | 'activity';
 
 export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
+  loading = false,
   provider,
   materials,
   purchaseOrders,
@@ -61,6 +63,18 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   onUpdateRating,
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+
+  // Mostrar overlay de carga si está cargando
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando datos del proveedor...</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -392,9 +406,8 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
           {/* Statement Tab */}
           {activeTab === 'statement' && (
             <AccountStatementSection
+              providerId={provider.id}
               providerName={provider.name}
-              purchaseOrders={purchaseOrders}
-              payments={payments}
             />
           )}
 

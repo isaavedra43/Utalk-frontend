@@ -1,25 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Building2, Menu, AlertCircle } from 'lucide-react';
 import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
 import { useProviders } from './hooks/useProviders';
+import { useErrorHandler } from './hooks/useErrorHandler';
+import { ProvidersService } from './services/providersService';
 import { ProvidersTable } from './components/ProvidersTable';
 import { ProvidersStats } from './components/ProvidersStats';
 import { ProviderDetailView } from './components/ProviderDetailView';
+import { ErrorToast } from './components/ErrorToast';
 import { exportProvidersToCSV } from './utils/exportUtils';
 import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity, ProviderDocument, ProviderRating } from './types';
 
 const ProvidersModule: React.FC = () => {
   const { openMenu } = useMobileMenuContext();
   const { providers, loading, error, createProvider, updateProvider, deleteProvider } = useProviders();
+  const { error: operationError, handleError, clearError } = useErrorHandler();
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [loadingProviderData, setLoadingProviderData] = useState(false);
+  const [savingOperations, setSavingOperations] = useState<Record<string, boolean>>({});
 
-  // Mock data for demo - En producción esto vendría del backend
+  // Datos del proveedor seleccionado
   const [providerMaterials, setProviderMaterials] = useState<Record<string, ProviderMaterial[]>>({});
   const [providerOrders, setProviderOrders] = useState<Record<string, PurchaseOrder[]>>({});
   const [providerPayments, setProviderPayments] = useState<Record<string, Payment[]>>({});
   const [providerActivities, setProviderActivities] = useState<Record<string, ProviderActivity[]>>({});
   const [providerDocuments, setProviderDocuments] = useState<Record<string, ProviderDocument[]>>({});
   const [providerRatings, setProviderRatings] = useState<Record<string, ProviderRating>>({});
+
+  // Cargar todos los datos del proveedor cuando se selecciona
+  const loadProviderData = useCallback(async (providerId: string) => {
+    setLoadingProviderData(true);
+    try {
+      // Cargar en paralelo todos los datos
+      const [materials, orders, payments, activitiesData, documents, rating] = await Promise.all([
+        ProvidersService.getProviderMaterials(providerId).catch(() => []),
+        ProvidersService.getPurchaseOrders(providerId).catch(() => []),
+        ProvidersService.getPayments(providerId).catch(() => []),
+        ProvidersService.getActivities(providerId).catch(() => ({ activities: [], total: 0 })),
+        ProvidersService.getDocuments(providerId).catch(() => []),
+        ProvidersService.getRating(providerId).catch(() => null),
+      ]);
+
+      setProviderMaterials(prev => ({ ...prev, [providerId]: materials }));
+      setProviderOrders(prev => ({ ...prev, [providerId]: orders }));
+      setProviderPayments(prev => ({ ...prev, [providerId]: payments }));
+      setProviderActivities(prev => ({ ...prev, [providerId]: activitiesData.activities || [] }));
+      setProviderDocuments(prev => ({ ...prev, [providerId]: documents }));
+      if (rating) {
+        setProviderRatings(prev => ({ ...prev, [providerId]: rating }));
+      }
+    } catch (err) {
+      console.error('Error loading provider data:', err);
+    } finally {
+      setLoadingProviderData(false);
+    }
+  }, []);
+
+  // Cargar datos cuando se selecciona un proveedor
+  useEffect(() => {
+    if (selectedProvider) {
+      loadProviderData(selectedProvider.id);
+    }
+  }, [selectedProvider, loadProviderData]);
 
   const handleExport = () => {
     exportProvidersToCSV(providers);
@@ -31,344 +73,329 @@ const ProvidersModule: React.FC = () => {
 
   const handleUpdate = async (id: string, updates: Partial<Provider>) => {
     await updateProvider(id, updates);
+    // Si es el proveedor seleccionado, recargar datos
+    if (selectedProvider && selectedProvider.id === id) {
+      await loadProviderData(id);
+    }
   };
 
   const handleDelete = async (id: string) => {
     await deleteProvider(id);
+    if (selectedProvider && selectedProvider.id === id) {
+      setSelectedProvider(null);
+    }
   };
 
   const handleViewDetails = (provider: Provider) => {
     setSelectedProvider(provider);
   };
 
-  // Material handlers
-  const handleAddMaterial = async (material: Omit<ProviderMaterial, 'id' | 'createdAt' | 'updatedAt'>) => {
+  // Material handlers con actualización optimista
+  const handleAddMaterial = async (material: Omit<ProviderMaterial, 'id' | 'providerId' | 'createdAt' | 'updatedAt'>) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    const newMaterial: ProviderMaterial = {
-      ...material,
-      id: `mat-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const operationId = `material-${Date.now()}`;
+    setSavingOperations(prev => ({ ...prev, [operationId]: true }));
     
-    setProviderMaterials(prev => ({
-      ...prev,
-      [selectedProvider.id]: [...(prev[selectedProvider.id] || []), newMaterial]
-    }));
+    try {
+      // Optimistic update
+      const tempMaterial: ProviderMaterial = {
+        ...material,
+        id: `temp-${Date.now()}`,
+        providerId: selectedProvider.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      setProviderMaterials(prev => ({
+        ...prev,
+        [selectedProvider.id]: [tempMaterial, ...(prev[selectedProvider.id] || [])]
+      }));
 
-    // Log activity
-    const activity: ProviderActivity = {
-      id: `act-${Date.now()}`,
-      providerId: selectedProvider.id,
-      type: 'material_added',
-      description: `Material "${newMaterial.name}" agregado`,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-    };
-    
-    setProviderActivities(prev => ({
-      ...prev,
-      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
-    }));
+      // Real update
+      const newMaterial = await ProvidersService.createMaterial(selectedProvider.id, material);
+      
+      // Replace temp with real
+      setProviderMaterials(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).map(m => 
+          m.id === tempMaterial.id ? newMaterial : m
+        )
+      }));
+      
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: activitiesData.activities || []
+      }));
+    } catch (err) {
+      // Rollback on error
+      setProviderMaterials(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(m => !m.id.startsWith('temp-'))
+      }));
+      handleError(err, 'Error al crear el material');
+      throw err;
+    } finally {
+      setSavingOperations(prev => {
+        const next = { ...prev };
+        delete next[operationId];
+        return next;
+      });
+    }
   };
 
   const handleUpdateMaterial = async (id: string, updates: Partial<ProviderMaterial>) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    setProviderMaterials(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).map(m =>
-        m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m
-      )
-    }));
-
-    // Log activity
-    const activity: ProviderActivity = {
-      id: `act-${Date.now()}`,
-      providerId: selectedProvider.id,
-      type: 'material_updated',
-      description: `Material actualizado`,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-    };
-    
-    setProviderActivities(prev => ({
-      ...prev,
-      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
-    }));
+    try {
+      const updatedMaterial = await ProvidersService.updateMaterial(selectedProvider.id, id, updates);
+      setProviderMaterials(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).map(m =>
+          m.id === id ? updatedMaterial : m
+        )
+      }));
+      
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: activitiesData.activities || []
+      }));
+    } catch (err) {
+      console.error('Error updating material:', err);
+      throw err;
+    }
   };
 
   const handleDeleteMaterial = async (id: string) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    const material = providerMaterials[selectedProvider.id]?.find(m => m.id === id);
-    
-    setProviderMaterials(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(m => m.id !== id)
-    }));
-
-    // Log activity
-    if (material) {
-      const activity: ProviderActivity = {
-        id: `act-${Date.now()}`,
-        providerId: selectedProvider.id,
-        type: 'material_deleted',
-        description: `Material "${material.name}" eliminado`,
-        createdAt: new Date().toISOString(),
-        createdBy: 'current-user-id',
-        createdByName: 'Usuario Actual',
-      };
+    try {
+      await ProvidersService.deleteMaterial(selectedProvider.id, id);
+      setProviderMaterials(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(m => m.id !== id)
+      }));
       
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
       setProviderActivities(prev => ({
         ...prev,
-        [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+        [selectedProvider.id]: activitiesData.activities || []
       }));
+    } catch (err) {
+      console.error('Error deleting material:', err);
+      throw err;
     }
   };
 
   // Purchase Order handlers
-  const handleCreateOrder = async (order: Omit<PurchaseOrder, 'id' | 'orderNumber' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+  const handleCreateOrder = async (order: Omit<PurchaseOrder, 'id' | 'orderNumber' | 'createdAt' | 'createdBy' | 'createdByName' | 'providerName'>) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    const orderNumber = `OC-${String(Date.now()).slice(-6)}`;
-    const newOrder: PurchaseOrder = {
-      ...order,
-      id: `order-${Date.now()}`,
-      orderNumber,
-      providerName: selectedProvider.name,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-    };
-    
-    setProviderOrders(prev => ({
-      ...prev,
-      [selectedProvider.id]: [newOrder, ...(prev[selectedProvider.id] || [])]
-    }));
-
-    // Log activity
-    const activity: ProviderActivity = {
-      id: `act-${Date.now()}`,
-      providerId: selectedProvider.id,
-      type: 'order_created',
-      description: `Orden de compra #${orderNumber} creada por ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(newOrder.total)}`,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-      entityType: 'order',
-      entityId: newOrder.id,
-    };
-    
-    setProviderActivities(prev => ({
-      ...prev,
-      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
-    }));
+    try {
+      const newOrder = await ProvidersService.createPurchaseOrder(selectedProvider.id, order);
+      setProviderOrders(prev => ({
+        ...prev,
+        [selectedProvider.id]: [newOrder, ...(prev[selectedProvider.id] || [])]
+      }));
+      
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: activitiesData.activities || []
+      }));
+    } catch (err) {
+      console.error('Error creating purchase order:', err);
+      throw err;
+    }
   };
 
   const handleUpdateOrder = async (id: string, updates: Partial<PurchaseOrder>) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    const currentOrder = providerOrders[selectedProvider.id]?.find(o => o.id === id);
-    
-    setProviderOrders(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).map(o =>
-        o.id === id ? { ...o, ...updates } : o
-      )
-    }));
-
-    // Log activity based on status change
-    if (updates.status && currentOrder && updates.status !== currentOrder.status) {
-      let activityType: ProviderActivity['type'] = 'order_updated';
-      let description = 'Orden actualizada';
-
-      if (updates.status === 'accepted') {
-        activityType = 'order_accepted';
-        description = `Orden #${currentOrder.orderNumber} aceptada`;
-      } else if (updates.status === 'rejected') {
-        activityType = 'order_rejected';
-        description = `Orden #${currentOrder.orderNumber} rechazada`;
-      } else if (updates.status === 'delivered') {
-        activityType = 'order_delivered';
-        description = `Orden #${currentOrder.orderNumber} entregada`;
-      }
-
-      const activity: ProviderActivity = {
-        id: `act-${Date.now()}`,
-        providerId: selectedProvider.id,
-        type: activityType,
-        description,
-        createdAt: new Date().toISOString(),
-        createdBy: 'current-user-id',
-        createdByName: 'Usuario Actual',
-        entityType: 'order',
-        entityId: id,
-      };
+    try {
+      let updatedOrder: PurchaseOrder;
       
+      // Si solo cambia el estado, usar el endpoint específico de cambio de estado
+      if (updates.status && Object.keys(updates).length === 1 || 
+          (updates.status && Object.keys(updates).filter(k => k !== 'status').length === 0)) {
+        updatedOrder = await ProvidersService.updatePurchaseOrderStatus(
+          selectedProvider.id,
+          id,
+          updates.status,
+          {
+            acceptedDeliveryDate: updates.acceptedDeliveryDate,
+            reason: updates.rejectionReason || updates.cancellationReason
+          }
+        );
+      } else {
+        // Para otros cambios, usar el endpoint de actualización general
+        updatedOrder = await ProvidersService.updatePurchaseOrder(selectedProvider.id, id, updates);
+      }
+      
+      setProviderOrders(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).map(o =>
+          o.id === id ? updatedOrder : o
+        )
+      }));
+      
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
       setProviderActivities(prev => ({
         ...prev,
-        [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+        [selectedProvider.id]: activitiesData.activities || []
       }));
+    } catch (err) {
+      console.error('Error updating purchase order:', err);
+      throw err;
     }
   };
 
   const handleDeleteOrder = async (id: string) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    setProviderOrders(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(o => o.id !== id)
-    }));
+    try {
+      await ProvidersService.deletePurchaseOrder(selectedProvider.id, id);
+      setProviderOrders(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(o => o.id !== id)
+      }));
+    } catch (err) {
+      console.error('Error deleting purchase order:', err);
+      throw err;
+    }
   };
 
   // Payment handlers
-  const handleCreatePayment = async (payment: Omit<Payment, 'id' | 'paymentNumber' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+  const handleCreatePayment = async (payment: Omit<Payment, 'id' | 'paymentNumber' | 'createdAt' | 'createdBy' | 'createdByName' | 'providerName'>) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    const paymentNumber = `PAG-${String(Date.now()).slice(-6)}`;
-    const newPayment: Payment = {
-      ...payment,
-      id: `payment-${Date.now()}`,
-      paymentNumber,
-      providerName: selectedProvider.name,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-    };
-    
-    setProviderPayments(prev => ({
-      ...prev,
-      [selectedProvider.id]: [newPayment, ...(prev[selectedProvider.id] || [])]
-    }));
-
-    // Log activity
-    const activity: ProviderActivity = {
-      id: `act-${Date.now()}`,
-      providerId: selectedProvider.id,
-      type: 'payment_created',
-      description: `Pago #${paymentNumber} registrado por ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(newPayment.amount)}`,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-      entityType: 'payment',
-      entityId: newPayment.id,
-    };
-    
-    setProviderActivities(prev => ({
-      ...prev,
-      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
-    }));
+    try {
+      const newPayment = await ProvidersService.createPayment(selectedProvider.id, payment);
+      setProviderPayments(prev => ({
+        ...prev,
+        [selectedProvider.id]: [newPayment, ...(prev[selectedProvider.id] || [])]
+      }));
+      
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: activitiesData.activities || []
+      }));
+    } catch (err) {
+      console.error('Error creating payment:', err);
+      throw err;
+    }
   };
 
   const handleUpdatePayment = async (id: string, updates: Partial<Payment>) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    setProviderPayments(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).map(p =>
-        p.id === id ? { ...p, ...updates } : p
-      )
-    }));
-
-    // Log activity if completed
-    if (updates.status === 'completed') {
-      const activity: ProviderActivity = {
-        id: `act-${Date.now()}`,
-        providerId: selectedProvider.id,
-        type: 'payment_completed',
-        description: `Pago completado`,
-        createdAt: new Date().toISOString(),
-        createdBy: 'current-user-id',
-        createdByName: 'Usuario Actual',
-        entityType: 'payment',
-        entityId: id,
-      };
+    try {
+      const updatedPayment = await ProvidersService.updatePayment(selectedProvider.id, id, updates);
+      setProviderPayments(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).map(p =>
+          p.id === id ? updatedPayment : p
+        )
+      }));
       
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
       setProviderActivities(prev => ({
         ...prev,
-        [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+        [selectedProvider.id]: activitiesData.activities || []
       }));
+    } catch (err) {
+      console.error('Error updating payment:', err);
+      throw err;
     }
   };
 
   const handleDeletePayment = async (id: string) => {
     if (!selectedProvider) return;
     
-    // TODO: Call backend API
-    setProviderPayments(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(p => p.id !== id)
-    }));
+    try {
+      await ProvidersService.deletePayment(selectedProvider.id, id);
+      setProviderPayments(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(p => p.id !== id)
+      }));
+    } catch (err) {
+      console.error('Error deleting payment:', err);
+      throw err;
+    }
   };
 
   // Document handlers
-  const handleUploadDocument = async (document: Omit<ProviderDocument, 'id' | 'uploadedAt' | 'uploadedBy' | 'uploadedByName'>) => {
+  const handleUploadDocument = async (document: Omit<ProviderDocument, 'id' | 'providerId' | 'uploadedAt' | 'uploadedBy' | 'uploadedByName'>) => {
     if (!selectedProvider) return;
     
-    const newDocument: ProviderDocument = {
-      ...document,
-      id: `doc-${Date.now()}`,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: 'current-user-id',
-      uploadedByName: 'Usuario Actual',
-    };
-    
-    setProviderDocuments(prev => ({
-      ...prev,
-      [selectedProvider.id]: [...(prev[selectedProvider.id] || []), newDocument]
-    }));
-
-    const activity: ProviderActivity = {
-      id: `act-${Date.now()}`,
-      providerId: selectedProvider.id,
-      type: 'document_uploaded',
-      description: `Documento "${newDocument.name}" subido`,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user-id',
-      createdByName: 'Usuario Actual',
-    };
-    
-    setProviderActivities(prev => ({
-      ...prev,
-      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
-    }));
+    try {
+      const newDocument = await ProvidersService.createDocument(selectedProvider.id, document);
+      setProviderDocuments(prev => ({
+        ...prev,
+        [selectedProvider.id]: [...(prev[selectedProvider.id] || []), newDocument]
+      }));
+      
+      // Recargar actividades
+      const activitiesData = await ProvidersService.getActivities(selectedProvider.id);
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: activitiesData.activities || []
+      }));
+    } catch (err) {
+      console.error('Error uploading document:', err);
+      throw err;
+    }
   };
 
   const handleDeleteDocument = async (id: string) => {
     if (!selectedProvider) return;
     
-    setProviderDocuments(prev => ({
-      ...prev,
-      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(d => d.id !== id)
-    }));
+    try {
+      await ProvidersService.deleteDocument(selectedProvider.id, id);
+      setProviderDocuments(prev => ({
+        ...prev,
+        [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(d => d.id !== id)
+      }));
+    } catch (err) {
+      console.error('Error deleting document:', err);
+      throw err;
+    }
   };
 
   // Rating handler
-  const handleUpdateRating = async (rating: Omit<ProviderRating, 'totalReviews'>) => {
+  const handleUpdateRating = async (rating: { overall: number; quality: number; delivery: number; price: number; communication: number; comments?: string }) => {
     if (!selectedProvider) return;
     
-    const currentRating = providerRatings[selectedProvider.id];
-    const totalReviews = (currentRating?.totalReviews || 0) + 1;
-    
-    setProviderRatings(prev => ({
-      ...prev,
-      [selectedProvider.id]: {
-        ...rating,
-        totalReviews,
-      }
-    }));
+    try {
+      // El backend espera un formato diferente, necesitamos adaptar
+      const updatedRating = await ProvidersService.updateRating(selectedProvider.id, {
+        rating: rating.overall,
+        comments: rating.comments
+      });
+      
+      // El backend puede retornar el rating completo o necesitamos calcularlo
+      // Por ahora actualizamos con lo que recibimos del usuario
+      setProviderRatings(prev => ({
+        ...prev,
+        [selectedProvider.id]: {
+          ...rating,
+          totalReviews: (prev[selectedProvider.id]?.totalReviews || 0) + 1
+        }
+      }));
+    } catch (err) {
+      console.error('Error updating rating:', err);
+      throw err;
+    }
   };
 
   // Si hay un proveedor seleccionado, mostrar la vista de detalle
@@ -400,6 +427,7 @@ const ProvidersModule: React.FC = () => {
         onUploadDocument={handleUploadDocument}
         onDeleteDocument={handleDeleteDocument}
         onUpdateRating={handleUpdateRating}
+        loading={loadingProviderData || Object.keys(savingOperations).length > 0}
       />
     );
   }
@@ -440,7 +468,7 @@ const ProvidersModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Error message */}
+        {/* Error messages */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
@@ -450,6 +478,9 @@ const ProvidersModule: React.FC = () => {
             </div>
           </div>
         )}
+        
+        {/* Global error toast */}
+        <ErrorToast error={operationError} onClose={clearError} />
 
         {/* Estadísticas */}
         <div className="mb-6">
