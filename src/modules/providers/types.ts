@@ -208,3 +208,15 @@ export interface ProviderDocument {
   uploadedByName: string;
   notes?: string;
 }
+
+// ============================================
+// PROVIDER RATING
+// ============================================
+export interface ProviderRating {
+  overall: number;
+  quality: number;
+  delivery: number;
+  price: number;
+  communication: number;
+  totalReviews: number;
+}

@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { X, Building2, Phone, Mail, MapPin, Globe, CreditCard, Calendar, Edit3, ArrowLeft } from 'lucide-react';
-import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity } from '../types';
+import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity, ProviderDocument, ProviderRating } from '../types';
 import { MaterialsSection } from './MaterialsSection';
 import { PurchaseOrdersSection } from './PurchaseOrdersSection';
 import { PaymentsSection } from './PaymentsSection';
 import { AccountStatementSection } from './AccountStatementSection';
 import { ActivityHistorySection } from './ActivityHistorySection';
+import { DocumentsSection } from './DocumentsSection';
+import { ProviderRating as ProviderRatingComponent } from './ProviderRating';
+import { AlertsSection } from './AlertsSection';
+import { ProviderKPIs } from './ProviderKPIs';
 
 interface ProviderDetailViewProps {
   provider: Provider;
@@ -13,6 +17,8 @@ interface ProviderDetailViewProps {
   purchaseOrders: PurchaseOrder[];
   payments: Payment[];
   activities: ProviderActivity[];
+  documents: ProviderDocument[];
+  rating?: ProviderRating;
   onClose: () => void;
   onEdit: () => void;
   onAddMaterial: (material: Omit<ProviderMaterial, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -24,9 +30,12 @@ interface ProviderDetailViewProps {
   onCreatePayment: (payment: Omit<Payment, 'id' | 'paymentNumber' | 'createdAt' | 'createdBy' | 'createdByName'>) => Promise<void>;
   onUpdatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
   onDeletePayment: (id: string) => Promise<void>;
+  onUploadDocument: (document: Omit<ProviderDocument, 'id' | 'uploadedAt' | 'uploadedBy' | 'uploadedByName'>) => Promise<void>;
+  onDeleteDocument: (id: string) => Promise<void>;
+  onUpdateRating?: (rating: Omit<ProviderRating, 'totalReviews'>) => Promise<void>;
 }
 
-type Tab = 'info' | 'materials' | 'orders' | 'payments' | 'statement' | 'activity';
+type Tab = 'overview' | 'info' | 'materials' | 'orders' | 'payments' | 'statement' | 'documents' | 'activity';
 
 export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   provider,
@@ -34,6 +43,8 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   purchaseOrders,
   payments,
   activities,
+  documents,
+  rating,
   onClose,
   onEdit,
   onAddMaterial,
@@ -45,8 +56,11 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   onCreatePayment,
   onUpdatePayment,
   onDeletePayment,
+  onUploadDocument,
+  onDeleteDocument,
+  onUpdateRating,
 }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('info');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -58,26 +72,35 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   };
 
   const tabs: Array<{ id: Tab; label: string; count?: number }> = [
+    { id: 'overview', label: 'Resumen' },
     { id: 'info', label: 'Información' },
     { id: 'materials', label: 'Materiales', count: materials.length },
     { id: 'orders', label: 'Órdenes', count: purchaseOrders.length },
     { id: 'payments', label: 'Pagos', count: payments.length },
     { id: 'statement', label: 'Estado de Cuenta' },
+    { id: 'documents', label: 'Documentos', count: documents.length },
     { id: 'activity', label: 'Historial', count: activities.length },
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gray-50 rounded-lg shadow-2xl w-full max-w-7xl my-8 flex flex-col max-h-[95vh]">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-6 rounded-t-lg flex-shrink-0">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
+                title="Volver a la lista"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
               <div className="p-3 bg-white/20 rounded-lg flex-shrink-0">
                 <Building2 className="w-8 h-8" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold mb-2 truncate">{provider.name}</h2>
+                <h1 className="text-3xl font-bold mb-2 truncate">{provider.name}</h1>
                 <div className="flex flex-wrap items-center gap-4 text-sm opacity-90">
                   {provider.contact && (
                     <div className="flex items-center gap-1">
@@ -104,28 +127,23 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                onClick={onEdit}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                title="Editar proveedor"
-              >
-                <Edit3 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                title="Cerrar"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex-shrink-0"
+              title="Editar proveedor"
+            >
+              <Edit3 className="w-5 h-5" />
+              <span className="hidden sm:inline">Editar</span>
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white border-b border-gray-200 px-6 flex-shrink-0 overflow-x-auto">
-          <div className="flex gap-1 min-w-max">
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -150,9 +168,36 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* KPIs Dashboard */}
+              <ProviderKPIs
+                purchaseOrders={purchaseOrders}
+                payments={payments}
+                materials={materials}
+              />
+
+              {/* Rating */}
+              <ProviderRatingComponent
+                providerId={provider.id}
+                rating={rating}
+                onUpdateRating={onUpdateRating}
+              />
+
+              {/* Alerts */}
+              <AlertsSection
+                provider={provider}
+                purchaseOrders={purchaseOrders}
+                payments={payments}
+              />
+            </div>
+          )}
+
           {/* Info Tab */}
           {activeTab === 'info' && (
             <div className="space-y-6">
@@ -343,22 +388,20 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
             />
           )}
 
+          {/* Documents Tab */}
+          {activeTab === 'documents' && (
+            <DocumentsSection
+              providerId={provider.id}
+              documents={documents}
+              onUploadDocument={onUploadDocument}
+              onDeleteDocument={onDeleteDocument}
+            />
+          )}
+
           {/* Activity Tab */}
           {activeTab === 'activity' && (
             <ActivityHistorySection activities={activities} />
           )}
-        </div>
-
-        {/* Footer - Mobile Back Button */}
-        <div className="bg-white border-t border-gray-200 px-6 py-4 rounded-b-lg flex-shrink-0 lg:hidden">
-          <button
-            onClick={onClose}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver
-          </button>
-        </div>
       </div>
     </div>
   );

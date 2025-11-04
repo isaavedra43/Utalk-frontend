@@ -6,7 +6,7 @@ import { ProvidersTable } from './components/ProvidersTable';
 import { ProvidersStats } from './components/ProvidersStats';
 import { ProviderDetailView } from './components/ProviderDetailView';
 import { exportProvidersToCSV } from './utils/exportUtils';
-import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity } from './types';
+import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity, ProviderDocument, ProviderRating } from './types';
 
 const ProvidersModule: React.FC = () => {
   const { openMenu } = useMobileMenuContext();
@@ -18,6 +18,8 @@ const ProvidersModule: React.FC = () => {
   const [providerOrders, setProviderOrders] = useState<Record<string, PurchaseOrder[]>>({});
   const [providerPayments, setProviderPayments] = useState<Record<string, Payment[]>>({});
   const [providerActivities, setProviderActivities] = useState<Record<string, ProviderActivity[]>>({});
+  const [providerDocuments, setProviderDocuments] = useState<Record<string, ProviderDocument[]>>({});
+  const [providerRatings, setProviderRatings] = useState<Record<string, ProviderRating>>({});
 
   const handleExport = () => {
     exportProvidersToCSV(providers);
@@ -311,6 +313,97 @@ const ProvidersModule: React.FC = () => {
     }));
   };
 
+  // Document handlers
+  const handleUploadDocument = async (document: Omit<ProviderDocument, 'id' | 'uploadedAt' | 'uploadedBy' | 'uploadedByName'>) => {
+    if (!selectedProvider) return;
+    
+    const newDocument: ProviderDocument = {
+      ...document,
+      id: `doc-${Date.now()}`,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: 'current-user-id',
+      uploadedByName: 'Usuario Actual',
+    };
+    
+    setProviderDocuments(prev => ({
+      ...prev,
+      [selectedProvider.id]: [...(prev[selectedProvider.id] || []), newDocument]
+    }));
+
+    const activity: ProviderActivity = {
+      id: `act-${Date.now()}`,
+      providerId: selectedProvider.id,
+      type: 'document_uploaded',
+      description: `Documento "${newDocument.name}" subido`,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+    };
+    
+    setProviderActivities(prev => ({
+      ...prev,
+      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+    }));
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    if (!selectedProvider) return;
+    
+    setProviderDocuments(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(d => d.id !== id)
+    }));
+  };
+
+  // Rating handler
+  const handleUpdateRating = async (rating: Omit<ProviderRating, 'totalReviews'>) => {
+    if (!selectedProvider) return;
+    
+    const currentRating = providerRatings[selectedProvider.id];
+    const totalReviews = (currentRating?.totalReviews || 0) + 1;
+    
+    setProviderRatings(prev => ({
+      ...prev,
+      [selectedProvider.id]: {
+        ...rating,
+        totalReviews,
+      }
+    }));
+  };
+
+  // Si hay un proveedor seleccionado, mostrar la vista de detalle
+  if (selectedProvider) {
+    return (
+      <ProviderDetailView
+        provider={selectedProvider}
+        materials={providerMaterials[selectedProvider.id] || []}
+        purchaseOrders={providerOrders[selectedProvider.id] || []}
+        payments={providerPayments[selectedProvider.id] || []}
+        activities={providerActivities[selectedProvider.id] || []}
+        documents={providerDocuments[selectedProvider.id] || []}
+        rating={providerRatings[selectedProvider.id]}
+        onClose={() => setSelectedProvider(null)}
+        onEdit={() => {
+          // Open edit modal for the provider
+          setSelectedProvider(null);
+          // TODO: Trigger edit in ProvidersTable
+        }}
+        onAddMaterial={handleAddMaterial}
+        onUpdateMaterial={handleUpdateMaterial}
+        onDeleteMaterial={handleDeleteMaterial}
+        onCreateOrder={handleCreateOrder}
+        onUpdateOrder={handleUpdateOrder}
+        onDeleteOrder={handleDeleteOrder}
+        onCreatePayment={handleCreatePayment}
+        onUpdatePayment={handleUpdatePayment}
+        onDeletePayment={handleDeletePayment}
+        onUploadDocument={handleUploadDocument}
+        onDeleteDocument={handleDeleteDocument}
+        onUpdateRating={handleUpdateRating}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header móvil con menú */}
@@ -374,32 +467,6 @@ const ProvidersModule: React.FC = () => {
           onViewDetails={handleViewDetails}
         />
       </div>
-
-      {/* Provider Detail View */}
-      {selectedProvider && (
-        <ProviderDetailView
-          provider={selectedProvider}
-          materials={providerMaterials[selectedProvider.id] || []}
-          purchaseOrders={providerOrders[selectedProvider.id] || []}
-          payments={providerPayments[selectedProvider.id] || []}
-          activities={providerActivities[selectedProvider.id] || []}
-          onClose={() => setSelectedProvider(null)}
-          onEdit={() => {
-            // Open edit modal for the provider
-            setSelectedProvider(null);
-            // TODO: Trigger edit in ProvidersTable
-          }}
-          onAddMaterial={handleAddMaterial}
-          onUpdateMaterial={handleUpdateMaterial}
-          onDeleteMaterial={handleDeleteMaterial}
-          onCreateOrder={handleCreateOrder}
-          onUpdateOrder={handleUpdateOrder}
-          onDeleteOrder={handleDeleteOrder}
-          onCreatePayment={handleCreatePayment}
-          onUpdatePayment={handleUpdatePayment}
-          onDeletePayment={handleDeletePayment}
-        />
-      )}
     </div>
   );
 };
