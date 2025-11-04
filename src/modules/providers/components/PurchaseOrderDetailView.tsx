@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { X, Edit, Mail, FileText, MoreVertical, Download, Printer, Send, CheckCircle } from 'lucide-react';
+import { X, Edit, Mail, FileText, Download, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { PurchaseOrder } from '../types';
@@ -15,7 +15,6 @@ export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = (
   order,
   onClose,
   onEdit,
-  onStatusChange,
 }) => {
   const pdfContentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -37,31 +36,7 @@ export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = (
     });
   };
 
-  const getStatusLabel = (status: PurchaseOrder['status']) => {
-    const labels: Record<PurchaseOrder['status'], string> = {
-      draft: 'Borrador',
-      sent: 'Enviada',
-      accepted: 'Aceptada',
-      rejected: 'Rechazada',
-      in_transit: 'En tránsito',
-      delivered: 'Entregada',
-      cancelled: 'Cancelada',
-    };
-    return labels[status] || status;
-  };
 
-  const getStatusColor = (status: PurchaseOrder['status']) => {
-    const colors: Record<PurchaseOrder['status'], string> = {
-      draft: 'bg-gray-100 text-gray-700',
-      sent: 'bg-blue-100 text-blue-700',
-      accepted: 'bg-green-100 text-green-700',
-      rejected: 'bg-red-100 text-red-700',
-      in_transit: 'bg-purple-100 text-purple-700',
-      delivered: 'bg-emerald-100 text-emerald-700',
-      cancelled: 'bg-gray-100 text-gray-500',
-    };
-    return colors[status] || colors.draft;
-  };
 
   const handleExportPDF = async () => {
     if (!pdfContentRef.current) return;

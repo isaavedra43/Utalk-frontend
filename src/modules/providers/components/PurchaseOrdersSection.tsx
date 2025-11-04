@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, FileText, Package, Calendar, CheckCircle, XCircle, Clock, Truck, X, Save, AlertCircle, Search, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, FileText, Package, Calendar, CheckCircle, XCircle, Truck, X, Save as SaveIcon, AlertCircle, Search, Image as ImageIcon } from 'lucide-react';
 import type { PurchaseOrder, PurchaseOrderItem, ProviderMaterial } from '../types';
 
 interface PurchaseOrdersSectionProps {
@@ -18,7 +18,7 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
   onCreateOrder,
   onUpdateOrder,
   onDeleteOrder,
-}) => {
+}: PurchaseOrdersSectionProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<PurchaseOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
@@ -40,7 +40,7 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
 
   const statusConfig = {
     draft: { label: 'Borrador', color: 'bg-gray-100 text-gray-700', icon: FileText },
-    sent: { label: 'Enviada', color: 'bg-blue-100 text-blue-700', icon: Clock },
+    sent: { label: 'Enviada', color: 'bg-blue-100 text-blue-700', icon: Package },
     accepted: { label: 'Aceptada', color: 'bg-green-100 text-green-700', icon: CheckCircle },
     rejected: { label: 'Rechazada', color: 'bg-red-100 text-red-700', icon: XCircle },
     in_transit: { label: 'En tránsito', color: 'bg-purple-100 text-purple-700', icon: Truck },
@@ -63,7 +63,7 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
     });
   };
 
-  const calculateTotals = (items: PurchaseOrderItem[], taxRate: number, discount: number, discountType: 'percentage' | 'amount') => {
+  const calculateTotals = (items: PurchaseOrderItem[], taxRate: number, discount: number, discountType: 'percentage' | 'amount'): { subtotal: number; discountAmount: number; subtotalAfterDiscount: number; tax: number; total: number } => {
     const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
     const discountAmount = discountType === 'percentage' 
       ? subtotal * (discount / 100)
@@ -95,7 +95,6 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
       };
       setOrderItems([...orderItems, newItem]);
     }
-    setSelectedMaterial(null);
     setMaterialSearch('');
     setShowMaterialDropdown(false);
   };
@@ -383,248 +382,166 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
 
               {/* Tabla de artículos */}
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
                   <h4 className="text-base font-semibold text-gray-900">Tabla de artículos</h4>
-                  <button
-                    type="button"
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Acciones en bloque
-                  </button>
                 </div>
 
                 <div className="p-6">
-                  {/* Fila para agregar nuevo artículo */}
+                  {/* Búsqueda de artículo */}
                   <div className="mb-4">
-                    <div className="grid grid-cols-12 gap-4 items-start">
-                      {/* DETALLES DEL ARTÍCULO */}
-                      <div className="col-span-12 md:col-span-5 relative">
-                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
-                          Detalles del Artículo
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={materialSearch}
-                            onChange={(e) => {
-                              setMaterialSearch(e.target.value);
-                              setShowMaterialDropdown(true);
-                            }}
-                                                         onFocus={() => setShowMaterialDropdown(true)}
-                             onBlur={() => setTimeout(() => setShowMaterialDropdown(false), 200)}
-                             placeholder="Escriba o haga clic para seleccionar un artículo."
-                             className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                           />
-                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                                     {showMaterialDropdown && filteredMaterials.length > 0 && (
-                             <div 
-                               className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                               onMouseDown={(e) => e.preventDefault()}
-                             >
-                               {filteredMaterials.map((material) => (
-                                 <button
-                                   key={material.id}
-                                   type="button"
-                                   onClick={() => addItemToOrder(material)}
-                                   className="w-full p-3 flex items-center gap-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
-                                 >
-                                  {material.imageUrl ? (
-                                    <img
-                                      src={material.imageUrl}
-                                      alt={material.name}
-                                      className="w-12 h-12 object-cover rounded border border-gray-200 flex-shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center flex-shrink-0">
-                                      <ImageIcon className="w-6 h-6 text-gray-400" />
-                                    </div>
-                                  )}
-                                  <div className="flex-1 min-w-0 text-left">
-                                    <p className="text-sm font-medium text-gray-900 truncate">{material.name}</p>
-                                    <p className="text-xs text-gray-500">
-                                      {formatCurrency(material.unitPrice)} / {material.unit}
-                                      {material.category && ` • ${material.category}`}
-                                      {material.sku && ` • SKU: ${material.sku}`}
-                                    </p>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                    <div className="relative">
+                      <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
+                        Detalles del Artículo
+                      </label>
+                      <input
+                        type="text"
+                        value={materialSearch}
+                        onChange={(e) => {
+                          setMaterialSearch(e.target.value);
+                          setShowMaterialDropdown(true);
+                        }}
+                        onFocus={() => setShowMaterialDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowMaterialDropdown(false), 200)}
+                        placeholder="Escriba o haga clic para seleccionar un artículo."
+                        className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                      <Search className="absolute left-3 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      {showMaterialDropdown && filteredMaterials.length > 0 && (
+                        <div 
+                          className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                          onMouseDown={(e) => e.preventDefault()}
+                        >
+                          {filteredMaterials.map((material) => (
+                            <button
+                              key={material.id}
+                              type="button"
+                              onClick={() => addItemToOrder(material)}
+                              className="w-full p-3 flex items-center gap-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0"
+                            >
+                              {material.imageUrl ? (
+                                <img
+                                  src={material.imageUrl}
+                                  alt={material.name}
+                                  className="w-12 h-12 object-cover rounded border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                  <ImageIcon className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0 text-left">
+                                <p className="text-sm font-medium text-gray-900 truncate">{material.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {formatCurrency(material.unitPrice)} / {material.unit}
+                                  {material.category && ` • ${material.category}`}
+                                  {material.sku && ` • SKU: ${material.sku}`}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      </div>
-
-                      {/* CUENTA */}
-                      <div className="col-span-12 md:col-span-3">
-                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
-                          Cuenta
-                        </label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                          <option>Seleccione una cuenta</option>
-                        </select>
-                      </div>
-
-                      {/* CANTIDAD */}
-                      <div className="col-span-12 md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
-                          Cantidad
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value="1.00"
-                          disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                        />
-                      </div>
-
-                      {/* TARIFA */}
-                      <div className="col-span-12 md:col-span-1">
-                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
-                          Tarifa
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value="0.00"
-                          disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                        />
-                      </div>
-
-                      {/* IMPORTE */}
-                      <div className="col-span-12 md:col-span-1">
-                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">
-                          Importe
-                        </label>
-                        <input
-                          type="text"
-                          value="0.00"
-                          disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                        />
-                      </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Items agregados */}
+                  {/* Tabla de items agregados */}
                   {errors.items && (
                     <p className="text-sm text-red-600 mb-2">{errors.items}</p>
                   )}
                   {orderItems.length > 0 && (
-                    <div className="space-y-2 border-t border-gray-200 pt-4">
-                      {orderItems.map((item) => {
-                        const material = materials.find(m => m.id === item.materialId);
-                        return (
-                          <div key={item.id} className="grid grid-cols-12 gap-4 items-center py-2 border-b border-gray-100 last:border-b-0">
-                            {/* Detalles del artículo con imagen */}
-                            <div className="col-span-12 md:col-span-5 flex items-center gap-3">
-                              {material?.imageUrl ? (
-                                <img
-                                  src={material.imageUrl}
-                                  alt={material.name}
-                                  className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center flex-shrink-0">
-                                  <ImageIcon className="w-5 h-5 text-gray-400" />
+                    <div className="border-t border-gray-200 pt-4">
+                      {/* Encabezados de la tabla */}
+                      <div className="grid grid-cols-12 gap-4 pb-2 mb-2 border-b border-gray-200">
+                        <div className="col-span-12 md:col-span-6">
+                          <span className="text-xs font-medium text-gray-500 uppercase">Detalles del Artículo</span>
+                        </div>
+                        <div className="col-span-12 md:col-span-2">
+                          <span className="text-xs font-medium text-gray-500 uppercase">Cantidad</span>
+                        </div>
+                        <div className="col-span-12 md:col-span-2">
+                          <span className="text-xs font-medium text-gray-500 uppercase">Tarifa</span>
+                        </div>
+                        <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-2">
+                          <span className="text-xs font-medium text-gray-500 uppercase">Importe</span>
+                        </div>
+                      </div>
+
+                      {/* Filas de items */}
+                      <div className="space-y-2">
+                        {orderItems.map((item) => {
+                          const material = materials.find(m => m.id === item.materialId);
+                          return (
+                            <div key={item.id} className="grid grid-cols-12 gap-4 items-center py-3 border-b border-gray-100 last:border-b-0">
+                              {/* Detalles del artículo con imagen */}
+                              <div className="col-span-12 md:col-span-6 flex items-center gap-3">
+                                {material?.imageUrl ? (
+                                  <img
+                                    src={material.imageUrl}
+                                    alt={material.name}
+                                    className="w-10 h-10 object-cover rounded border border-gray-200 flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                    <ImageIcon className="w-5 h-5 text-gray-400" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{item.materialName}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatCurrency(item.unitPrice)} / {item.unit}
+                                  </p>
                                 </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">{item.materialName}</p>
-                                <p className="text-xs text-gray-500">
-                                  {formatCurrency(item.unitPrice)} / {item.unit}
-                                </p>
+                              </div>
+
+                              {/* Cantidad */}
+                              <div className="col-span-12 md:col-span-2">
+                                <input
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  value={item.quantity}
+                                  onChange={(e) => updateItemQuantity(item.id, parseFloat(e.target.value) || 0)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                              </div>
+
+                              {/* Tarifa */}
+                              <div className="col-span-12 md:col-span-2">
+                                <input
+                                  type="text"
+                                  value={formatCurrency(item.unitPrice)}
+                                  disabled
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                                />
+                              </div>
+
+                              {/* Importe y acciones */}
+                              <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-3">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {formatCurrency(item.subtotal)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeItem(item.id)}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                                  title="Eliminar artículo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
-
-                            {/* Cuenta */}
-                            <div className="col-span-12 md:col-span-3">
-                              <select className="w-full px-2 py-1 border border-gray-300 rounded text-sm">
-                                <option>Seleccione una cuenta</option>
-                              </select>
-                            </div>
-
-                            {/* Cantidad */}
-                            <div className="col-span-12 md:col-span-2">
-                              <input
-                                type="number"
-                                min="0.01"
-                                step="0.01"
-                                value={item.quantity}
-                                onChange={(e) => updateItemQuantity(item.id, parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                              />
-                            </div>
-
-                            {/* Tarifa */}
-                            <div className="col-span-12 md:col-span-1">
-                              <input
-                                type="text"
-                                value={formatCurrency(item.unitPrice)}
-                                disabled
-                                className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm"
-                              />
-                            </div>
-
-                            {/* Importe y acciones */}
-                            <div className="col-span-12 md:col-span-1 flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-900 flex-1 text-right">
-                                {formatCurrency(item.subtotal)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeItem(item.id)}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-
-                  {/* Botones para agregar más items */}
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      type="button"
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Añadir nueva fila
-                    </button>
-                    <button
-                      type="button"
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 ml-4"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Agregar artículos a granel
-                    </button>
-                  </div>
                 </div>
               </div>
 
-              {/* Notas del cliente y Resumen */}
+              {/* Campos adicionales y Resumen */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Notas del cliente */}
-                <div className="lg:col-span-2">
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h4 className="text-base font-semibold text-gray-900 mb-4">Notas del cliente</h4>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="Aparecerá en la orden de compra"
-                    />
-                  </div>
-
-                  {/* Campos adicionales */}
-                  <div className="mt-4 space-y-4">
+                {/* Campos adicionales */}
+                <div className="lg:col-span-2 space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Fecha de Entrega Esperada
@@ -666,7 +583,6 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
                       />
                     </div>
                   </div>
-                </div>
 
                 {/* Resumen */}
                 <div className="lg:col-span-1">
@@ -767,7 +683,7 @@ export const PurchaseOrdersSection: React.FC<PurchaseOrdersSectionProps> = ({
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Save className="w-4 h-4" />
+                  <SaveIcon className="w-4 h-4" />
                   {saving ? 'Guardando...' : 'Guardar Orden'}
                 </button>
               </div>
