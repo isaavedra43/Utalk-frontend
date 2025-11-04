@@ -19,6 +19,7 @@ const HRModule = lazy(() => import('../../modules/hr').then(m => ({ default: m.H
 const SupervisionModule = lazy(() => import('../../modules/supervision/SupervisionModule').then(m => ({ default: m.default })));
 const CopilotModule = lazy(() => import('../../modules/copilot/CopilotModule').then(m => ({ default: m.default })));
 const InventoryModule = lazy(() => import('../../modules/inventory/InventoryModule').then(m => ({ default: m.default })));
+const ProvidersModule = lazy(() => import('../../modules/providers/ProvidersModule').then(m => ({ default: m.default })));
 const FleetTrackingModule = lazy(() => import('../../modules/fleet-tracking/FleetTrackingModule').then(m => ({ default: m.default })));
 import { CallsModule } from '../../modules';
 
@@ -102,6 +103,7 @@ export const MainLayout: React.FC = () => {
     if (path === '/supervision') return 'supervision';
     if (path === '/copilot') return 'copilot';
     if (path.startsWith('/inventory')) return 'inventory';
+    if (path.startsWith('/providers')) return 'providers';
     if (path.startsWith('/fleet-tracking')) return 'fleet-tracking';
     return 'dashboard'; // default
   };
@@ -216,6 +218,13 @@ export const MainLayout: React.FC = () => {
             </ProtectedRoute>
           </Suspense>
         )}
+        {currentModule === 'providers' && (
+          <Suspense fallback={Fallback}>
+            <ProtectedRoute moduleId="providers">
+              <ProvidersModule />
+            </ProtectedRoute>
+          </Suspense>
+        )}
         {currentModule === 'fleet-tracking' && (
           <Suspense fallback={Fallback}>
             <ProtectedRoute moduleId="fleet-tracking">
@@ -223,7 +232,7 @@ export const MainLayout: React.FC = () => {
             </ProtectedRoute>
           </Suspense>
         )}
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'fleet-tracking' && (
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'providers' && currentModule !== 'fleet-tracking' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>

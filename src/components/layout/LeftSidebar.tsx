@@ -126,6 +126,11 @@ export const LeftSidebar: React.FC = () => {
       title: 'Inventario'
     },
     {
+      id: 'providers',
+      icon: Building2,
+      title: 'Proveedores'
+    },
+    {
       id: 'fleet-tracking',
       icon: Truck,
       title: 'Rastreo de Flotilla'

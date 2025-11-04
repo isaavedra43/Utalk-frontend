@@ -88,6 +88,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                   { id: 'supervision', icon: Eye, label: 'Supervisión', path: '/supervision' },
                   { id: 'copilot', icon: Bot, label: 'Copiloto IA', path: '/copilot' },
                   { id: 'inventory', icon: Archive, label: 'Inventario', path: '/inventory' },
+                  { id: 'providers', icon: Building2, label: 'Proveedores', path: '/providers' },
                   { id: 'fleet-tracking', icon: Truck, label: 'Rastreo de Flotilla', path: '/fleet-tracking' }
                 ];
 
