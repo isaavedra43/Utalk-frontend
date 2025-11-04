@@ -15,7 +15,6 @@ import {
   UserCheck, 
   Eye, 
   Bot, 
-  Package, 
   Settings,
   Archive,
   Truck,
@@ -90,7 +89,6 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                   { id: 'supervision', icon: Eye, label: 'Supervisión', path: '/supervision' },
                   { id: 'copilot', icon: Bot, label: 'Copiloto IA', path: '/copilot' },
                   { id: 'inventory', icon: Archive, label: 'Inventario', path: '/inventory' },
-                  { id: 'shipping', icon: Package, label: 'Envíos', path: '/shipping' },
                   { id: 'services', icon: Settings, label: 'Servicios', path: '/services' },
                   { id: 'fleet-tracking', icon: Truck, label: 'Rastreo de Flotilla', path: '/fleet-tracking' }
                 ];

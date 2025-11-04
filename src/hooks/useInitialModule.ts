@@ -36,8 +36,7 @@ export const useInitialModule = () => {
       'supervision', // 11. Supervisión
       'copilot',     // 12. Copiloto
       'inventory',   // 13. Inventario
-      'shipping',    // 14. Envíos
-      'services'     // 15. Servicios
+      'services'     // 14. Servicios
     ];
 
     // Buscar el primer módulo accesible según la prioridad

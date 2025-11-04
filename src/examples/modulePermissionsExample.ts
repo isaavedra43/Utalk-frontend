@@ -31,7 +31,6 @@ export const configureHRAgent = async (agentEmail: string) => {
         'supervision': { read: false, write: false, configure: false },
         'copilot': { read: false, write: false, configure: false },
         'inventory': { read: false, write: false, configure: false },
-        'shipping': { read: false, write: false, configure: false },
         'services': { read: false, write: false, configure: false }
       }
     };
@@ -74,7 +73,6 @@ export const configureSalesAgent = async (agentEmail: string) => {
         'internal-chat': { read: true, write: true, configure: false }, // Permitido para coordinación
         'supervision': { read: false, write: false, configure: false },
         'inventory': { read: false, write: false, configure: false },
-        'shipping': { read: false, write: false, configure: false },
         'services': { read: false, write: false, configure: false }
       }
     };
@@ -117,7 +115,6 @@ export const configureSupervisor = async (supervisorEmail: string) => {
         // Acceso limitado a módulos administrativos
         'hr': { read: true, write: false, configure: false }, // Solo lectura
         'inventory': { read: true, write: true, configure: false }, // Acceso completo al inventario
-        'shipping': { read: true, write: false, configure: false },
         'services': { read: true, write: false, configure: false }
       }
     };
@@ -160,7 +157,6 @@ export const configureInventoryAgent = async (agentEmail: string) => {
         'team': { read: false, write: false, configure: false },
         'supervision': { read: false, write: false, configure: false },
         'copilot': { read: false, write: false, configure: false },
-        'shipping': { read: true, write: false, configure: false }, // Solo lectura para coordinación
         'services': { read: false, write: false, configure: false }
       }
     };
@@ -171,7 +167,7 @@ export const configureInventoryAgent = async (agentEmail: string) => {
     return {
       success: true,
       message: 'Agente configurado para inventario',
-      allowedModules: ['dashboard', 'inventory', 'notifications', 'internal-chat', 'knowledge-base', 'shipping']
+      allowedModules: ['dashboard', 'inventory', 'notifications', 'internal-chat', 'knowledge-base']
     };
   } catch (error) {
     console.error('❌ Error configurando agente de inventario:', error);

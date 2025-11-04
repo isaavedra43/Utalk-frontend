@@ -438,7 +438,6 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                       'supervision': 'Supervisión',
                       'copilot': 'Copiloto IA',
                       'inventory': 'Inventario',
-                      'shipping': 'Envíos',
                       'services': 'Servicios'
                     };
 
@@ -505,7 +504,6 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                       'supervision': 'Supervisión',
                       'copilot': 'Copiloto IA',
                       'inventory': 'Inventario',
-                      'shipping': 'Envíos',
                       'services': 'Servicios',
                       'analytics': 'Analytics',
                       'ai': 'IA',

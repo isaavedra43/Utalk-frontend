@@ -28,7 +28,6 @@ export { CopilotModule } from './copilot';
 
 // Exportar módulos adicionales
 export { default as InventoryModule } from './inventory/InventoryModule';
-export { ShippingModule } from './shipping';
 export { ServicesModule } from './services';
 export { FleetTrackingModule } from './fleet-tracking';
 

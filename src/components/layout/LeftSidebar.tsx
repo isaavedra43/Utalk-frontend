@@ -16,7 +16,6 @@ import {
   UserCheck,
   Eye,
   Bot,
-  Package,
   Settings,
   Archive,
   Truck
@@ -126,11 +125,6 @@ export const LeftSidebar: React.FC = () => {
       id: 'inventory',
       icon: Archive,
       title: 'Inventario'
-    },
-    {
-      id: 'shipping',
-      icon: Package,
-      title: 'Envíos'
     },
     {
       id: 'services',
