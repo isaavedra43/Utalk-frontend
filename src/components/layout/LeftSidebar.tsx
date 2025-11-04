@@ -16,7 +16,6 @@ import {
   UserCheck,
   Eye,
   Bot,
-  Settings,
   Archive,
   Truck
 } from 'lucide-react';
@@ -125,11 +124,6 @@ export const LeftSidebar: React.FC = () => {
       id: 'inventory',
       icon: Archive,
       title: 'Inventario'
-    },
-    {
-      id: 'services',
-      icon: Settings,
-      title: 'Servicios'
     },
     {
       id: 'fleet-tracking',

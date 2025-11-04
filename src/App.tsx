@@ -179,14 +179,6 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           } />
 
-          <Route path="/services/*" element={
-            <ErrorBoundary>
-              <ProtectedRoute moduleId="services">
-                <MainLayout />
-              </ProtectedRoute>
-            </ErrorBoundary>
-          } />
-
           <Route path="/fleet-tracking/*" element={
             <ErrorBoundary>
               <ProtectedRoute moduleId="fleet-tracking">

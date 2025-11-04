@@ -35,8 +35,7 @@ export const useInitialModule = () => {
       'knowledge-base', // 10. Base de Conocimiento
       'supervision', // 11. Supervisión
       'copilot',     // 12. Copiloto
-      'inventory',   // 13. Inventario
-      'services'     // 14. Servicios
+      'inventory'    // 13. Inventario
     ];
 
     // Buscar el primer módulo accesible según la prioridad
