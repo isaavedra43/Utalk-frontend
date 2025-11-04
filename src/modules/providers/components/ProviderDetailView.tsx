@@ -83,9 +83,9 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -141,7 +141,7 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b border-gray-200 flex-shrink-0 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => (
@@ -171,7 +171,8 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -402,6 +403,7 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
           {activeTab === 'activity' && (
             <ActivityHistorySection activities={activities} />
           )}
+        </div>
       </div>
     </div>
   );
