@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Building2, Phone, Mail, MapPin, Globe, CreditCard, Calendar, Edit3, ArrowLeft } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Globe, CreditCard, Calendar, Edit3, ArrowLeft, FileText } from 'lucide-react';
 import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity, ProviderDocument, ProviderRating } from '../types';
 import { MaterialsSection } from './MaterialsSection';
 import { PurchaseOrdersSection } from './PurchaseOrdersSection';
@@ -35,7 +35,7 @@ interface ProviderDetailViewProps {
   onUpdateRating?: (rating: Omit<ProviderRating, 'totalReviews'>) => Promise<void>;
 }
 
-type Tab = 'overview' | 'info' | 'materials' | 'orders' | 'payments' | 'statement' | 'documents' | 'activity';
+type Tab = 'overview' | 'materials' | 'orders' | 'payments' | 'statement' | 'documents' | 'activity';
 
 export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
   provider,
@@ -73,7 +73,6 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
 
   const tabs: Array<{ id: Tab; label: string; count?: number }> = [
     { id: 'overview', label: 'Resumen' },
-    { id: 'info', label: 'Información' },
     { id: 'materials', label: 'Materiales', count: materials.length },
     { id: 'orders', label: 'Órdenes', count: purchaseOrders.length },
     { id: 'payments', label: 'Pagos', count: payments.length },
@@ -173,34 +172,8 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Overview Tab */}
+          {/* Overview Tab (Unified with Info) */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {/* KPIs Dashboard */}
-              <ProviderKPIs
-                purchaseOrders={purchaseOrders}
-                payments={payments}
-                materials={materials}
-              />
-
-              {/* Rating */}
-              <ProviderRatingComponent
-                providerId={provider.id}
-                rating={rating}
-                onUpdateRating={onUpdateRating}
-              />
-
-              {/* Alerts */}
-              <AlertsSection
-                provider={provider}
-                purchaseOrders={purchaseOrders}
-                payments={payments}
-              />
-            </div>
-          )}
-
-          {/* Info Tab */}
-          {activeTab === 'info' && (
             <div className="space-y-6">
               {/* Contact Information */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -325,23 +298,59 @@ export const ProviderDetailView: React.FC<ProviderDetailViewProps> = ({
               )}
 
               {/* System Information */}
-              <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Información del Sistema</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">ID del Proveedor</p>
-                    <p className="font-mono text-gray-900 mt-1">{provider.id}</p>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Información del Sistema</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <FileText className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">ID del Proveedor</p>
+                      <p className="text-base font-medium text-gray-900 font-mono text-sm">{provider.id}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-500">Fecha de Creación</p>
-                    <p className="font-medium text-gray-900 mt-1">{formatDate(provider.createdAt)}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <Calendar className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Fecha de Creación</p>
+                      <p className="text-base font-medium text-gray-900">{formatDate(provider.createdAt)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-500">Última Actualización</p>
-                    <p className="font-medium text-gray-900 mt-1">{formatDate(provider.updatedAt)}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <Calendar className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Última Actualización</p>
+                      <p className="text-base font-medium text-gray-900">{formatDate(provider.updatedAt)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* KPIs Dashboard */}
+              <ProviderKPIs
+                purchaseOrders={purchaseOrders}
+                payments={payments}
+                materials={materials}
+              />
+
+              {/* Rating */}
+              <ProviderRatingComponent
+                providerId={provider.id}
+                rating={rating}
+                onUpdateRating={onUpdateRating}
+              />
+
+              {/* Alerts */}
+              <AlertsSection
+                provider={provider}
+                purchaseOrders={purchaseOrders}
+                payments={payments}
+              />
             </div>
           )}
 
