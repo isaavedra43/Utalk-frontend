@@ -113,7 +113,14 @@ export interface Payment {
   
   // Documentos
   receiptUrl?: string;
-  attachments?: string[];
+  attachments?: Array<{
+    id: string;
+    name: string;
+    type: 'image' | 'document';
+    data: string; // base64 o URL
+    mimeType: string;
+    size: number;
+  }>;
 }
 
 // ============================================

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, DollarSign, Calendar, CreditCard, Check, X, Clock, FileText, Save, AlertCircle, Download } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, DollarSign, Calendar, CreditCard, Check, X, Clock, FileText, Save, AlertCircle, Download, Upload, Image as ImageIcon, Trash2, Eye } from 'lucide-react';
 import type { Payment, PurchaseOrder } from '../types';
 
 interface PaymentsSectionProps {
@@ -29,6 +29,13 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
     paymentDate: new Date().toISOString().split('T')[0],
     notes: '',
   });
+  const [selectedFiles, setSelectedFiles] = useState<Array<{
+    file: File;
+    preview: string;
+    id: string;
+  }>>([]);
+  const [viewingAttachment, setViewingAttachment] = useState<{ data: string; name: string; type: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -70,7 +77,101 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
       paymentDate: new Date().toISOString().split('T')[0],
       notes: '',
     });
+    setSelectedFiles([]);
     setErrors({});
+  };
+
+  // Convertir archivo a base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Error al convertir el archivo'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Manejar selección de archivos
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles: Array<{ file: File; preview: string; id: string }> = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      // Validar tamaño (máximo 10MB por archivo)
+      if (file.size > 10 * 1024 * 1024) {
+        setErrors({ ...errors, files: `El archivo ${file.name} excede el tamaño máximo de 10MB` });
+        continue;
+      }
+
+      // Validar tipo
+      const isImage = file.type.startsWith('image/');
+      const isDocument = file.type.includes('pdf') || 
+                        file.type.includes('word') || 
+                        file.type.includes('excel') ||
+                        file.type.includes('text') ||
+                        file.type.includes('document');
+
+      if (!isImage && !isDocument) {
+        setErrors({ ...errors, files: `El archivo ${file.name} no es una imagen o documento válido` });
+        continue;
+      }
+
+      // Crear preview (para imágenes)
+      let preview = '';
+      if (isImage) {
+        preview = URL.createObjectURL(file);
+      } else {
+        preview = ''; // Los documentos no tienen preview visual
+      }
+
+      newFiles.push({
+        file,
+        preview,
+        id: `${Date.now()}-${i}-${Math.random()}`,
+      });
+    }
+
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    setErrors({ ...errors, files: '' });
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Eliminar archivo seleccionado
+  const removeFile = (id: string) => {
+    setSelectedFiles((prev) => {
+      const fileToRemove = prev.find((f) => f.id === id);
+      if (fileToRemove?.preview) {
+        URL.revokeObjectURL(fileToRemove.preview);
+      }
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  // Obtener tipo de archivo
+  const getFileType = (mimeType: string): 'image' | 'document' => {
+    if (mimeType.startsWith('image/')) return 'image';
+    return 'document';
+  };
+
+  // Formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const validateForm = (): boolean => {
@@ -97,6 +198,21 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
     try {
       const selectedOrder = purchaseOrders.find(o => o.id === formData.purchaseOrderId);
 
+      // Convertir archivos a base64
+      const attachments = await Promise.all(
+        selectedFiles.map(async (fileData) => {
+          const base64 = await convertFileToBase64(fileData.file);
+          return {
+            id: fileData.id,
+            name: fileData.file.name,
+            type: getFileType(fileData.file.type) as 'image' | 'document',
+            data: base64,
+            mimeType: fileData.file.type,
+            size: fileData.file.size,
+          };
+        })
+      );
+
       const paymentData = {
         providerId,
         providerName: '', // Will be filled by backend
@@ -108,9 +224,17 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
         status: 'completed' as const,
         notes: formData.notes.trim() || undefined,
         paymentDate: formData.paymentDate,
+        attachments: attachments.length > 0 ? attachments : undefined,
       };
 
       await onCreatePayment(paymentData);
+
+      // Limpiar previews
+      selectedFiles.forEach((f) => {
+        if (f.preview) {
+          URL.revokeObjectURL(f.preview);
+        }
+      });
 
       resetForm();
       setShowCreateModal(false);
@@ -409,6 +533,91 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                     placeholder="Notas adicionales sobre el pago..."
                   />
                 </div>
+
+                {/* File Attachments */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Adjuntar Imágenes o Documentos
+                  </label>
+                  
+                  {/* Input de archivos */}
+                  <div className="mb-3">
+                    <label className="cursor-pointer">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
+                        <Upload className="w-5 h-5 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          Seleccionar archivos (imágenes o documentos)
+                        </span>
+                      </div>
+                    </label>
+                    {errors.files && (
+                      <p className="text-sm text-red-600 mt-1">{errors.files}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Puedes seleccionar múltiples archivos. Tamaño máximo por archivo: 10MB
+                    </p>
+                  </div>
+
+                  {/* Preview de archivos seleccionados */}
+                  {selectedFiles.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {selectedFiles.map((fileData) => (
+                        <div
+                          key={fileData.id}
+                          className="relative bg-gray-50 border border-gray-200 rounded-lg p-2"
+                        >
+                          {fileData.preview ? (
+                            // Imagen
+                            <div className="relative">
+                              <img
+                                src={fileData.preview}
+                                alt={fileData.file.name}
+                                className="w-full h-24 object-cover rounded"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeFile(fileData.id)}
+                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                title="Eliminar"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            // Documento
+                            <div className="relative">
+                              <div className="w-full h-24 bg-blue-50 border border-blue-200 rounded flex items-center justify-center">
+                                <FileText className="w-8 h-8 text-blue-600" />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(fileData.id)}
+                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                title="Eliminar"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-600 mt-1 truncate" title={fileData.file.name}>
+                            {fileData.file.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {formatFileSize(fileData.file.size)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Actions */}
@@ -512,6 +721,68 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                   <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{viewingPayment.notes}</p>
                 </div>
               )}
+
+              {/* Attachments */}
+              {viewingPayment.attachments && viewingPayment.attachments.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Archivos Adjuntos ({viewingPayment.attachments.length})
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {viewingPayment.attachments.map((attachment, index) => (
+                      <div
+                        key={attachment.id || index}
+                        className="relative bg-gray-50 border border-gray-200 rounded-lg p-2 group hover:shadow-md transition-shadow"
+                      >
+                        {attachment.type === 'image' ? (
+                          // Imagen
+                          <div className="relative">
+                            <img
+                              src={attachment.data}
+                              alt={attachment.name}
+                              className="w-full h-32 object-cover rounded cursor-pointer"
+                              onClick={() => setViewingAttachment({
+                                data: attachment.data,
+                                name: attachment.name,
+                                type: attachment.type,
+                              })}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity rounded flex items-center justify-center">
+                              <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                        ) : (
+                          // Documento
+                          <div
+                            className="w-full h-32 bg-blue-50 border border-blue-200 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-blue-100 transition-colors"
+                            onClick={() => {
+                              // Abrir documento en nueva pestaña
+                              const link = document.createElement('a');
+                              link.href = attachment.data;
+                              link.target = '_blank';
+                              link.download = attachment.name;
+                              link.click();
+                            }}
+                          >
+                            <FileText className="w-8 h-8 text-blue-600 mb-2" />
+                            <p className="text-xs text-blue-600 text-center px-1">
+                              {attachment.name.length > 15 
+                                ? `${attachment.name.substring(0, 15)}...` 
+                                : attachment.name}
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-600 mt-1 truncate" title={attachment.name}>
+                          {attachment.name}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatFileSize(attachment.size)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
@@ -533,6 +804,30 @@ export const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para ver imagen en grande */}
+      {viewingAttachment && viewingAttachment.type === 'image' && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4"
+          onClick={() => setViewingAttachment(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setViewingAttachment(null)}
+              className="absolute -top-10 right-0 p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-900" />
+            </button>
+            <img
+              src={viewingAttachment.data}
+              alt={viewingAttachment.name}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <p className="text-white text-center mt-4">{viewingAttachment.name}</p>
           </div>
         </div>
       )}
