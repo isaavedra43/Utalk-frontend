@@ -11,7 +11,8 @@ import {
   Plus,
   Download,
   Filter,
-  MoreVertical
+  MoreVertical,
+  FileText
 } from 'lucide-react';
 import type { Provider } from '../types';
 import { ProviderFormModal } from './ProviderFormModal';
@@ -24,6 +25,7 @@ interface ProvidersTableProps {
   onUpdate: (id: string, updates: Partial<Provider>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onExport: () => void;
+  onViewDetails?: (provider: Provider) => void;
 }
 
 export const ProvidersTable: React.FC<ProvidersTableProps> = ({
@@ -32,7 +34,8 @@ export const ProvidersTable: React.FC<ProvidersTableProps> = ({
   onCreate,
   onUpdate,
   onDelete,
-  onExport
+  onExport,
+  onViewDetails
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFormModal, setShowFormModal] = useState(false);
@@ -257,10 +260,19 @@ export const ProvidersTable: React.FC<ProvidersTableProps> = ({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
+                          {onViewDetails && (
+                            <button
+                              onClick={() => onViewDetails(provider)}
+                              className="text-purple-600 hover:text-purple-900 transition-colors"
+                              title="Ver detalle completo"
+                            >
+                              <FileText className="h-5 w-5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setDetailProvider(provider)}
                             className="text-blue-600 hover:text-blue-900 transition-colors"
-                            title="Ver detalles"
+                            title="Vista rápida"
                           >
                             <Eye className="h-5 w-5" />
                           </button>

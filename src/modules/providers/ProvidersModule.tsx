@@ -1,29 +1,314 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Building2, Menu, AlertCircle } from 'lucide-react';
 import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
 import { useProviders } from './hooks/useProviders';
 import { ProvidersTable } from './components/ProvidersTable';
 import { ProvidersStats } from './components/ProvidersStats';
+import { ProviderDetailView } from './components/ProviderDetailView';
 import { exportProvidersToCSV } from './utils/exportUtils';
+import type { Provider, ProviderMaterial, PurchaseOrder, Payment, ProviderActivity } from './types';
 
 const ProvidersModule: React.FC = () => {
   const { openMenu } = useMobileMenuContext();
   const { providers, loading, error, createProvider, updateProvider, deleteProvider } = useProviders();
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+
+  // Mock data for demo - En producción esto vendría del backend
+  const [providerMaterials, setProviderMaterials] = useState<Record<string, ProviderMaterial[]>>({});
+  const [providerOrders, setProviderOrders] = useState<Record<string, PurchaseOrder[]>>({});
+  const [providerPayments, setProviderPayments] = useState<Record<string, Payment[]>>({});
+  const [providerActivities, setProviderActivities] = useState<Record<string, ProviderActivity[]>>({});
 
   const handleExport = () => {
     exportProvidersToCSV(providers);
   };
 
-  const handleCreate = async (provider: Omit<import('./types').Provider, 'id'>) => {
+  const handleCreate = async (provider: Omit<Provider, 'id'>) => {
     await createProvider(provider);
   };
 
-  const handleUpdate = async (id: string, updates: Partial<import('./types').Provider>) => {
+  const handleUpdate = async (id: string, updates: Partial<Provider>) => {
     await updateProvider(id, updates);
   };
 
   const handleDelete = async (id: string) => {
     await deleteProvider(id);
+  };
+
+  const handleViewDetails = (provider: Provider) => {
+    setSelectedProvider(provider);
+  };
+
+  // Material handlers
+  const handleAddMaterial = async (material: Omit<ProviderMaterial, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    const newMaterial: ProviderMaterial = {
+      ...material,
+      id: `mat-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setProviderMaterials(prev => ({
+      ...prev,
+      [selectedProvider.id]: [...(prev[selectedProvider.id] || []), newMaterial]
+    }));
+
+    // Log activity
+    const activity: ProviderActivity = {
+      id: `act-${Date.now()}`,
+      providerId: selectedProvider.id,
+      type: 'material_added',
+      description: `Material "${newMaterial.name}" agregado`,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+    };
+    
+    setProviderActivities(prev => ({
+      ...prev,
+      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+    }));
+  };
+
+  const handleUpdateMaterial = async (id: string, updates: Partial<ProviderMaterial>) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    setProviderMaterials(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).map(m =>
+        m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m
+      )
+    }));
+
+    // Log activity
+    const activity: ProviderActivity = {
+      id: `act-${Date.now()}`,
+      providerId: selectedProvider.id,
+      type: 'material_updated',
+      description: `Material actualizado`,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+    };
+    
+    setProviderActivities(prev => ({
+      ...prev,
+      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+    }));
+  };
+
+  const handleDeleteMaterial = async (id: string) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    const material = providerMaterials[selectedProvider.id]?.find(m => m.id === id);
+    
+    setProviderMaterials(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(m => m.id !== id)
+    }));
+
+    // Log activity
+    if (material) {
+      const activity: ProviderActivity = {
+        id: `act-${Date.now()}`,
+        providerId: selectedProvider.id,
+        type: 'material_deleted',
+        description: `Material "${material.name}" eliminado`,
+        createdAt: new Date().toISOString(),
+        createdBy: 'current-user-id',
+        createdByName: 'Usuario Actual',
+      };
+      
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+      }));
+    }
+  };
+
+  // Purchase Order handlers
+  const handleCreateOrder = async (order: Omit<PurchaseOrder, 'id' | 'orderNumber' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    const orderNumber = `OC-${String(Date.now()).slice(-6)}`;
+    const newOrder: PurchaseOrder = {
+      ...order,
+      id: `order-${Date.now()}`,
+      orderNumber,
+      providerName: selectedProvider.name,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+    };
+    
+    setProviderOrders(prev => ({
+      ...prev,
+      [selectedProvider.id]: [newOrder, ...(prev[selectedProvider.id] || [])]
+    }));
+
+    // Log activity
+    const activity: ProviderActivity = {
+      id: `act-${Date.now()}`,
+      providerId: selectedProvider.id,
+      type: 'order_created',
+      description: `Orden de compra #${orderNumber} creada por ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(newOrder.total)}`,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+      entityType: 'order',
+      entityId: newOrder.id,
+    };
+    
+    setProviderActivities(prev => ({
+      ...prev,
+      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+    }));
+  };
+
+  const handleUpdateOrder = async (id: string, updates: Partial<PurchaseOrder>) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    const currentOrder = providerOrders[selectedProvider.id]?.find(o => o.id === id);
+    
+    setProviderOrders(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).map(o =>
+        o.id === id ? { ...o, ...updates } : o
+      )
+    }));
+
+    // Log activity based on status change
+    if (updates.status && currentOrder && updates.status !== currentOrder.status) {
+      let activityType: ProviderActivity['type'] = 'order_updated';
+      let description = 'Orden actualizada';
+
+      if (updates.status === 'accepted') {
+        activityType = 'order_accepted';
+        description = `Orden #${currentOrder.orderNumber} aceptada`;
+      } else if (updates.status === 'rejected') {
+        activityType = 'order_rejected';
+        description = `Orden #${currentOrder.orderNumber} rechazada`;
+      } else if (updates.status === 'delivered') {
+        activityType = 'order_delivered';
+        description = `Orden #${currentOrder.orderNumber} entregada`;
+      }
+
+      const activity: ProviderActivity = {
+        id: `act-${Date.now()}`,
+        providerId: selectedProvider.id,
+        type: activityType,
+        description,
+        createdAt: new Date().toISOString(),
+        createdBy: 'current-user-id',
+        createdByName: 'Usuario Actual',
+        entityType: 'order',
+        entityId: id,
+      };
+      
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+      }));
+    }
+  };
+
+  const handleDeleteOrder = async (id: string) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    setProviderOrders(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(o => o.id !== id)
+    }));
+  };
+
+  // Payment handlers
+  const handleCreatePayment = async (payment: Omit<Payment, 'id' | 'paymentNumber' | 'createdAt' | 'createdBy' | 'createdByName'>) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    const paymentNumber = `PAG-${String(Date.now()).slice(-6)}`;
+    const newPayment: Payment = {
+      ...payment,
+      id: `payment-${Date.now()}`,
+      paymentNumber,
+      providerName: selectedProvider.name,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+    };
+    
+    setProviderPayments(prev => ({
+      ...prev,
+      [selectedProvider.id]: [newPayment, ...(prev[selectedProvider.id] || [])]
+    }));
+
+    // Log activity
+    const activity: ProviderActivity = {
+      id: `act-${Date.now()}`,
+      providerId: selectedProvider.id,
+      type: 'payment_created',
+      description: `Pago #${paymentNumber} registrado por ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(newPayment.amount)}`,
+      createdAt: new Date().toISOString(),
+      createdBy: 'current-user-id',
+      createdByName: 'Usuario Actual',
+      entityType: 'payment',
+      entityId: newPayment.id,
+    };
+    
+    setProviderActivities(prev => ({
+      ...prev,
+      [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+    }));
+  };
+
+  const handleUpdatePayment = async (id: string, updates: Partial<Payment>) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    setProviderPayments(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).map(p =>
+        p.id === id ? { ...p, ...updates } : p
+      )
+    }));
+
+    // Log activity if completed
+    if (updates.status === 'completed') {
+      const activity: ProviderActivity = {
+        id: `act-${Date.now()}`,
+        providerId: selectedProvider.id,
+        type: 'payment_completed',
+        description: `Pago completado`,
+        createdAt: new Date().toISOString(),
+        createdBy: 'current-user-id',
+        createdByName: 'Usuario Actual',
+        entityType: 'payment',
+        entityId: id,
+      };
+      
+      setProviderActivities(prev => ({
+        ...prev,
+        [selectedProvider.id]: [activity, ...(prev[selectedProvider.id] || [])]
+      }));
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    if (!selectedProvider) return;
+    
+    // TODO: Call backend API
+    setProviderPayments(prev => ({
+      ...prev,
+      [selectedProvider.id]: (prev[selectedProvider.id] || []).filter(p => p.id !== id)
+    }));
   };
 
   return (
@@ -86,8 +371,35 @@ const ProvidersModule: React.FC = () => {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onExport={handleExport}
+          onViewDetails={handleViewDetails}
         />
       </div>
+
+      {/* Provider Detail View */}
+      {selectedProvider && (
+        <ProviderDetailView
+          provider={selectedProvider}
+          materials={providerMaterials[selectedProvider.id] || []}
+          purchaseOrders={providerOrders[selectedProvider.id] || []}
+          payments={providerPayments[selectedProvider.id] || []}
+          activities={providerActivities[selectedProvider.id] || []}
+          onClose={() => setSelectedProvider(null)}
+          onEdit={() => {
+            // Open edit modal for the provider
+            setSelectedProvider(null);
+            // TODO: Trigger edit in ProvidersTable
+          }}
+          onAddMaterial={handleAddMaterial}
+          onUpdateMaterial={handleUpdateMaterial}
+          onDeleteMaterial={handleDeleteMaterial}
+          onCreateOrder={handleCreateOrder}
+          onUpdateOrder={handleUpdateOrder}
+          onDeleteOrder={handleDeleteOrder}
+          onCreatePayment={handleCreatePayment}
+          onUpdatePayment={handleUpdatePayment}
+          onDeletePayment={handleDeletePayment}
+        />
+      )}
     </div>
   );
 };
