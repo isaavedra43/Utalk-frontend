@@ -31,6 +31,8 @@ export const MaterialsSection: React.FC<MaterialsSectionProps> = ({
     minStock: '',
     isActive: true,
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -47,8 +49,66 @@ export const MaterialsSection: React.FC<MaterialsSectionProps> = ({
       minStock: '',
       isActive: true,
     });
+    setSelectedImage(null);
+    setImagePreview(null);
     setErrors({});
     setEditingMaterial(null);
+  };
+
+  // Convertir imagen a base64
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Error al convertir la imagen'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Manejar selección de imagen
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      setErrors({ ...errors, image: 'El archivo debe ser una imagen' });
+      return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors({ ...errors, image: 'La imagen no puede ser mayor a 5MB' });
+      return;
+    }
+
+    setSelectedImage(file);
+    setErrors({ ...errors, image: '' });
+
+    // Crear preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Eliminar imagen seleccionada
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setFormData({ ...formData, imageUrl: '' });
+    if (errors.image) {
+      const newErrors = { ...errors };
+      delete newErrors.image;
+      setErrors(newErrors);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -77,6 +137,20 @@ export const MaterialsSection: React.FC<MaterialsSectionProps> = ({
     
     setSaving(true);
     try {
+      // Convertir imagen a base64 si hay una seleccionada
+      let imageUrl = formData.imageUrl.trim() || undefined;
+      
+      if (selectedImage) {
+        try {
+          imageUrl = await convertImageToBase64(selectedImage);
+        } catch (error) {
+          console.error('Error convirtiendo imagen:', error);
+          setErrors({ ...errors, submit: 'Error al procesar la imagen' });
+          setSaving(false);
+          return;
+        }
+      }
+
       const materialData = {
         providerId,
         name: formData.name.trim(),
@@ -85,7 +159,7 @@ export const MaterialsSection: React.FC<MaterialsSectionProps> = ({
         unitPrice: parseFloat(formData.unitPrice),
         unit: formData.unit,
         sku: formData.sku.trim() || undefined,
-        imageUrl: formData.imageUrl.trim() || undefined,
+        imageUrl: imageUrl,
         stock: formData.stock ? parseFloat(formData.stock) : undefined,
         minStock: formData.minStock ? parseFloat(formData.minStock) : undefined,
         isActive: formData.isActive,
@@ -121,6 +195,16 @@ export const MaterialsSection: React.FC<MaterialsSectionProps> = ({
       minStock: material.minStock?.toString() || '',
       isActive: material.isActive,
     });
+    
+    // Si tiene imagen guardada (puede ser base64 o URL), mostrar preview
+    if (material.imageUrl) {
+      setImagePreview(material.imageUrl);
+      setSelectedImage(null); // No es un archivo nuevo, es una imagen existente
+    } else {
+      setImagePreview(null);
+      setSelectedImage(null);
+    }
+    
     setShowAddModal(true);
   };
 
@@ -429,18 +513,56 @@ export const MaterialsSection: React.FC<MaterialsSectionProps> = ({
                   />
                 </div>
 
-                {/* Image URL */}
+                {/* Image Upload */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL de Imagen
+                    Imagen del Material
                   </label>
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://..."
-                  />
+                  
+                  {/* Preview de imagen */}
+                  {imagePreview && (
+                    <div className="mb-3 relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeSelectedImage}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        title="Eliminar imagen"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Input de archivo */}
+                  <div className="flex items-center gap-3">
+                    <label className="flex-1 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
+                        <ImageIcon className="w-5 h-5 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {selectedImage ? selectedImage.name : imagePreview ? 'Cambiar imagen' : 'Seleccionar imagen'}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  {errors.image && (
+                    <p className="text-sm text-red-600 mt-1">{errors.image}</p>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 5MB
+                  </p>
                 </div>
 
                 {/* Is Active */}
