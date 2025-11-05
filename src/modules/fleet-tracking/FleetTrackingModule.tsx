@@ -116,9 +116,9 @@ const FleetTrackingModule: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
       {/* Header móvil */}
-      <div className="lg:hidden sticky top-0 inset-x-0 z-20 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div className="lg:hidden sticky top-0 inset-x-0 z-20 bg-white/95 backdrop-blur border-b border-gray-200 flex-shrink-0">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -142,7 +142,9 @@ const FleetTrackingModule: React.FC = () => {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Contenedor con scroll */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <header className="hidden lg:flex items-start justify-between gap-6">
           <div>
             <p className="text-xs uppercase font-semibold tracking-wide text-blue-500">Telemetría unificada · Seguridad avanzada</p>
@@ -305,6 +307,7 @@ const FleetTrackingModule: React.FC = () => {
         </section>
 
         <VehicleDetailPanel vehicle={selectedVehicle} viewMode={viewMode} />
+        </div>
       </div>
     </div>
   );
