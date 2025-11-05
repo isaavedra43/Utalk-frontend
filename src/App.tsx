@@ -195,6 +195,14 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           } />
 
+          <Route path="/projects/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="projects">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
           {/* ✅ CRÍTICO: Redirección inicial SOLO si NO hay autenticación */}
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>

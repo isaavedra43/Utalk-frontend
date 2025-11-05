@@ -17,6 +17,7 @@ import {
   Bot, 
   Archive,
   Truck,
+  FolderKanban,
   LogOut
 } from 'lucide-react';
 import { useModulePermissions } from '../../hooks/useModulePermissions';
@@ -89,7 +90,8 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                   { id: 'copilot', icon: Bot, label: 'Copiloto IA', path: '/copilot' },
                   { id: 'inventory', icon: Archive, label: 'Inventario', path: '/inventory' },
                   { id: 'providers', icon: Building2, label: 'Proveedores', path: '/providers' },
-                  { id: 'fleet-tracking', icon: Truck, label: 'Rastreo de Flotilla', path: '/fleet-tracking' }
+                  { id: 'fleet-tracking', icon: Truck, label: 'Rastreo de Flotilla', path: '/fleet-tracking' },
+                  { id: 'projects', icon: FolderKanban, label: 'Proyectos', path: '/projects' }
                 ];
 
                 // Si está cargando permisos, no mostrar ningún elemento para evitar parpadeo

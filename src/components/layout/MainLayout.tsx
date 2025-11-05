@@ -21,6 +21,7 @@ const CopilotModule = lazy(() => import('../../modules/copilot/CopilotModule').t
 const InventoryModule = lazy(() => import('../../modules/inventory/InventoryModule').then(m => ({ default: m.default })));
 const ProvidersModule = lazy(() => import('../../modules/providers/ProvidersModule').then(m => ({ default: m.default })));
 const FleetTrackingModule = lazy(() => import('../../modules/fleet-tracking/FleetTrackingModule').then(m => ({ default: m.default })));
+const ProjectsModule = lazy(() => import('../../modules/projects/ProjectsModule').then(m => ({ default: m.default })));
 import { CallsModule } from '../../modules';
 
 import { ModulePlaceholder } from './ModulePlaceholder';
@@ -105,6 +106,7 @@ export const MainLayout: React.FC = () => {
     if (path.startsWith('/inventory')) return 'inventory';
     if (path.startsWith('/providers')) return 'providers';
     if (path.startsWith('/fleet-tracking')) return 'fleet-tracking';
+    if (path.startsWith('/projects')) return 'projects';
     return 'dashboard'; // default
   };
   
@@ -232,7 +234,14 @@ export const MainLayout: React.FC = () => {
             </ProtectedRoute>
           </Suspense>
         )}
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'providers' && currentModule !== 'fleet-tracking' && (
+        {currentModule === 'projects' && (
+          <Suspense fallback={Fallback}>
+            <ProtectedRoute moduleId="projects">
+              <ProjectsModule />
+            </ProtectedRoute>
+          </Suspense>
+        )}
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'providers' && currentModule !== 'fleet-tracking' && currentModule !== 'projects' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>

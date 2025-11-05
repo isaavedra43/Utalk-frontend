@@ -29,6 +29,7 @@ export { CopilotModule } from './copilot';
 // Exportar módulos adicionales
 export { default as InventoryModule } from './inventory/InventoryModule';
 export { FleetTrackingModule } from './fleet-tracking';
+export { ProjectsModule } from './projects';
 
 // Módulo de nómina integrado en HR
  

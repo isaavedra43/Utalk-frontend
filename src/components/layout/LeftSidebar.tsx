@@ -17,7 +17,8 @@ import {
   Eye,
   Bot,
   Archive,
-  Truck
+  Truck,
+  FolderKanban
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -134,6 +135,11 @@ export const LeftSidebar: React.FC = () => {
       id: 'fleet-tracking',
       icon: Truck,
       title: 'Rastreo de Flotilla'
+    },
+    {
+      id: 'projects',
+      icon: FolderKanban,
+      title: 'Proyectos'
     }
   ], []);
 
