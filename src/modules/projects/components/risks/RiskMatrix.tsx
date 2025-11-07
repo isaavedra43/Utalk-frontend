@@ -155,7 +155,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-green-500 rounded"></div>
-          <span>Bajo (Score < 6)</span>
+          <span>Bajo (Score {'<'} 6)</span>
         </div>
       </div>
     </div>
