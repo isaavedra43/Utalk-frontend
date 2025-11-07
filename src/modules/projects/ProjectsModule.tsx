@@ -21,12 +21,9 @@ import {
   Layers,
   ChevronRight,
   MoreVertical,
-  Archive,
-  Play,
-  X
+  Archive
 } from 'lucide-react';
 import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
-import { mockProjects, mockTasks, mockTeamMembers, mockMaterials, mockRisks, mockExpenses, mockProject } from './data/mockData';
 import { useProjects } from './hooks/useProjects';
 import { useTasks } from './hooks/useTasks';
 import { useAnalytics } from './hooks/useAnalytics';
@@ -38,7 +35,7 @@ import { TeamMembers } from './components/team/TeamMembers';
 import { MaterialsList } from './components/materials/MaterialsList';
 import { MilestonesTimeline } from './components/timeline/MilestonesTimeline';
 import { RiskMatrix } from './components/risks/RiskMatrix';
-import type { Project, Task, TeamMember, ProjectMaterial, ProjectRisk } from './types';
+import type { Project, Task } from './types';
 
 type TabType = 
   | 'dashboard'
@@ -60,16 +57,9 @@ const ProjectsModule = () => {
   const [showProjectsList, setShowProjectsList] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [taskView, setTaskView] = useState<TaskViewType>('table');
-  
-  // MODO DEMO - Usar datos falsos
-  const [demoMode, setDemoMode] = useState(false);
-  const [demoProjects, setDemoProjects] = useState<Project[]>([]);
-  const [demoTasks, setDemoTasks] = useState<Task[]>([]);
-  const [demoTeamMembers, setDemoTeamMembers] = useState<TeamMember[]>([]);
-  const [demoMaterials, setDemoMaterials] = useState<ProjectMaterial[]>([]);
-  const [demoRisks, setDemoRisks] = useState<ProjectRisk[]>([]);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
 
-  // Hooks (solo se usan si NO está en modo demo)
+  // Hooks
   const {
     projects,
     loading: projectsLoading,
@@ -92,48 +82,18 @@ const ProjectsModule = () => {
     loadMetrics,
   } = useAnalytics(selectedProject?.id || '');
 
-  // Activar modo demo
-  const handleEnableDemoMode = () => {
-    setDemoMode(true);
-    setDemoProjects(mockProjects);
-    setDemoTasks(mockTasks);
-    setDemoTeamMembers(mockTeamMembers);
-    setDemoMaterials(mockMaterials);
-    setDemoRisks(mockRisks);
-    setSelectedProject(mockProject);
-  };
-
-  // Desactivar modo demo
-  const handleDisableDemoMode = () => {
-    setDemoMode(false);
-    setDemoProjects([]);
-    setDemoTasks([]);
-    setDemoTeamMembers([]);
-    setDemoMaterials([]);
-    setDemoRisks([]);
-    setSelectedProject(null);
-  };
-
-  // Datos a usar (demo o reales)
-  const displayProjects = demoMode ? demoProjects : projects;
-  const displayTasks = demoMode ? demoTasks : tasks;
-  const displayLoading = demoMode ? false : projectsLoading;
-  const displayMetrics = demoMode ? selectedProject?.metrics || null : metrics;
-
-  // Cargar proyectos reales al montar (solo si no está en demo)
+  // Cargar proyectos al montar
   useEffect(() => {
-    if (!demoMode) {
-      loadProjects();
-    }
-  }, [demoMode]);
+    loadProjects();
+  }, []);
 
-  // Cargar datos del proyecto seleccionado (solo si no está en demo)
+  // Cargar datos del proyecto seleccionado
   useEffect(() => {
-    if (!demoMode && selectedProject?.id) {
+    if (selectedProject?.id) {
       loadTasks();
       loadMetrics();
     }
-  }, [selectedProject?.id, demoMode]);
+  }, [selectedProject?.id]);
 
   const tabs = [
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
@@ -149,12 +109,6 @@ const ProjectsModule = () => {
   ];
 
   const handleCreateProject = async () => {
-    // Si está en modo demo, solo simular
-    if (demoMode) {
-      alert('Modo Demo: En producción, esto crearía un proyecto real.');
-      return;
-    }
-    
     try {
       const newProject = await createProject({
         name: 'Nuevo Proyecto',
@@ -583,26 +537,10 @@ const ProjectsModule = () => {
   };
 
   const handleTaskMove = async (taskId: string, newStatus: string) => {
-    if (demoMode) {
-      // En modo demo, actualizar localmente
-      setDemoTasks(prev => prev.map(t => 
-        t.id === taskId ? { ...t, status: newStatus as any } : t
-      ));
-      return;
-    }
-    
     try {
       await updateStatus(taskId, newStatus);
     } catch (error) {
       console.error('Error updating task status:', error);
-    }
-  };
-  
-  const handleUpdateProgress = (taskId: string, newProgress: number) => {
-    if (demoMode) {
-      setDemoTasks(prev => prev.map(t => 
-        t.id === taskId ? { ...t, progress: newProgress } : t
-      ));
     }
   };
 
@@ -613,7 +551,7 @@ const ProjectsModule = () => {
       case 'dashboard':
         return (
           <div className="p-6 space-y-6">
-            <ProjectKPIs metrics={displayMetrics} />
+            <ProjectKPIs metrics={metrics} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {selectedProject.timeline.milestones.length > 0 && (
@@ -624,8 +562,8 @@ const ProjectsModule = () => {
                 />
               )}
               
-              {(demoMode ? demoRisks : selectedProject.risks).length > 0 && (
-                <RiskMatrix risks={demoMode ? demoRisks : selectedProject.risks} />
+              {selectedProject.risks.length > 0 && (
+                <RiskMatrix risks={selectedProject.risks} />
               )}
             </div>
           </div>
@@ -669,18 +607,18 @@ const ProjectsModule = () => {
 
             {/* Contenido */}
             <div className="flex-1 overflow-hidden">
-              {!demoMode && tasksLoading ? (
+              {tasksLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                 </div>
               ) : taskView === 'table' ? (
                 <TableView
-                  tasks={displayTasks}
+                  tasks={tasks}
                   onTaskClick={handleTaskClick}
                 />
               ) : (
                 <KanbanView
-                  tasks={displayTasks}
+                  tasks={tasks}
                   onTaskClick={handleTaskClick}
                   onTaskMove={handleTaskMove}
                 />
@@ -705,14 +643,14 @@ const ProjectsModule = () => {
       case 'team':
         return (
           <div className="p-6">
-            <TeamMembers members={demoMode ? demoTeamMembers : selectedProject.team.members} />
+            <TeamMembers members={selectedProject.team.members} />
           </div>
         );
 
       case 'materials':
         return (
           <div className="p-6">
-            <MaterialsList materials={demoMode ? demoMaterials : (selectedProject.inventory?.materials || [])} />
+            <MaterialsList materials={selectedProject.inventory?.materials || []} />
           </div>
         );
 
@@ -729,10 +667,7 @@ const ProjectsModule = () => {
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 mb-4">No hay milestones definidos</p>
-                <button 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  onClick={() => alert(demoMode ? 'Modo Demo: Esta función crearía un milestone real' : 'Funcionalidad disponible cuando el backend esté listo')}
-                >
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                   Agregar Milestone
                 </button>
               </div>
@@ -743,7 +678,7 @@ const ProjectsModule = () => {
       case 'risks':
         return (
           <div className="p-6">
-            <RiskMatrix risks={demoMode ? demoRisks : selectedProject.risks} />
+            <RiskMatrix risks={selectedProject.risks} />
           </div>
         );
 
@@ -819,12 +754,12 @@ const ProjectsModule = () => {
 
             {/* Lista de proyectos */}
             <div className="flex-1 overflow-y-auto p-4">
-              {displayLoading ? (
+              {projectsLoading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="text-sm text-gray-500 mt-3">Cargando proyectos...</p>
                 </div>
-              ) : displayProjects.length === 0 ? (
+              ) : projects.length === 0 ? (
                 <div className="text-center py-12">
                   <Layers className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm mb-4">No hay proyectos aún</p>
@@ -837,7 +772,7 @@ const ProjectsModule = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {displayProjects.map((project) => (
+                  {projects.map((project) => (
                     <button
                       key={project.id}
                       onClick={() => handleProjectClick(project)}
@@ -893,23 +828,6 @@ const ProjectsModule = () => {
           </div>
         </div>
 
-        {/* Indicador de modo demo */}
-        {demoMode && (
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Play className="w-4 h-4" />
-              <span className="text-sm font-medium">Modo Demo Activo - Usando datos de prueba</span>
-            </div>
-            <button
-              onClick={handleDisableDemoMode}
-              className="flex items-center gap-1 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm"
-            >
-              <X className="w-4 h-4" />
-              <span>Salir del Demo</span>
-            </button>
-          </div>
-        )}
-
         {selectedProject ? (
           <>
             {/* Header del proyecto */}
@@ -923,14 +841,7 @@ const ProjectsModule = () => {
                     <Layers className="w-5 h-5 text-gray-600" />
                   </button>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-xl font-bold text-gray-900">{selectedProject.name}</h1>
-                      {demoMode && (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                          DEMO
-                        </span>
-                      )}
-                    </div>
+                    <h1 className="text-xl font-bold text-gray-900">{selectedProject.name}</h1>
                     {selectedProject.code && (
                       <p className="text-sm text-gray-500 font-mono">{selectedProject.code}</p>
                     )}
@@ -1013,21 +924,6 @@ const ProjectsModule = () => {
                   <p className="text-xs text-gray-600">Integración completa</p>
                 </div>
               </div>
-              
-              {!demoMode && (
-                <div className="space-y-3 mb-6">
-                  <button 
-                    onClick={handleEnableDemoMode}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Play className="w-5 h-5" />
-                    Demo del Módulo
-                  </button>
-                  <p className="text-xs text-center text-gray-500">
-                    Prueba todas las funcionalidades con datos de ejemplo
-                  </p>
-                </div>
-              )}
               
               <button 
                 onClick={handleCreateProject}
