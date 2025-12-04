@@ -437,9 +437,7 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                       'knowledge-base': 'Base de Conocimiento',
                       'supervision': 'Supervisión',
                       'copilot': 'Copiloto IA',
-                      'inventory': 'Inventario',
-                      'shipping': 'Envíos',
-                      'services': 'Servicios'
+                      'inventory': 'Inventario'
                     };
 
                     const activePermissions = Object.values(permissions).filter(Boolean).length;
@@ -505,8 +503,6 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                       'supervision': 'Supervisión',
                       'copilot': 'Copiloto IA',
                       'inventory': 'Inventario',
-                      'shipping': 'Envíos',
-                      'services': 'Servicios',
                       'analytics': 'Analytics',
                       'ai': 'IA',
                       'settings': 'Configuración',

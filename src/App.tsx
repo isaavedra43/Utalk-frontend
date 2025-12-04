@@ -91,6 +91,14 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           } />
 
+          <Route path="/providers/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="providers">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
           <Route path="/contacts/*" element={
             <ErrorBoundary>
               <ProtectedRoute moduleId="contacts">
@@ -179,25 +187,17 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           } />
 
-          <Route path="/shipping/*" element={
-            <ErrorBoundary>
-              <ProtectedRoute moduleId="shipping">
-                <MainLayout />
-              </ProtectedRoute>
-            </ErrorBoundary>
-          } />
-
-          <Route path="/services/*" element={
-            <ErrorBoundary>
-              <ProtectedRoute moduleId="services">
-                <MainLayout />
-              </ProtectedRoute>
-            </ErrorBoundary>
-          } />
-
           <Route path="/fleet-tracking/*" element={
             <ErrorBoundary>
               <ProtectedRoute moduleId="fleet-tracking">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/projects/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="projects">
                 <MainLayout />
               </ProtectedRoute>
             </ErrorBoundary>

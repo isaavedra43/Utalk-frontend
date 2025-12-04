@@ -265,12 +265,31 @@ export class MonitoringInterceptor {
         // Call original method first
         originalMethod.apply(console, args);
         
+        // ✅ FILTRAR errores vacíos o sin información útil
+        const isEmptyError = args.length === 1 && (
+          !args[0] ||
+          (typeof args[0] === 'object' && Object.keys(args[0]).length === 0) ||
+          (typeof args[0] === 'object' && args[0].toString() === '{}') ||
+          (typeof args[0] === 'object' && JSON.stringify(args[0]) === '{}') ||
+          (typeof args[0] === 'string' && args[0].trim() === '')
+        );
+        
+        // Si es un error vacío, no registrar en monitoreo
+        if (isEmptyError && level === 'error') {
+          return;
+        }
+        
         // Extract meaningful information
         const message = args.map(arg => {
           if (typeof arg === 'string') return arg;
           if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
           return String(arg);
         }).join(' ');
+        
+        // Filtrar mensajes de error vacíos
+        if (level === 'error' && (message === '{}' || message.trim() === '' || message === '[object Object]')) {
+          return;
+        }
         
         // Add to monitoring
         self.callbacks.addLogEntry({
@@ -281,8 +300,8 @@ export class MonitoringInterceptor {
           source: self.getCallerInfo()
         });
         
-        // Add as error if it's an error log
-        if (level === 'error') {
+        // Add as error if it's an error log (solo si no es vacío)
+        if (level === 'error' && !isEmptyError && message !== '{}' && message.trim() !== '') {
           self.callbacks.addError({
             name: 'Console Error',
             message,

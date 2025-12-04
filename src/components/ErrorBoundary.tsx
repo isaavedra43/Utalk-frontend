@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: unknown): State {
-    // ✅ FILTRAR errores vacíos ANTES de actualizar el estado
+    // ✅ FILTRAR errores vacíos ANTES de actualizar el estado (sin loguear)
     if (!error || 
         (typeof error === 'object' && Object.keys(error).length === 0) ||
         (typeof error === 'object' && error.toString() === '{}') ||
@@ -53,8 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
         (typeof error === 'object' && error.toString() === '[object Object]') ||
         (typeof error === 'object' && error.constructor === Object && Object.keys(error).length === 0) ||
         (error && typeof error === 'object' && !(error as Error).message && !(error as Error).stack && !(error as Error).name)) {
-      console.warn('⚠️ getDerivedStateFromError - Error vacío detectado y filtrado');
-      // NO actualizar el estado para errores vacíos
+      // NO loguear ni actualizar el estado para errores vacíos
       return { hasError: false, retryCount: 0, isRecovering: false };
     }
     
@@ -72,7 +71,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return;
     }
 
-    // ✅ IGNORAR errores vacíos o sin información útil - FILTRO MÁS AGRESIVO
+    // ✅ IGNORAR errores vacíos o sin información útil - FILTRO MÁS AGRESIVO (sin loguear)
     if (!error || 
         (typeof error === 'object' && Object.keys(error).length === 0) ||
         (typeof error === 'object' && error.toString() === '{}') ||
@@ -81,8 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
         (typeof error === 'object' && error.toString() === '[object Object]') ||
         (typeof error === 'object' && error.constructor === Object && Object.keys(error).length === 0) ||
         (error && typeof error === 'object' && !(error as Error).message && !(error as Error).stack && !(error as Error).name)) {
-      console.warn('🚨 ErrorBoundary - Error vacío o inválido ignorado:', error);
-      // Resetear el estado para que no se muestre el fallback
+      // Resetear el estado para que no se muestre el fallback (sin loguear)
       if (this.state.hasError) {
         this.setState({ hasError: false, error: undefined, isRecovering: false });
       }
@@ -92,11 +90,11 @@ export class ErrorBoundary extends Component<Props, State> {
     const normalized = this.normalizeError(error);
     
     // ✅ Solo loggear errores con información útil
-    if (normalized.message && normalized.message !== 'Unknown non-Error exception') {
+    if (normalized.message && normalized.message !== 'Unknown non-Error exception' && normalized.message.trim() !== '{}') {
       console.error('🚨 ErrorBoundary - Error capturado:', normalized);
       console.error('🚨 ErrorBoundary - Error info:', errorInfo);
     } else {
-      console.warn('🚨 ErrorBoundary - Error sin información útil ignorado:', error);
+      // No loguear ni registrar errores sin información útil
       // Resetear el estado para que no se muestre el fallback
       if (this.state.hasError) {
         this.setState({ hasError: false, error: undefined, isRecovering: false });

@@ -19,9 +19,9 @@ const HRModule = lazy(() => import('../../modules/hr').then(m => ({ default: m.H
 const SupervisionModule = lazy(() => import('../../modules/supervision/SupervisionModule').then(m => ({ default: m.default })));
 const CopilotModule = lazy(() => import('../../modules/copilot/CopilotModule').then(m => ({ default: m.default })));
 const InventoryModule = lazy(() => import('../../modules/inventory/InventoryModule').then(m => ({ default: m.default })));
-const ShippingModule = lazy(() => import('../../modules/shipping/ShippingModule').then(m => ({ default: m.default })));
-const ServicesModule = lazy(() => import('../../modules/services/ServicesModule').then(m => ({ default: m.default })));
+const ProvidersModule = lazy(() => import('../../modules/providers/ProvidersModule').then(m => ({ default: m.default })));
 const FleetTrackingModule = lazy(() => import('../../modules/fleet-tracking/FleetTrackingModule').then(m => ({ default: m.default })));
+const ProjectsModule = lazy(() => import('../../modules/projects/ProjectsModule').then(m => ({ default: m.default })));
 import { CallsModule } from '../../modules';
 
 import { ModulePlaceholder } from './ModulePlaceholder';
@@ -104,9 +104,9 @@ export const MainLayout: React.FC = () => {
     if (path === '/supervision') return 'supervision';
     if (path === '/copilot') return 'copilot';
     if (path.startsWith('/inventory')) return 'inventory';
-    if (path.startsWith('/shipping')) return 'shipping';
-    if (path.startsWith('/services')) return 'services';
+    if (path.startsWith('/providers')) return 'providers';
     if (path.startsWith('/fleet-tracking')) return 'fleet-tracking';
+    if (path.startsWith('/projects')) return 'projects';
     return 'dashboard'; // default
   };
   
@@ -220,17 +220,10 @@ export const MainLayout: React.FC = () => {
             </ProtectedRoute>
           </Suspense>
         )}
-        {currentModule === 'shipping' && (
+        {currentModule === 'providers' && (
           <Suspense fallback={Fallback}>
-            <ProtectedRoute moduleId="shipping">
-              <ShippingModule />
-            </ProtectedRoute>
-          </Suspense>
-        )}
-        {currentModule === 'services' && (
-          <Suspense fallback={Fallback}>
-            <ProtectedRoute moduleId="services">
-              <ServicesModule />
+            <ProtectedRoute moduleId="providers">
+              <ProvidersModule />
             </ProtectedRoute>
           </Suspense>
         )}
@@ -241,7 +234,14 @@ export const MainLayout: React.FC = () => {
             </ProtectedRoute>
           </Suspense>
         )}
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'shipping' && currentModule !== 'services' && currentModule !== 'fleet-tracking' && (
+        {currentModule === 'projects' && (
+          <Suspense fallback={Fallback}>
+            <ProtectedRoute moduleId="projects">
+              <ProjectsModule />
+            </ProtectedRoute>
+          </Suspense>
+        )}
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'inventory' && currentModule !== 'providers' && currentModule !== 'fleet-tracking' && currentModule !== 'projects' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>

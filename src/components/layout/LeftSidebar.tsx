@@ -16,10 +16,9 @@ import {
   UserCheck,
   Eye,
   Bot,
-  Package,
-  Settings,
   Archive,
-  Truck
+  Truck,
+  FolderKanban
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -128,19 +127,19 @@ export const LeftSidebar: React.FC = () => {
       title: 'Inventario'
     },
     {
-      id: 'shipping',
-      icon: Package,
-      title: 'Envíos'
-    },
-    {
-      id: 'services',
-      icon: Settings,
-      title: 'Servicios'
+      id: 'providers',
+      icon: Building2,
+      title: 'Proveedores'
     },
     {
       id: 'fleet-tracking',
       icon: Truck,
       title: 'Rastreo de Flotilla'
+    },
+    {
+      id: 'projects',
+      icon: FolderKanban,
+      title: 'Proyectos'
     }
   ], []);
 
