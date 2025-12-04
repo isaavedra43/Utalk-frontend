@@ -130,7 +130,7 @@ export const MainLayout: React.FC = () => {
       <MobileMenu isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
       
       {/* Contenido principal */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         {currentModule === 'chat' && (
           <Suspense fallback={Fallback}>
             <ProtectedRoute moduleId="chat">

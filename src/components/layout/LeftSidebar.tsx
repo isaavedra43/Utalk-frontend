@@ -172,7 +172,7 @@ export const LeftSidebar: React.FC = () => {
       </div>
 
       {/* Navegación entre módulos */}
-      <div className="flex-1 p-2">
+      <div className="flex-1 p-2 overflow-y-auto min-h-0">
         <div className="space-y-2">
           {permissionsLoading ? (
             // Mostrar skeleton de carga mientras se cargan los permisos
